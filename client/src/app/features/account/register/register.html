@@ -1,0 +1,17 @@
+<div class="card bg-base-100 shadow-md max-w-sm mx-auto">
+  <form class="card-body gap-4" (ngSubmit)="register()">
+    <h2 class="card-title text-sm uppercase tracking-widest">Register</h2>
+
+    <input class="input w-full rounded-full" name="username" placeholder="Username"
+           [(ngModel)]="creds.username" required />
+    <input class="input w-full rounded-full" name="password" type="password" placeholder="Password (min 4)"
+           [(ngModel)]="creds.password" required minlength="4" />
+
+    @if (error()) {
+      <p class="text-error text-sm">{{ error() }}</p>
+    }
+
+    <button class="btn btn-primary rounded-full" type="submit">Register</button>
+    <a routerLink="/login" class="text-sm text-center link link-hover">Already have an account? Login</a>
+  </form>
+</div>

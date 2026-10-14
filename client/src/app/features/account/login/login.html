@@ -1,0 +1,17 @@
+<div class="card bg-base-100 shadow-md max-w-sm mx-auto">
+  <form class="card-body gap-4" (ngSubmit)="login()">
+    <h2 class="card-title text-sm uppercase tracking-widest">Login</h2>
+
+    <input class="input w-full rounded-full" name="username" placeholder="Username"
+           [(ngModel)]="creds.username" required />
+    <input class="input w-full rounded-full" name="password" type="password" placeholder="Password"
+           [(ngModel)]="creds.password" required />
+
+    @if (error()) {
+      <p class="text-error text-sm">{{ error() }}</p>
+    }
+
+    <button class="btn btn-primary rounded-full" type="submit">Login</button>
+    <a routerLink="/register" class="text-sm text-center link link-hover">No account? Register</a>
+  </form>
+</div>

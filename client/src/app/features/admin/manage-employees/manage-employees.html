@@ -1,0 +1,55 @@
+<div class="max-w-2xl mx-auto space-y-4">
+  <div class="card bg-base-100 shadow-md">
+    <form class="card-body gap-3" (ngSubmit)="create()">
+      <h2 class="card-title text-sm uppercase tracking-widest">New employee</h2>
+
+      <input class="input w-full rounded-full" name="username" placeholder="Username" [(ngModel)]="username" required />
+      <input class="input w-full rounded-full" name="password" type="password" placeholder="Password (min 4)"
+        [(ngModel)]="password" required minlength="4" />
+
+      <select class="select w-full rounded-full" name="counterId" [(ngModel)]="counterId">
+        <option [ngValue]="null">No counter</option>
+        @for (c of counters(); track c.id) {
+        <option [ngValue]="c.id">{{ c.name }}</option>
+        }
+      </select>
+
+      <button class="btn btn-primary rounded-full" type="submit">Create</button>
+    </form>
+  </div>
+
+  @if (success()) {
+  <p class="text-success text-sm">{{ success() }}</p>
+  }
+  @if (error()) {
+  <p class="text-error text-sm">{{ error() }}</p>
+  }
+
+  <div class="card bg-base-100 shadow-md">
+    <div class="card-body gap-3">
+      <h2 class="card-title text-sm uppercase tracking-widest">Employees</h2>
+
+      @for (e of employees(); track e.id) {
+      <div class="flex items-center justify-between gap-4">
+        <div>
+          <p class="font-medium">{{ e.username }}</p>
+          <p class="text-xs">{{ servicesOf(e) || 'No services' }}</p>
+        </div>
+        <select class="select select-sm rounded-full w-44" 
+          [ngModel]="e.counterId"
+          (ngModelChange)="changeCounter(e, $event)">
+          <option [ngValue]="null">No counter</option>
+          @for (c of counters(); track c.id) {
+          <option [ngValue]="c.id">{{ c.name }}</option>
+          }
+        </select>
+        <button class="btn btn-xs btn-outline btn-error rounded-full" (click)="remove(e.id)">
+          Delete
+        </button>
+      </div>
+      } @empty {
+      <p class="text-sm">No employees yet</p>
+      }
+    </div>
+  </div>
+</div>

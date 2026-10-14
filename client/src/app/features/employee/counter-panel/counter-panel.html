@@ -1,0 +1,21 @@
+<div class="max-w-md mx-auto space-y-4">
+  <div class="card bg-base-100 shadow-md">
+    <div class="card-body items-center text-center gap-3">
+      <h2 class="text-sm uppercase tracking-widest">Current ticket</h2>
+
+      @if (ticket(); as t) {
+        <p class="text-6xl font-semibold text-primary">{{ t.number }}</p>
+        <p>{{ t.serviceName }}</p>
+        <div class="badge badge-outline">{{ t.status }}</div>
+        <button class="btn btn-primary rounded-full w-full mt-2" (click)="finish()">Finish</button>
+      } @else {
+        <p class="text-sm">No ticket in progress</p>
+        <button class="btn btn-primary rounded-full w-full mt-2" (click)="callNext()">Call next</button>
+      }
+    </div>
+  </div>
+
+  @if (error()) {
+    <p class="text-error text-sm text-center">{{ error() }}</p>
+  }
+</div>

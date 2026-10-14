@@ -1,0 +1,20 @@
+<div class="max-w-4xl mx-auto">
+  <h2 class="text-sm uppercase tracking-widest text-center mb-6">Now serving</h2>
+
+  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+    @for (c of displayService.counters(); track c.counterId) {
+      <div class="card bg-base-100 shadow-md">
+        <div class="card-body items-center text-center gap-1">
+          <p class="text-sm uppercase tracking-widest">{{ c.counterName }}</p>
+          @if (c.currentTicketNumber !== null) {
+            <p class="text-7xl font-semibold text-primary">{{ c.currentTicketNumber }}</p>
+          } @else {
+            <p class="text-7xl font-semibold opacity-30">-</p>
+          }
+        </div>
+      </div>
+    } @empty {
+      <p class="text-sm text-center col-span-full">No active counters</p>
+    }
+  </div>
+</div>

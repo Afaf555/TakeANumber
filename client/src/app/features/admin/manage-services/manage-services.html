@@ -1,0 +1,31 @@
+<div class="max-w-md mx-auto space-y-4">
+    <div class="card bg-base-100 shadow-md">
+        <form class="card-body gap-3" (ngSubmit)="add()">
+            <h2 class="card-title text-sm uppercase tracking-widest">
+                New service
+            </h2>
+            <input class="input w-full rounded-full" name="name" placeholder="Service name" [(ngModel)]="newName"
+                required />
+            <button class="btn btn-primary rounded-full" type="submit">
+                Add </button>
+        </form>
+    </div>
+    @if(error()){
+    <p class="text-error text-sm">{{ error()}}</p>
+    }
+    <div class="card-body gap-2">
+        <h2 class="card-title text-sm uppercase tracking-widest">
+            Services
+        </h2>
+        @for (s of services(); track s.id) {
+        <div class="flex items-center justify-between">
+            <span>{{ s.name }}</span>
+            <button class="btn btn-xs btn-outline btn-error rounded-full" (click)="remove(s.id)">
+                Delete
+            </button>
+        </div>
+        } @empty {
+        <p class="text-sm">No services yet</p>
+        }
+    </div>
+</div>

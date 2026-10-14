@@ -1,0 +1,30 @@
+<div class="navbar bg-base-100 shadow-sm px-6">
+  <div class="flex-1">
+    <a [routerLink]="accountService.homeFor(accountService.currentUser()?.role)"
+       class="text-sm uppercase tracking-widest font-semibold">Queue</a>
+         </div>
+
+  <ul class="menu menu-horizontal gap-1 items-center">
+    <li><a routerLink="/display" routerLinkActive="menu-active">Display</a></li>
+
+    @if (accountService.currentUser(); as user) {
+      @if (user.role === 'Client') {
+        <li><a routerLink="/take-ticket" routerLinkActive="menu-active">Take ticket</a></li>
+      }
+      @if (user.role === 'Employee') {
+        <li><a routerLink="/counter-panel" routerLinkActive="menu-active">Counter</a></li>
+      }
+      @if (user.role === 'Admin') {
+        <li><a routerLink="/manage-services" routerLinkActive="menu-active">Services</a></li>
+        <li><a routerLink="/manage-counters" routerLinkActive="menu-active">Counters</a></li>
+        <li><a routerLink="/manage-employees" routerLinkActive="menu-active">Employees</a></li>
+        <li><a routerLink="/queue-overview" routerLinkActive="menu-active">Queue</a></li>
+      }
+      <li class="text-sm px-3">{{ user.username }}</li>
+      <li><button class="btn btn-sm rounded-full" (click)="logout()">Logout</button></li>
+    } @else {
+      <li><a routerLink="/login" routerLinkActive="menu-active">Login</a></li>
+      <li><a routerLink="/register" routerLinkActive="menu-active">Register</a></li>
+    }
+  </ul>
+</div>

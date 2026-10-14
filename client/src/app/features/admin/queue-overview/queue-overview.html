@@ -1,0 +1,53 @@
+<div class="max-w-3xl mx-auto space-y-4">
+  <div class="flex items-center justify-between">
+    <h2 class="text-sm uppercase tracking-widest font-semibold">
+      Queue · {{ waiting() }} waiting
+    </h2>
+    <div class="flex items-center gap-3">
+      <label class="flex items-center gap-2 text-sm">
+        Show finished
+        <input type="checkbox" class="toggle toggle-sm toggle-primary"
+               [checked]="showFinished()" #f (change)="showFinished.set(f.checked)" />
+      </label>
+      <button class="btn btn-sm rounded-full" (click)="load()">Refresh</button>
+    </div>
+  </div>
+
+  @if (error()) {
+    <p class="text-error text-sm">{{ error() }}</p>
+  }
+
+  <div class="card bg-base-100 shadow-md">
+    <div class="card-body overflow-x-auto">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Service</th>
+            <th>Status</th>
+            <th>Counter</th>
+            <th>Client</th>
+            <th>Taken</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (t of visible(); track t.id) {
+            <tr>
+              <td class="font-semibold">{{ t.number }}</td>
+              <td>{{ t.serviceName }}</td>
+              <td>
+                <span class="badge badge-outline"
+                      [class.badge-primary]="t.status === 'InProgress'">{{ t.status }}</span>
+              </td>
+              <td>{{ t.counterName || '-' }}</td>
+              <td>{{ t.clientUsername || '-' }}</td>
+              <td>{{ t.createdAt | date: 'HH:mm' }}</td>
+            </tr>
+          } @empty {
+            <tr><td colspan="6" class="text-sm">No tickets at the moment</td></tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
