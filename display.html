@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Display</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.7/signalr.min.js"></script>
+</head>
+<body>
+    <h1>Active counters</h1>
+    <ul id="counters"></ul>
+
+  <script>
+    const list = document.getElementById("counters");
+
+    function renderAll(counters) {
+        list.innerHTML = "";
+        counters.forEach(c => {
+            const li = document.createElement("li");
+            li.textContent = c.counterName + ": " + (c.currentTicketNumber ?? "free");
+            list.appendChild(li);
+        });
+    }
+
+    fetch("/api/display/counters")
+        .then(r => r.json())
+        .then(renderAll);
+
+    const connection = new signalR.HubConnectionBuilder()
+        .withUrl("/hubs/queue")
+        .build();
+
+    connection.on("CountersUpdated", renderAll);
+    connection.start();
+</script>
+</body>
+</html>
