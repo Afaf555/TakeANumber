@@ -1,56 +1,58 @@
 <div class="max-w-md mx-auto space-y-4">
     @if (error()) {
-        <p class="text-error text-sm">{{error()}}</p>
+    <p class="text-error text-sm">{{error()}}</p>
     }
     @if (ticket(); as t) {
-        <div class="card bg-base-100 shadow-md">
-            <div class="card-body items-center text-center gap-2">
-                <h2 class="text-sm uppercase tracking-widest">
-                    Your ticket
-                </h2>
-                <p class="text-6xl font-semibold text-primary" >
-                    {{t.number}}
-                </p>
-                <p>{{t.serviceName}}</p>
-                <div class="badge badge-outline">
-                    {{t.status}}
-                </div>
-                @if(t.status==="InQueue"){
-                    <p class="text-sm">People ahead: {{t.peopleAhead}}</p>
-                }
-                @if (t.counterName) {
-                    <p class="text-sm">Counter: {{t.counterName}}</p>
-                }
-                <div class="card-actions mt-2">
-                    <!-- <button class="btn btn-sm rounded-full" (click)="refresh()">
+    <div class="card bg-base-100 shadow-md">
+        <div class="card-body items-center text-center gap-2">
+            <h2 class="text-sm uppercase tracking-widest">
+                Your ticket
+            </h2>
+            <p class="text-6xl font-semibold text-primary">
+                {{t.code}}
+            </p>
+            <p>{{t.serviceName}}</p>
+            <div class="badge badge-outline">
+                {{t.status}}
+            </div>
+            @if(t.status==="InQueue"){
+            <p class="text-sm">You are number {{ t.peopleAhead + 1 }} in the queue</p>
+            }
+            @if (t.counterName) {
+            <p class="text-sm">Counter: {{t.counterName}}</p>
+            }
+            <div class="card-actions mt-2">
+                <!-- <button class="btn btn-sm rounded-full" (click)="refresh()">
                         Refresh
                     </button> -->
-                    @if (t.status === 'Finished') {
-                        <button class="btn btn-sm btn-primary rounded-full"
-                        (click)="newTicket()">
-                        Take a ticket
-                        </button>
-                    }
+                <!-- @if (t.status === 'Finished') {
+                <button class="btn btn-sm btn-primary rounded-full" (click)="newTicket()">
+                    Take a ticket
+                </button>
+                } -->
+                <div class="card-actions mt-2">
+                    <button class="btn btn-primary rounded-full" (click)="newTicket()">
+                        Next user
+                    </button>
                 </div>
             </div>
         </div>
+    </div>
     } @else{
-        <div class="card bg-base-100 shadow-md">
-            <div class="card-body gap-3">
-                <h2 class="card-title text-sm uppercase tracking-widest">
-                    Choose a service
-                </h2>
-                @for (s of services(); track s.id) {
-                    <button class="btn btn-primary btn-outline rounded-full"
-                    (click)="takeTicket(s.id)">
-                        {{s.name}}
-                    </button>
-                } @empty{
-                    <p class="text-sm">No services available</p>
-                }
-
-            </div>
+    <div class="card bg-base-100 shadow-md">
+        <div class="card-body gap-3">
+            <h2 class="card-title text-sm uppercase tracking-widest">
+                Choose a service
+            </h2>
+            @for (s of services(); track s.id) {
+            <button class="btn btn-primary btn-outline rounded-full" (click)="takeTicket(s.id)">
+                {{s.name}}
+            </button>
+            } @empty{
+            <p class="text-sm">No services available</p>
+            }
         </div>
+    </div>
     }
 
 

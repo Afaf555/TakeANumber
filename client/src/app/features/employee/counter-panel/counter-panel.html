@@ -4,7 +4,7 @@
       <h2 class="text-sm uppercase tracking-widest">Current ticket</h2>
 
       @if (ticket(); as t) {
-        <p class="text-6xl font-semibold text-primary">{{ t.number }}</p>
+        <p class="text-6xl font-semibold text-primary">{{ t.code }}</p>
         <p>{{ t.serviceName }}</p>
         <div class="badge badge-outline">{{ t.status }}</div>
         <button class="btn btn-primary rounded-full w-full mt-2" (click)="finish()">Finish</button>

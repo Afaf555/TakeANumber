@@ -21,8 +21,8 @@ export class ClientService {
   getTicket(id: number) {
     return this.http.get<Ticket>(this.baseUrl + 'tickets/' + id);
   }
-  getActiveTicket() {
-    return this.http.get<Ticket | null>(this.baseUrl + 'tickets/active');
-  }
+  // getActiveTicket() {
+  //   return this.http.get<Ticket | null>(this.baseUrl + 'tickets/active');
+  // }
   
 }

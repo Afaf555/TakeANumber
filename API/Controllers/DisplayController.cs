@@ -13,5 +13,11 @@ namespace API.Controllers
         {
             return Ok(await counterRepository.GetActiveCountersAsync());
         }
+        [HttpGet("queues")]
+        public async Task<ActionResult<IReadOnlyList<ServiceQueueDto>>> GetQueues()
+        {
+            return Ok(await counterRepository.GetServiceQueuesAsync());
+        }
     }
+
 }

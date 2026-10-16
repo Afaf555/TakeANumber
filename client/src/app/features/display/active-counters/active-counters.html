@@ -3,18 +3,48 @@
 
   <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
     @for (c of displayService.counters(); track c.counterId) {
-      <div class="card bg-base-100 shadow-md">
-        <div class="card-body items-center text-center gap-1">
-          <p class="text-sm uppercase tracking-widest">{{ c.counterName }}</p>
-          @if (c.currentTicketNumber !== null) {
-            <p class="text-7xl font-semibold text-primary">{{ c.currentTicketNumber }}</p>
-          } @else {
-            <p class="text-7xl font-semibold opacity-30">-</p>
-          }
-        </div>
+    <div class="card bg-base-100 shadow-md">
+      <div class="card-body items-center text-center gap-1">
+        <p class="text-sm uppercase tracking-widest">{{ c.counterName }}</p>
+        @if (c.currentTicketCode !== null) {
+        <p class="text-5xl font-semibold text-primary">{{ c.currentTicketCode }}</p>
+        } @else {
+        <p class="text-5xl font-semibold opacity-30">-</p>
+        }
       </div>
+    </div>
     } @empty {
-      <p class="text-sm text-center col-span-full">No active counters</p>
+    <p class="text-sm text-center col-span-full">No active counters</p>
+    }
+  </div>
+
+  <h2 class="text-sm uppercase tracking-widest text-center mt-10 mb-6">Queues by service</h2>
+
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+    @for (q of displayService.queues(); track q.serviceId) {
+    <div class="card bg-base-100 shadow-md">
+      <div class="card-body gap-2">
+        <h3 class="card-title text-sm uppercase tracking-widest">{{ q.serviceName }}</h3>
+
+        <p class="text-sm">Now serving:
+          @for (s of q.serving; track s.code) {
+          <span class="badge badge-primary badge-lg ml-1">{{ s.code }} · {{ s.counterName }}</span>
+          } @empty {
+          <span class="opacity-50">-</span>
+          }
+        </p>
+
+        <p class="text-sm">Next in queue:
+          @for (n of q.nextCodes; track n) {
+          <span class="badge badge-outline ml-1">{{ n }}</span>
+          } @empty {
+          <span class="opacity-50">nobody waiting</span>
+          }
+        </p>
+      </div>
+    </div>
+    } @empty {
+    <p class="text-sm text-center col-span-full">No services</p>
     }
   </div>
 </div>

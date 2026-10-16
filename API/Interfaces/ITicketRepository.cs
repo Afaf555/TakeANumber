@@ -10,8 +10,7 @@ public interface ITicketRepository
     Task<bool> ServiceExistsAsync(int serviceId);
     Task<int> GetLastNumberTodayAsync();
     void AddTicket(Ticket ticket);
-    Task<TicketDto?> GetTicketForClientAsync(int ticketId, int clientId);
+    Task<TicketDto?> GetTicketAsync(int ticketId);
     Task<bool> SaveAllAsync();
-    Task<int?> GetActiveTicketIdAsync(int clientId);
 
 }

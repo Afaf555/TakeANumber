@@ -47,7 +47,8 @@ public async Task<Ticket?> GetNextTicketAsync(int counterId)
             ServiceName=x.Service.Name,
             Status=x.Status.ToString(),
             CreatedAt=x.CreatedAt,
-            StartedAt=x.StartedAt
+            StartedAt=x.StartedAt,
+            ServiceCode = x.Service.Code,
         }).SingleOrDefaultAsync();
     }
 

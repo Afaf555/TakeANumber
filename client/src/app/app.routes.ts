@@ -13,14 +13,15 @@ import { guestGuard } from './core/guards/guest-guard';
 import { QueueOverview } from './features/admin/queue-overview/queue-overview';
 
 export const routes: Routes = [
-  { path: '', redirectTo: 'login', pathMatch: 'full' },
+  { path: '', redirectTo: 'take-ticket', pathMatch: 'full' },
   { path: 'login', component: Login, canActivate: [guestGuard] },
-  { path: 'register', component: Register, canActivate: [guestGuard] },
+  { path: 'register', component: Register },
   { path: 'display', component: ActiveCounters },
+  { path: 'take-ticket', component: TakeTicket },
+
   {
     path: 'take-ticket',
     component: TakeTicket,
-    canActivate: [authGuard, roleGuard],
     data: { roles: ['Client'] },
   },
   {
@@ -52,5 +53,5 @@ export const routes: Routes = [
   canActivate: [authGuard, roleGuard],
   data: { roles: ['Admin'] },
 },
-  { path: '**', redirectTo: 'login', pathMatch: 'full' },
+  { path: '**', redirectTo: 'take-ticket', pathMatch: 'full' },
 ];

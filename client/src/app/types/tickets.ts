@@ -1,6 +1,7 @@
 export type Service = {
   id: number;
   name: string;
+  code: string;
 };
 
 export type Ticket = {
@@ -12,4 +13,6 @@ export type Ticket = {
   createdAt: string;
   peopleAhead: number;
   counterName: string | null;
+  code: string;
+  serviceCode: string;
 };

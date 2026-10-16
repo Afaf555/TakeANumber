@@ -4,6 +4,7 @@ using API.Data;
 using API.DTOs;
 using API.Entities;
 using API.Entities.Enums;
+using API.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -11,43 +12,51 @@ using Microsoft.EntityFrameworkCore;
 namespace API.Controllers;
 
 [Authorize(Roles = "Admin")]
-public class AdminController(AppDbContext context) : BaseApiController
+public class AdminController(AppDbContext context, ActivityLogger logger) : BaseApiController
 {
 
     [HttpGet("services")]
     public async Task<ActionResult<List<ServiceDto>>> GetServices()
     {
         return await context.Services
-            .Select(x => new ServiceDto { Id = x.Id, Name = x.Name })
+            .Select(x => new ServiceDto { Id = x.Id, Name = x.Name, Code = x.Code })
             .ToListAsync();
     }
 
     [HttpPost("services")]
     public async Task<ActionResult<ServiceDto>> CreateService(CreateServiceDto dto)
     {
-        var service = new Service { Name = dto.Name };
+        var code = dto.Code.Trim().ToUpper();
+        if (await context.Services.AnyAsync(x => x.Code == code))
+            return BadRequest("Code is already used");
+        var service = new Service { Name = dto.Name, Code = dto.Code };
         context.Services.Add(service);
         await context.SaveChangesAsync();
-
-        return new ServiceDto { Id = service.Id, Name = service.Name };
+        await logger.LogAsync(LogActions.ServiceCreated, "Service", service.Id, $"{code} - {service.Name}");
+        return new ServiceDto { Id = service.Id, Name = service.Name, Code = service.Code };
     }
 
+  
     [HttpDelete("services/{id}")]
-    public async Task<ActionResult> DeleteService(int id)
-    {
-        var service = await context.Services.FindAsync(id);
-        if (service == null) return NotFound();
+public async Task<ActionResult> DeleteService(int id)
+{
+    var service = await context.Services.FindAsync(id);
+    if (service == null) return NotFound();
 
-        if (await context.Tickets.AnyAsync(x => x.ServiceId == id))
-            return BadRequest("Service has tickets and cannot be deleted");
+    if (await context.Tickets.AnyAsync(x => x.ServiceId == id))
+        return BadRequest("Service has tickets and cannot be deleted");
 
-        var links = context.CounterServices.Where(x => x.ServiceId == id);
-        context.CounterServices.RemoveRange(links);
-        context.Services.Remove(service);
-        await context.SaveChangesAsync();
+    var serviceLabel = $"{service.Code} - {service.Name}";    
 
-        return NoContent();
-    }
+    var links = context.CounterServices.Where(x => x.ServiceId == id);
+    context.CounterServices.RemoveRange(links);
+    context.Services.Remove(service);
+    await context.SaveChangesAsync();
+
+    await logger.LogAsync(LogActions.ServiceDeleted, "Service", id, serviceLabel);  
+
+    return NoContent();
+}
 
 
     [HttpGet("counters")]
@@ -70,7 +79,7 @@ public class AdminController(AppDbContext context) : BaseApiController
         var counter = new Counter { Name = dto.Name, IsActive = true };
         context.Counters.Add(counter);
         await context.SaveChangesAsync();
-
+        await logger.LogAsync(LogActions.CounterCreated, "Counter", counter.Id, counter.Name);
         return new CounterDto { Id = counter.Id, Name = counter.Name, IsActive = counter.IsActive };
     }
 
@@ -88,18 +97,20 @@ public class AdminController(AppDbContext context) : BaseApiController
         if (existingCount != distinctIds.Count)
             return BadRequest("One or more services do not exist");
 
+        var oldIds = counter.CounterServices.Select(cs => cs.ServiceId).ToList();   // ← ново
+
         context.CounterServices.RemoveRange(counter.CounterServices);
 
         foreach (var serviceId in distinctIds)
         {
-            context.CounterServices.Add(new CounterService
-            {
-                CounterId = counter.Id,
-                ServiceId = serviceId
-            });
+            context.CounterServices.Add(new CounterService { CounterId = counter.Id, ServiceId = serviceId });
         }
 
         await context.SaveChangesAsync();
+
+        if (!oldIds.OrderBy(x => x).SequenceEqual(distinctIds.OrderBy(x => x)))     // само ако навистина има промена
+            await logger.LogAsync(LogActions.CounterServicesChanged, "Counter", counter.Id,
+                $"{counter.Name}: [{await ServiceNames(oldIds)}] -> [{await ServiceNames(distinctIds)}]");
 
         return new CounterDto
         {
@@ -115,9 +126,12 @@ public class AdminController(AppDbContext context) : BaseApiController
     {
         var counter = await context.Counters.FindAsync(id);
         if (counter == null) return NotFound();
-
+        var wasActive = counter.IsActive;
         counter.IsActive = isActive;
         await context.SaveChangesAsync();
+        if (wasActive != isActive)
+            await logger.LogAsync(LogActions.CounterActiveChanged, "Counter", id,
+                $"{counter.Name}: {(isActive ? "inactive -> active" : "active -> inactive")}");
 
         return NoContent();
     }
@@ -151,7 +165,8 @@ public class AdminController(AppDbContext context) : BaseApiController
 
         context.Users.Add(employee);
         await context.SaveChangesAsync();
-
+        await logger.LogAsync(LogActions.EmployeeCreated, "Employee", employee.Id,
+            $"{employee.Username}, counter: {await CounterName(dto.CounterId)}");
         return Ok(new { employee.Id, employee.Username, employee.CounterId });
     }
     [HttpGet("employees")]
@@ -184,8 +199,12 @@ public class AdminController(AppDbContext context) : BaseApiController
                 return BadRequest("Counter already has an employee");
         }
 
+        var oldCounterId = employee.CounterId;
         employee.CounterId = dto.CounterId;
         await context.SaveChangesAsync();
+
+        await logger.LogAsync(LogActions.EmployeeCounterChanged, "Employee", employee.Id,
+            $"{employee.Username}: {await CounterName(oldCounterId)} -> {await CounterName(dto.CounterId)}");
 
         return NoContent();
     }
@@ -195,6 +214,7 @@ public class AdminController(AppDbContext context) : BaseApiController
         var today = DateTime.UtcNow.Date;
         var counter = await context.Counters.FindAsync(id);
         if (counter == null) return NotFound();
+        var counterName = counter.Name;
 
         if (await context.Tickets.AnyAsync(x =>
                 x.CounterId == id && x.Status == TicketStatus.InProgress &&
@@ -211,6 +231,8 @@ public class AdminController(AppDbContext context) : BaseApiController
         context.CounterServices.RemoveRange(links);
         context.Counters.Remove(counter);
         await context.SaveChangesAsync();
+        await logger.LogAsync(LogActions.CounterDeleted, "Counter", id, counterName);
+
         return NoContent();
 
     }
@@ -220,9 +242,10 @@ public class AdminController(AppDbContext context) : BaseApiController
     {
         var employee = await context.Users.SingleOrDefaultAsync(x => x.Id == id && x.Role == Role.Employee);
         if (employee == null) return NotFound();
-
+        var employeeName = employee.Username;
         context.Users.Remove(employee);
         await context.SaveChangesAsync();
+        await logger.LogAsync(LogActions.EmployeeDeleted, "Employee", id, employeeName);
         return NoContent();
     }
     [HttpPut("counters/{id}/name")]
@@ -234,8 +257,12 @@ public class AdminController(AppDbContext context) : BaseApiController
         if (counter == null) return NotFound();
         var name = renameCounterDto.Name.Trim();
         if (string.IsNullOrEmpty(name)) return BadRequest("Name is required");
+        var oldName = counter.Name;
         counter.Name = name;
         await context.SaveChangesAsync();
+
+        await logger.LogAsync(LogActions.CounterRenamed, "Counter", counter.Id,
+            $"{oldName} -> {name}");
         return new CounterDto
         {
             Id = counter.Id,
@@ -252,29 +279,51 @@ public class AdminController(AppDbContext context) : BaseApiController
             .SingleOrDefaultAsync(x => x.Id == id && x.Role == Role.Employee);
         if (employee == null) return NotFound();
 
+        var oldCounterId = employee.CounterId;
         employee.CounterId = null;
         await context.SaveChangesAsync();
+
+        await logger.LogAsync(LogActions.EmployeeCounterChanged, "Employee", employee.Id,
+            $"{employee.Username}: {await CounterName(oldCounterId)} -> none");
 
         return NoContent();
     }
     [HttpGet("tickets")]
-public async Task<ActionResult<List<AdminTicketDto>>> GetTickets()
-{
-    var today = DateTime.UtcNow.Date;
+    public async Task<ActionResult<List<AdminTicketDto>>> GetTickets()
+    {
+        var today = DateTime.UtcNow.Date;
 
-    return await context.Tickets
-        .Where(x => x.CreatedAt >= today)
-        .OrderBy(x => x.Id)
-        .Select(x => new AdminTicketDto
-        {
-            Id = x.Id,
-            Number = x.Number,
-            ServiceName = x.Service.Name,
-            Status = x.Status.ToString(),
-            CreatedAt = x.CreatedAt,
-            CounterName = x.Counter != null ? x.Counter.Name : null,
-            ClientUsername = x.Client != null ? x.Client.Username : null
-        })
-        .ToListAsync();
-}
+        return await context.Tickets
+            .Where(x => x.CreatedAt >= today)
+            .OrderBy(x => x.Id)
+            .Select(x => new AdminTicketDto
+            {
+                Id = x.Id,
+                Number = x.Number,
+                ServiceName = x.Service.Name,
+                Status = x.Status.ToString(),
+                CreatedAt = x.CreatedAt,
+                CounterName = x.Counter != null ? x.Counter.Name : null,
+                ClientUsername = x.Client != null ? x.Client.Username : null,
+                ServiceCode = x.Service.Code,
+            })
+            .ToListAsync();
+    }
+    private async Task<string> CounterName(int? id)
+    {
+        return id == null ? "none"
+               : await context.Counters.Where(c => c.Id == id).Select(c => c.Name).SingleOrDefaultAsync() ?? "none";
+    }
+    private async Task<string> ServiceNames(IEnumerable<int> ids)
+    {
+        var list = ids.ToList();
+        if (list.Count == 0) return "none";
+
+        var names = await context.Services
+            .Where(s => list.Contains(s.Id))
+            .Select(s => s.Name)
+            .ToListAsync();
+
+        return string.Join(", ", names);
+    }
 }

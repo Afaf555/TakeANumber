@@ -1,3 +1,5 @@
+using API.Extensions;
+
 namespace API.DTOs;
 
 public class AdminTicketDto
@@ -9,4 +11,6 @@ public class AdminTicketDto
     public DateTime CreatedAt { get; set; }
     public string? CounterName { get; set; }
     public string? ClientUsername { get; set; }
+    public string ServiceCode { get; set; } = "";
+    public string Code => TicketCode.Format(ServiceCode, Number);
 }

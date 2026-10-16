@@ -18,6 +18,7 @@ export class TakeTicket implements OnInit, OnDestroy {
   protected services = signal<Service[]>([]);
   protected ticket = signal<Ticket | null>(null);
   protected error = signal('');
+  private resetTimer?: ReturnType<typeof setTimeout>;
 
   ngOnInit() {
     this.clientService.getServices().subscribe({
@@ -25,17 +26,13 @@ export class TakeTicket implements OnInit, OnDestroy {
       error: () => this.error.set('Could not load services'),
     });
 
-    this.clientService.getActiveTicket().subscribe({
-      next: (ticket) => this.ticket.set(ticket),
-      error: () => this.error.set('Could not load ticket'),
-    });
-
     this.updateSub = this.displayService.updated$.subscribe(() => this.refresh());
     this.displayService.startConnection();
   }
   ngOnDestroy() {
+    clearTimeout(this.resetTimer);
     this.updateSub?.unsubscribe();
-    this.displayService.stopConnection();
+    // this.displayService.stopConnection();
   }
 
   takeTicket(serviceId: number) {
@@ -43,7 +40,7 @@ export class TakeTicket implements OnInit, OnDestroy {
       next: (ticket) => {
         this.ticket.set(ticket);
         this.error.set('');
-      },
+   },
       error: (err) =>
         this.error.set(typeof err.error === 'string' ? err.error : 'Could not create ticket'),
     });
@@ -56,6 +53,7 @@ export class TakeTicket implements OnInit, OnDestroy {
 
   newTicket() {
     this.ticket.set(null);
+    this.error.set('');
   }
 
   private loadTicket(id: number) {

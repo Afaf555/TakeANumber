@@ -5,4 +5,5 @@ export type EmployeeTicket={
     status:string;
     createdAt: string;
     startedAt: string | null;
+    code:string;
 };

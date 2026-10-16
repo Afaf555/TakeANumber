@@ -14,58 +14,50 @@ public class TicketRepository(AppDbContext context) : ITicketRepository
         context.Tickets.Add(ticket);
     }
 
-    public async Task<int?> GetActiveTicketIdAsync(int clientId)
-    {
-        var today=DateTime.UtcNow.Date;
-        return await context.Tickets
-        .Where(x=>x.ClientId==clientId && x.CreatedAt>=today && (x.Status==TicketStatus.InQueue || x.Status==TicketStatus.InProgress))
-        .OrderByDescending(x=>x.Id)
-        .Select(x=>(int?)x.Id)
-        .FirstOrDefaultAsync();
-    }
-
     public async Task<int> GetLastNumberTodayAsync()
-{
-    var today = DateTime.UtcNow.Date;
+    {
+        var today = DateTime.UtcNow.Date;
 
-    return await context.Tickets
-        .Where(x => x.CreatedAt >= today)
-        .MaxAsync(x => (int?)x.Number) ?? 0;
-}
+        return await context.Tickets
+            .Where(x => x.CreatedAt >= today)
+            .MaxAsync(x => (int?)x.Number) ?? 0;
+    }
     public async Task<IReadOnlyList<ServiceDto>> GetServicesAsync()
     {
         return await context.Services.Select(x => new ServiceDto
         {
             Id = x.Id,
-            Name = x.Name
+            Name = x.Name,
+            Code = x.Code
         }).ToListAsync();
     }
 
-    public async Task<TicketDto?> GetTicketForClientAsync(int ticketId, int clientId)
-{
-    var today = DateTime.UtcNow.Date;
+    public async Task<TicketDto?> GetTicketAsync(int ticketId)
+    {
+        var today = DateTime.UtcNow.Date;
 
-    return await context.Tickets
-        .Where(x => x.Id == ticketId && x.ClientId == clientId && x.CreatedAt >= today)
-        .Select(x => new TicketDto
-        {
-            Id = x.Id,
-            Number = x.Number,
-            ServiceId = x.ServiceId,
-            ServiceName = x.Service.Name,
-            Status = x.Status.ToString(),
-            CreatedAt = x.CreatedAt,
-            CounterName = x.Counter != null ? x.Counter.Name : null,
-            PeopleAhead = x.Status == TicketStatus.InQueue
-                ? context.Tickets.Count(t =>
-                    t.ServiceId == x.ServiceId &&
-                    t.Status == TicketStatus.InQueue &&
-                    t.CreatedAt >= today &&
-                    t.Id < x.Id)
-                : 0
-        })
-        .SingleOrDefaultAsync();
-}
+        return await context.Tickets
+            .Where(x => x.Id == ticketId && x.CreatedAt >= today)
+            .Select(x => new TicketDto
+            {
+                Id = x.Id,
+                Number = x.Number,
+                ServiceId = x.ServiceId,
+                ServiceName = x.Service.Name,
+                Status = x.Status.ToString(),
+                CreatedAt = x.CreatedAt,
+                CounterName = x.Counter != null ? x.Counter.Name : null,
+                PeopleAhead = x.Status == TicketStatus.InQueue
+                    ? context.Tickets.Count(t =>
+                        t.ServiceId == x.ServiceId &&
+                        t.Status == TicketStatus.InQueue &&
+                        t.CreatedAt >= today &&
+                        t.Id < x.Id)
+                    : 0,
+                ServiceCode = x.Service.Code,
+            })
+            .SingleOrDefaultAsync();
+    }
 
     public async Task<bool> SaveAllAsync()
     {
@@ -74,6 +66,6 @@ public class TicketRepository(AppDbContext context) : ITicketRepository
 
     public async Task<bool> ServiceExistsAsync(int serviceId)
     {
-        return await context.Services.AnyAsync(x=>x.Id==serviceId);
+        return await context.Services.AnyAsync(x => x.Id == serviceId);
     }
 }

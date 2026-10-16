@@ -8,6 +8,7 @@ public class Service
  public string Name { get; set; }="";
  public List<CounterService> CounterServices { get; set; }=[];
  public List<Ticket> Tickets { get; set; }=[];
+ public string  Code { get; set; }="";
 
 }
 

@@ -6,6 +6,8 @@
             </h2>
             <input class="input w-full rounded-full" name="name" placeholder="Service name" [(ngModel)]="newName"
                 required />
+            <input class="input w-full rounded-full" name="code" placeholder="Code (e.g. P, LK)" maxlength="3"
+                [(ngModel)]="newCode" required />
             <button class="btn btn-primary rounded-full" type="submit">
                 Add </button>
         </form>
@@ -19,8 +21,8 @@
         </h2>
         @for (s of services(); track s.id) {
         <div class="flex items-center justify-between">
-            <span>{{ s.name }}</span>
-            <button class="btn btn-xs btn-outline btn-error rounded-full" (click)="remove(s.id)">
+            <span><span class="badge badge-outline mr-2">{{ s.code }}</span>{{ s.name }}</span> <button
+                class="btn btn-xs btn-outline btn-error rounded-full" (click)="remove(s.id)">
                 Delete
             </button>
         </div>

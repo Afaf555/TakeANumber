@@ -14,6 +14,7 @@ export class ManageServices implements OnInit {
   protected services=signal<Service[]>([])
   protected error=signal('');
   protected newName='';
+  protected newCode='';
 
 
   ngOnInit(): void {
@@ -24,11 +25,13 @@ export class ManageServices implements OnInit {
   }
   add(){
     const name=this.newName.trim();
-    if(!name) return;
-    this.adminService.createService(name).subscribe({
+    const code=this.newCode.trim();
+    if(!name || !code) return;
+    this.adminService.createService(name,code).subscribe({
       next:(service)=>{
         this.services.update((list)=>[...list,service]);
         this.newName='';
+        this.newCode='';
         this.error.set('');
       },
       error:()=>this.error.set('Could not create service'),

@@ -1,7 +1,9 @@
 using API.DTOs;
+using API.Entities;
 using API.Entities.Enums;
 using API.Extensions;
 using API.Interfaces;
+using API.Services;
 using API.SignalR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
@@ -14,7 +16,7 @@ namespace API.Controllers
     public class EmployeeController(
     IEmployeeRepository employeeRepository,
     ICounterRepository counterRepository,
-    IHubContext<QueueHub> hubContext) : BaseApiController
+    IHubContext<QueueHub> hubContext, ActivityLogger logger) : BaseApiController
     {
         [HttpGet("current")]
         public async Task<ActionResult<EmployeeTicketsDto>> GetCurrentTicket()
@@ -54,9 +56,13 @@ namespace API.Controllers
             {
                 var counters = await counterRepository.GetActiveCountersAsync();
                 await hubContext.Clients.All.SendAsync("CountersUpdated", counters);
+                await hubContext.Clients.All.SendAsync("QueuesUpdated", await counterRepository.GetServiceQueuesAsync());
 
                 var ticket = await employeeRepository.GetTicketDtoAsync(next.Id);
                 if (ticket == null) return NotFound();
+
+                await logger.LogAsync(LogActions.TicketCalled, "Ticket", next.Id,
+                    $"{ticket.Code}, counter {counterId}");
                 return ticket;
             }
 
@@ -76,11 +82,14 @@ namespace API.Controllers
 
             if (await employeeRepository.SaveAllAsync())
             {
+           
                 var counters = await counterRepository.GetActiveCountersAsync();
                 await hubContext.Clients.All.SendAsync("CountersUpdated", counters);
-
+                await hubContext.Clients.All.SendAsync("QueuesUpdated", await counterRepository.GetServiceQueuesAsync());
                 var ticket = await employeeRepository.GetTicketDtoAsync(current.Id);
                 if (ticket == null) return NotFound();
+
+                await logger.LogAsync(LogActions.TicketFinished, "Ticket", current.Id, ticket.Code);
                 return ticket;
             }
 

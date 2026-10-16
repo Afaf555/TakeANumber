@@ -3,7 +3,7 @@ import { inject, Injectable, signal } from '@angular/core';
 import { HubConnection, HubConnectionBuilder } from '@microsoft/signalr';
 import { Subject } from 'rxjs';
 import { environment } from '../../../environments/environment';
-import { ActiveCounter } from '../../types/display';
+import { ActiveCounter, ServiceQueue } from '../../types/display';
 
 @Injectable({
   providedIn: 'root',
@@ -14,6 +14,7 @@ export class DisplayService {
 
   counters = signal<ActiveCounter[]>([]);
   updated$ = new Subject<void>();
+  queues = signal<ServiceQueue[]>([]);
 
   startConnection() {
     this.loadCounters();
@@ -22,13 +23,15 @@ export class DisplayService {
       .withUrl(environment.hubUrl)
       .withAutomaticReconnect()
       .build();
-
+   
     this.hubConnection.on('CountersUpdated', (counters: ActiveCounter[]) => {
       console.log('CountersUpdated received', counters);
       this.counters.set(counters);
+    });
+    this.hubConnection.on('QueuesUpdated', (queues: ServiceQueue[]) => {
+      this.queues.set(queues);
       this.updated$.next();
     });
-
     this.hubConnection.onreconnected(() => {
       this.loadCounters();
       this.updated$.next();
@@ -45,5 +48,7 @@ export class DisplayService {
     this.http.get<ActiveCounter[]>(environment.apiUrl + 'display/counters').subscribe({
       next: (counters) => this.counters.set(counters),
     });
+    this.http.get<ServiceQueue[]>(environment.apiUrl + 'display/queues')
+      .subscribe({ next: (q) => this.queues.set(q) });
   }
 }

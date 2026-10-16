@@ -1,8 +1,9 @@
 import { HttpClient } from '@angular/common/http';
 import { inject, Injectable, signal } from '@angular/core';
-import { tap } from 'rxjs';
+import { tap, catchError, of } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { LoginCreds, RegisterCreds, User } from '../../types/user';
+import { Router } from '@angular/router';
 
 @Injectable({
   providedIn: 'root',
@@ -11,6 +12,8 @@ export class AccountService {
   private http = inject(HttpClient);
   private baseUrl = environment.apiUrl;
   currentUser = signal<User | null>(this.loadUser());
+  private router = inject(Router);
+
 
   login(creds: LoginCreds) {
     return this.http.post<User>(this.baseUrl + 'account/login', creds).pipe(
@@ -34,17 +37,21 @@ export class AccountService {
   }
 
   logout() {
-    localStorage.removeItem('user');
-    localStorage.removeItem('ticketId');
-    this.currentUser.set(null);
+    this.http.post(this.baseUrl + 'account/logout', {}).pipe(
+      catchError(() => of(null))
+    ).subscribe(() => {
+      localStorage.removeItem('user');
+      localStorage.removeItem('ticketId');
+      this.currentUser.set(null);
+      this.router.navigateByUrl('/take-ticket');
+    })
   }
 
   homeFor(role?: string) {
     switch (role) {
       case 'Admin': return '/manage-services';
       case 'Employee': return '/counter-panel';
-      case 'Client': return '/take-ticket';
-      default: return '/login';
+      default: return '/take-ticket';
     }
   }
 

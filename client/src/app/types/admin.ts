@@ -22,4 +22,5 @@ export type AdminTicket = {
   createdAt: string;
   counterName: string | null;
   clientUsername: string | null;
+  code:string;
 };

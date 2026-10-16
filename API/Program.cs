@@ -22,6 +22,8 @@ builder.Services.AddScoped<IEmployeeRepository,EmployeeRepository>();
 builder.Services.AddScoped<ICounterRepository, CounterRepository>();
 builder.Services.AddSignalR();
 builder.Services.AddCors();
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<ActivityLogger>();
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {

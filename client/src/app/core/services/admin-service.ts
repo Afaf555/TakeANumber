@@ -16,8 +16,8 @@ export class AdminService {
     getServices() {
         return this.http.get<Service[]>(this.baseURl + 'services');
     }
-    createService(name: string) {
-        return this.http.post<Service>(this.baseURl + 'services', { name });
+    createService(name: string,code:string) {
+        return this.http.post<Service>(this.baseURl + 'services', { name, code });
     }
     deleteService(id: number) {
         return this.http.delete(this.baseURl + 'services/' + id);

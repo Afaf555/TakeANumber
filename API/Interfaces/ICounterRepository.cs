@@ -6,5 +6,5 @@ namespace API.Interfaces;
 public interface ICounterRepository
 {
     Task<IReadOnlyList<ActiveCounterDto>> GetActiveCountersAsync();
-
+    Task<IReadOnlyList<ServiceQueueDto>> GetServiceQueuesAsync();
 }

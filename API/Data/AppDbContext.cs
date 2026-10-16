@@ -11,6 +11,9 @@ public class AppDbContext(DbContextOptions options) : DbContext(options)
     public DbSet<Counter> Counters { get; set; }
     public DbSet<CounterService> CounterServices { get; set; }
     public DbSet<Ticket> Tickets { get; set; }
+    public DbSet<EmployeeSession> EmployeeSessions { get; set; }
+    public DbSet<ActivityLog> ActivityLogs { get; set; }
+
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -62,6 +65,30 @@ public class AppDbContext(DbContextOptions options) : DbContext(options)
         modelBuilder.Entity<User>()
             .HasIndex(x => x.Username)
             .IsUnique();
+
+        modelBuilder.Entity<EmployeeSession>()
+        .HasOne(x=>x.User)
+        .WithMany()
+        .HasForeignKey(x=>x.UserId)
+        .OnDelete(DeleteBehavior.Restrict);
+        modelBuilder.Entity<ActivityLog>(e =>
+        {
+            e.Property(x=>x.Action).HasMaxLength(50);
+            e.Property(x=>x.EntityType).HasMaxLength(50);
+            e.Property(x=>x.Details).HasMaxLength(500);
+            e.HasIndex(x=>x.CreatedAt);
+            e.HasIndex(x=>x.Action);
+        });
+        modelBuilder.Entity<Service>(s =>
+        {
+            s.Property(x=>x.Code).HasMaxLength(5);
+            s.HasIndex(x=>x.Code).IsUnique();
+        });
+        modelBuilder.Entity<EmployeeSession>(e =>
+        {
+            e.Property(x=>x.CounterName).HasMaxLength(100);
+            e.Property(x=>x.Services).HasMaxLength(500);
+        });
 
         var dateTimeConverter = new ValueConverter<DateTime, DateTime>
         (

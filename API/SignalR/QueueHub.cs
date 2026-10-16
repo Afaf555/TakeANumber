@@ -2,7 +2,7 @@ using Microsoft.AspNetCore.SignalR;
 
 namespace API.SignalR;
 
-public class QueueHub : Hub
+public class QueueHub() : Hub
 {
     public override async Task OnConnectedAsync()
     {
