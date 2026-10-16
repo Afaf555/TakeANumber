@@ -4,18 +4,23 @@
       <h2 class="text-sm uppercase tracking-widest">Current ticket</h2>
 
       @if (ticket(); as t) {
-        <p class="text-6xl font-semibold text-primary">{{ t.code }}</p>
-        <p>{{ t.serviceName }}</p>
-        <div class="badge badge-outline">{{ t.status }}</div>
-        <button class="btn btn-primary rounded-full w-full mt-2" (click)="finish()">Finish</button>
+      <p class="text-6xl font-semibold text-primary">{{ t.code }}</p>
+      <p>{{ t.serviceName }}</p>
+      <div class="badge badge-outline">{{ t.status }}</div>
+      <div class="flex gap-2 w-full mt-2">
+
+        <button class="btn btn-primary rounded-full flex-1" (click)="finish()">Finish</button>
+        <button class="btn btn-outline btn-error rounded-full flex-1" (click)="noShow()">No-show</button>
+      </div>
+
       } @else {
-        <p class="text-sm">No ticket in progress</p>
-        <button class="btn btn-primary rounded-full w-full mt-2" (click)="callNext()">Call next</button>
+      <p class="text-sm">No ticket in progress</p>
+      <button class="btn btn-primary rounded-full w-full mt-2" (click)="callNext()">Call next</button>
       }
     </div>
   </div>
 
   @if (error()) {
-    <p class="text-error text-sm text-center">{{ error() }}</p>
+  <p class="text-error text-sm text-center">{{ error() }}</p>
   }
 </div>

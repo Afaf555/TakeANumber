@@ -26,7 +26,6 @@
             <th>Service</th>
             <th>Status</th>
             <th>Counter</th>
-            <th>Client</th>
             <th>Taken</th>
           </tr>
         </thead>
@@ -40,11 +39,11 @@
                       [class.badge-primary]="t.status === 'InProgress'">{{ t.status }}</span>
               </td>
               <td>{{ t.counterName || '-' }}</td>
-              <td>{{ t.clientUsername || '-' }}</td>
+              
               <td>{{ t.createdAt | date: 'HH:mm' }}</td>
             </tr>
           } @empty {
-            <tr><td colspan="6" class="text-sm">No tickets at the moment</td></tr>
+            <tr><td colspan="5" class="text-sm">No tickets at the moment</td></tr>
           }
         </tbody>
       </table>

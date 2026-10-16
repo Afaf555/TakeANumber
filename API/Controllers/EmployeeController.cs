@@ -95,6 +95,31 @@ namespace API.Controllers
 
             return BadRequest("Problem finishing ticket");
         }
+        [HttpPost("no-show")]
+        public async Task<ActionResult<EmployeeTicketsDto>> MarkNoShow()
+        {
+            var counterId=await employeeRepository.GetCounterIdAsync(User.GetUserId());
+            if(counterId==null) return BadRequest("Employee is not assigned to a counter");
+            var current =await employeeRepository.GetCurrentTicketAsync(counterId.Value);
+            if(current==null) return BadRequest("No ticket in progress");
+
+            current.Status=TicketStatus.NoShow;
+            current.FinishedAt=DateTime.UtcNow;
+
+            if(await employeeRepository.SaveAllAsync())
+            {
+                var counters=await counterRepository.GetActiveCountersAsync();
+                await hubContext.Clients.All.SendAsync("CountersUpdated",counters);
+                await hubContext.Clients.All.SendAsync("QueuesUpdated",await counterRepository.GetServiceQueuesAsync());
+
+                var ticket =await employeeRepository.GetTicketDtoAsync(current.Id);
+                if(ticket==null) return NotFound();
+
+                await logger.LogAsync(LogActions.TicketNoShow,"Ticket",current.Id,ticket.Code);
+                return ticket;
+            }
+            return BadRequest("Problem marking ticket no-show");
+        }
 
     }
 }

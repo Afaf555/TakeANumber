@@ -17,4 +17,5 @@ public static class LogActions
     public const string TicketCreated = "TicketCreated";
     public const string TicketCalled = "TicketCalled";
     public const string TicketFinished = "TicketFinished";
+    public const string TicketNoShow="TicketNoShow";
 }

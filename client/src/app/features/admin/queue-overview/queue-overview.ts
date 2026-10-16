@@ -20,7 +20,9 @@ export class QueueOverview implements OnInit, OnDestroy {
   protected error = signal('');
 
   protected visible = computed(() =>
-    this.showFinished() ? this.tickets() : this.tickets().filter((t) => t.status !== 'Finished')
+    this.showFinished()
+      ? this.tickets()
+      : this.tickets().filter((t) => t.status === 'InQueue' || t.status === 'InProgress')
   );
   protected waiting = computed(() => this.tickets().filter((t) => t.status === 'InQueue').length);
 

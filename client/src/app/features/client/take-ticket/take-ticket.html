@@ -21,10 +21,11 @@
             @if (t.counterName) {
             <p class="text-sm">Counter: {{t.counterName}}</p>
             }
+            @if (t.status==='NoShow') {
+                <p class="text-sm text-error">You were not present when called. Please take a new ticket.</p>
+            }
             <div class="card-actions mt-2">
-                <!-- <button class="btn btn-sm rounded-full" (click)="refresh()">
-                        Refresh
-                    </button> -->
+          
                 <!-- @if (t.status === 'Finished') {
                 <button class="btn btn-sm btn-primary rounded-full" (click)="newTicket()">
                     Take a ticket

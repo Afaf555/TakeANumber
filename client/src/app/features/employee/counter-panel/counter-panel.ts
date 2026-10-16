@@ -44,4 +44,13 @@ export class CounterPanel implements OnInit {
   private showError(err: any, fallback: string) {
     this.error.set(typeof err.error === 'string' ? err.error : fallback);
   }
+  noShow(){
+    this.employeeService.noShow().subscribe({
+      next:()=>{
+        this.ticket.set(null);
+        this.error.set('');
+      },
+      error:(err)=>this.showError(err,'Could not mark ticket as no-show'),
+    });
+  }
 }

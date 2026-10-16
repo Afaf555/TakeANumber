@@ -21,4 +21,7 @@ export class EmployeeService {
   finish() {
     return this.http.post<EmployeeTicket>(this.baseUrl + 'finish', {});
   }
+  noShow(){
+    return this.http.post<EmployeeTicket>(this.baseUrl+'no-show',{});
+  }
 }

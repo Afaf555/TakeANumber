@@ -36,27 +36,28 @@ public class AdminController(AppDbContext context, ActivityLogger logger) : Base
         return new ServiceDto { Id = service.Id, Name = service.Name, Code = service.Code };
     }
 
-  
+
     [HttpDelete("services/{id}")]
-public async Task<ActionResult> DeleteService(int id)
-{
-    var service = await context.Services.FindAsync(id);
-    if (service == null) return NotFound();
+    public async Task<ActionResult> DeleteService(int id)
+    {
+        var service = await context.Services.FindAsync(id);
+        if (service == null) return NotFound();
 
-    if (await context.Tickets.AnyAsync(x => x.ServiceId == id))
-        return BadRequest("Service has tickets and cannot be deleted");
+     
 
-    var serviceLabel = $"{service.Code} - {service.Name}";    
+        var serviceLabel = $"{service.Code} - {service.Name}";
 
-    var links = context.CounterServices.Where(x => x.ServiceId == id);
-    context.CounterServices.RemoveRange(links);
-    context.Services.Remove(service);
-    await context.SaveChangesAsync();
+        var tickets = await context.Tickets.Where(x => x.ServiceId == id).ToListAsync();
+        context.Tickets.RemoveRange(tickets);
+        var links = context.CounterServices.Where(x => x.ServiceId == id);
+        context.CounterServices.RemoveRange(links);
+        context.Services.Remove(service);
+        await context.SaveChangesAsync();
 
-    await logger.LogAsync(LogActions.ServiceDeleted, "Service", id, serviceLabel);  
-
-    return NoContent();
-}
+        await logger.LogAsync(LogActions.ServiceDeleted, "Service", id,
+                $"{serviceLabel}: {tickets.Count} tickets deleted");
+        return NoContent();
+    }
 
 
     [HttpGet("counters")]
@@ -243,9 +244,14 @@ public async Task<ActionResult> DeleteService(int id)
         var employee = await context.Users.SingleOrDefaultAsync(x => x.Id == id && x.Role == Role.Employee);
         if (employee == null) return NotFound();
         var employeeName = employee.Username;
+        var sessions = await context.EmployeeSessions
+    .Where(s => s.UserId == id)
+    .ToListAsync();
+
+        context.EmployeeSessions.RemoveRange(sessions);
         context.Users.Remove(employee);
         await context.SaveChangesAsync();
-        await logger.LogAsync(LogActions.EmployeeDeleted, "Employee", id, employeeName);
+        await logger.LogAsync(LogActions.EmployeeDeleted, "Employee", id, $"{employeeName}: {sessions.Count} login sessions deleted");
         return NoContent();
     }
     [HttpPut("counters/{id}/name")]
