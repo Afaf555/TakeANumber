@@ -22,7 +22,10 @@ public class CounterRepository(AppDbContext context) : ICounterRepository
             .Where(t => t.Status == TicketStatus.InProgress && t.CreatedAt >= today && t.CounterId != null)
             .Select(t => new { t.CounterId, t.Number, ServiceCode = t.Service.Code })
             .ToListAsync();
-
+        var onBreakCounterIds = await context.Users
+            .Where(u => u.IsOnBreak && u.CounterId != null)
+            .Select(u => u.CounterId!.Value)
+            .ToListAsync();
         return counters.Select(c =>
         {
             var t = inProgress.FirstOrDefault(x => x.CounterId == c.Id);
@@ -31,7 +34,8 @@ public class CounterRepository(AppDbContext context) : ICounterRepository
                 CounterId = c.Id,
                 CounterName = c.Name,
                 CurrentTicketNumber = t?.Number,
-                CurrentTicketCode = t == null ? null : TicketCode.Format(t.ServiceCode, t.Number)
+                CurrentTicketCode = t == null ? null : TicketCode.Format(t.ServiceCode, t.Number),
+                IsOnBreak = onBreakCounterIds.Contains(c.Id),
             };
         }).ToList();
     }

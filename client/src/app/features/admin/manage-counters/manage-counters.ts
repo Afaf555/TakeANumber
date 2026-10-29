@@ -1,4 +1,6 @@
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { Component, inject, OnDestroy, OnInit, signal } from '@angular/core';
+import { Subscription } from 'rxjs';
+import { DisplayService } from '../../../core/services/display-service';
 import { FormsModule } from '@angular/forms';
 import { AdminService } from '../../../core/services/admin-service';
 import { Counter } from '../../../types/admin';
@@ -10,8 +12,11 @@ import { Service } from '../../../types/tickets';
   styleUrl: './manage-counters.css',
   templateUrl: './manage-counters.html',
 })
-export class ManageCounters implements OnInit {
+export class ManageCounters implements OnInit, OnDestroy {
+
   private adminService = inject(AdminService);
+  private displayService = inject(DisplayService);
+  private updateSub?: Subscription;
   protected counters = signal<Counter[]>([]);
   protected services = signal<Service[]>([]);
   protected error = signal('');
@@ -23,12 +28,22 @@ export class ManageCounters implements OnInit {
       next: (services) => this.services.set(services),
       error: () => this.error.set('Could not load services')
     });
-    this.adminService.getCounters().subscribe({
-      next: (counters) => this.counters.set(counters),
-      error: () => this.error.set('Could not load counters'),
-    });
+   this.loadCounters();
+   this.updateSub=this.displayService.updated$.subscribe(()=>this.loadCounters());
+   this.displayService.startConnection();
   }
 
+
+  ngOnDestroy(): void {
+    this.updateSub?.unsubscribe();
+    this.displayService.stopConnection();
+  }
+loadCounters(){
+  this.adminService.getCounters().subscribe({
+    next:(counters)=>this.counters.set(counters),
+    error:()=>this.error.set('Could not load counters'),
+  })
+}
   add() {
     const name = this.newName.trim();
     if (!name) return;
@@ -48,51 +63,51 @@ export class ManageCounters implements OnInit {
       ? [...counter.serviceIds, serviceId]
       : counter.serviceIds.filter((id) => id !== serviceId);
     this.adminService.assignServices(counter.id, ids).subscribe({
-      next: (updated) => this.replace(updated),
+      next: () => this.loadCounters(),
       error: (err) => this.error.set(typeof err.error === 'string' ? err.error : 'Could not update services'),
     });
   }
-  toggleActive(counter:Counter,isActive:boolean){
-    this.adminService.setActive(counter.id,isActive).subscribe({
-      next:()=>this.replace({...counter,isActive}),
-      error:()=>this.error.set('Could not update counter'),
+  toggleActive(counter: Counter, isActive: boolean) {
+    this.adminService.setActive(counter.id, isActive).subscribe({
+      next: () => this.replace({ ...counter, isActive }),
+      error: () => this.error.set('Could not update counter'),
     });
   }
 
   replace(updated: Counter): void {
-    this.counters.update((list)=>list.map((c)=>(c.id===updated.id?updated:c)));
+    this.counters.update((list) => list.map((c) => (c.id === updated.id ? updated : c)));
   }
-  remove(id:number){
+  remove(id: number) {
     this.adminService.deleteCounter(id).subscribe({
 
-      next:()=>{
-        this.counters.update((list)=>list.filter((c)=>c.id!==id));
+      next: () => {
+        this.counters.update((list) => list.filter((c) => c.id !== id));
         this.error.set('');
       },
-      error:(err)=>
-        this.error.set(typeof err.error==='string'?err.error:'Could not delete counter')
+      error: (err) =>
+        this.error.set(typeof err.error === 'string' ? err.error : 'Could not delete counter')
     });
   }
-  protected editingId:number|null=null;
-  protected editName='';
-  startEdit(counter:Counter){
-    this.editingId=counter.id;
-    this.editName=counter.name;
+  protected editingId: number | null = null;
+  protected editName = '';
+  startEdit(counter: Counter) {
+    this.editingId = counter.id;
+    this.editName = counter.name;
   }
-  cancelEdit(){
-    this.editingId=null;
+  cancelEdit() {
+    this.editingId = null;
   }
-  saveEdit(counter:Counter){
-    const name=this.editName.trim();
-    if(!name) return;
-    this.adminService.renameCounter(counter.id,name).subscribe({
-      next:(updated)=>{
-        this.replace(updated);
-        this.editingId=null;
+  saveEdit(counter: Counter) {
+    const name = this.editName.trim();
+    if (!name) return;
+    this.adminService.renameCounter(counter.id, name).subscribe({
+      next: (updated) => {
+        this.loadCounters();
+        this.editingId = null;
         this.error.set('')
       },
-      error:(err)=>
-        this.error.set(typeof err.error==='string'?err.error:'Could not rename counter'),
+      error: (err) =>
+        this.error.set(typeof err.error === 'string' ? err.error : 'Could not rename counter'),
     })
   }
 

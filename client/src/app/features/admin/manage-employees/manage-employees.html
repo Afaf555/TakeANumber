@@ -35,15 +35,16 @@
           <p class="font-medium">{{ e.username }}</p>
           <p class="text-xs">{{ servicesOf(e) || 'No services' }}</p>
         </div>
-        <select class="select select-sm rounded-full w-44" 
-          [ngModel]="e.counterId"
+        <select class="select select-sm rounded-full w-44" [ngModel]="e.counterId"
           (ngModelChange)="changeCounter(e, $event)">
           <option [ngValue]="null">No counter</option>
           @for (c of counters(); track c.id) {
           <option [ngValue]="c.id">{{ c.name }}</option>
           }
         </select>
-        <button class="btn btn-xs btn-outline btn-error rounded-full" (click)="remove(e.id)">
+        <button class="btn btn-xs btn-outline btn-error rounded-full" [disabled]="e.hasActiveTickets"
+          [title]="e.hasActiveTickets ? 'Counter has active tickets' : ''"
+          (click)="remove(e.id)">
           Delete
         </button>
       </div>

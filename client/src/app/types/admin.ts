@@ -1,8 +1,9 @@
-export type Counter={
-    id:number;
-    name: string;
-    isActive:boolean;
-    serviceIds:number[];
+export type Counter = {
+  id: number;
+  name: string;
+  isActive: boolean;
+  serviceIds: number[];
+  hasActiveTickets: boolean;
 }
 export type CreateEmployee = {
   username: string;
@@ -13,6 +14,8 @@ export type Employee = {
   id: number;
   username: string;
   counterId: number | null;
+  hasActiveTickets: boolean;
+
 };
 export type AdminTicket = {
   id: number;
@@ -22,5 +25,5 @@ export type AdminTicket = {
   createdAt: string;
   counterName: string | null;
   clientUsername: string | null;
-  code:string;
+  code: string;
 };

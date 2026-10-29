@@ -8,4 +8,5 @@ public class CounterDto
     public string Name { get; set; }="";
     public bool IsActive { get; set; }
     public List<int> ServiceIds {get; set; }=[];
+    public bool HasActiveTickets { get; set; }
 }

@@ -1,8 +1,10 @@
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { Component, inject, OnDestroy, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { AdminService } from '../../../core/services/admin-service';
 import { Counter, Employee } from '../../../types/admin';
 import { Service } from '../../../types/tickets';
+import { Subscription } from 'rxjs';
+import { DisplayService } from '../../../core/services/display-service';
 
 @Component({
   selector: 'app-manage-employees',
@@ -10,9 +12,11 @@ import { Service } from '../../../types/tickets';
   templateUrl: './manage-employees.html',
   styleUrl: './manage-employees.css',
 })
-export class ManageEmployees implements OnInit {
-  private adminService = inject(AdminService);
+export class ManageEmployees implements OnInit, OnDestroy {
 
+  private adminService = inject(AdminService);
+  private displayService = inject(DisplayService);
+  private updateSub?: Subscription;
   protected employees = signal<Employee[]>([]);
   protected counters = signal<Counter[]>([]);
   protected services = signal<Service[]>([]);
@@ -33,8 +37,13 @@ export class ManageEmployees implements OnInit {
       error: () => this.error.set('Could not load services'),
     });
     this.loadEmployees();
+    this.updateSub = this.displayService.updated$.subscribe(() => this.loadEmployees());
+    this.displayService.startConnection();
   }
-
+  ngOnDestroy() {
+    this.updateSub?.unsubscribe();
+    this.displayService.stopConnection();
+  }
   create() {
     // if (this.counterId === null) return;
 
@@ -61,24 +70,22 @@ export class ManageEmployees implements OnInit {
   }
 
   changeCounter(employee: Employee, counterId: number | null) {
-  const request =
-    counterId === null
-      ? this.adminService.unassignCounter(employee.id)
-      : this.adminService.assignCounter(employee.id, counterId);
+    const request =
+      counterId === null
+        ? this.adminService.unassignCounter(employee.id)
+        : this.adminService.assignCounter(employee.id, counterId);
 
-  request.subscribe({
-    next: () => {
-      this.employees.update((list) =>
-        list.map((e) => (e.id === employee.id ? { ...e, counterId } : e))
-      );
-      this.error.set('');
-    },
-    error: (err) => {
-      this.error.set(typeof err.error === 'string' ? err.error : 'Could not change counter');
-      this.loadEmployees();
-    },
-  });
-}
+    request.subscribe({
+      next: () => {
+        this.error.set('');
+        this.loadEmployees();
+      },
+      error: (err) => {
+        this.error.set(typeof err.error === 'string' ? err.error : 'Could not change counter');
+        this.loadEmployees();
+      },
+    });
+  }
 
   servicesOf(employee: Employee) {
     const counter = this.counters().find((c) => c.id === employee.counterId);
@@ -95,15 +102,19 @@ export class ManageEmployees implements OnInit {
       error: () => this.error.set('Could not load employees'),
     });
   }
-  remove(id:number){
+
+  remove(id: number) {
     this.adminService.deleteEmployee(id).subscribe({
-      next:()=>{
-        this.employees.update((list)=>list.filter((e)=>e.id!==id));
+      next: () => {
+        this.employees.update((list) => list.filter((e) => e.id !== id));
         this.error.set('');
         this.success.set('');
       },
-      error:(err)=>
-        this.error.set(typeof err.error ==='string'?err.error:'Could not delete employee')
+      error: (err) => {
+        this.error.set(typeof err.error === 'string' ? err.error : 'Could not delete employee');
+        this.loadEmployees();
+      }
+
     })
   }
 

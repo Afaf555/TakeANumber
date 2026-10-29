@@ -6,4 +6,5 @@ public class EmployeeDto
     public string Username { get; set; } = "";
     public int? CounterId { get; set; }
     public string? CounterName { get; set; }
+    public bool HasActiveTickets { get; set; }
 }

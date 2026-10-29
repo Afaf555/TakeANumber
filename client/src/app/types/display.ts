@@ -3,6 +3,7 @@ export type ActiveCounter={
     counterName: string;
     currentTicketNumber:number|null;
     currentTicketCode:string|null;
+    isOnBreak:boolean;
 };
 export type ServiceQueue={
     serviceId:number;

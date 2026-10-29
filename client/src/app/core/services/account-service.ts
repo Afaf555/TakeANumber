@@ -13,7 +13,29 @@ export class AccountService {
   private baseUrl = environment.apiUrl;
   currentUser = signal<User | null>(this.loadUser());
   private router = inject(Router);
+  private dayTimer?: ReturnType<typeof setInterval>;
 
+  constructor(){
+    this.watchDay();
+  }
+  
+  private today(){
+    return new Date().toISOString().slice(0,10);
+  }
+  private watchDay(){
+    clearInterval(this.dayTimer);
+    if(this.currentUser()?.role!=='Employee') return;
+
+    this.dayTimer=setInterval(()=>{
+      if(localStorage.getItem('loginDay')!==this.today()){
+        clearInterval(this.dayTimer);
+        localStorage.removeItem('user');
+        localStorage.removeItem('loginDay');
+        this.currentUser.set(null);
+        this.router.navigateByUrl('/login');
+      }
+    },30000)
+  }
 
   login(creds: LoginCreds) {
     return this.http.post<User>(this.baseUrl + 'account/login', creds).pipe(
@@ -33,14 +55,18 @@ export class AccountService {
 
   setCurrentUser(user: User) {
     localStorage.setItem('user', JSON.stringify(user));
+    localStorage.setItem('loginDay',this.today());
     this.currentUser.set(user);
+    this.watchDay();
   }
 
   logout() {
     this.http.post(this.baseUrl + 'account/logout', {}).pipe(
       catchError(() => of(null))
     ).subscribe(() => {
+      clearInterval(this.dayTimer);
       localStorage.removeItem('user');
+      localStorage.removeItem('loginDay')
       localStorage.removeItem('ticketId');
       this.currentUser.set(null);
       this.router.navigateByUrl('/take-ticket');
@@ -57,6 +83,14 @@ export class AccountService {
 
   private loadUser(): User | null {
     const json = localStorage.getItem('user');
-    return json ? JSON.parse(json) : null;
+    if(!json) return null;
+
+    const user:User=JSON.parse(json);
+    if(user.role=='Employee' && localStorage.getItem('loginDay')!== this.today()){
+      localStorage.removeItem('user');
+      localStorage.removeItem('loginDay');
+      return null;
+    }
+    return user;
   }
 }

@@ -2,6 +2,7 @@ export type Service = {
   id: number;
   name: string;
   code: string;
+  hasActiveTickets: boolean
 };
 
 export type Ticket = {

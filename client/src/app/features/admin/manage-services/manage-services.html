@@ -21,10 +21,20 @@
         </h2>
         @for (s of services(); track s.id) {
         <div class="flex items-center justify-between">
-            <span><span class="badge badge-outline mr-2">{{ s.code }}</span>{{ s.name }}</span> <button
-                class="btn btn-xs btn-outline btn-error rounded-full" (click)="remove(s.id)">
-                Delete
-            </button>
+            <span><span class="badge badge-outline mr-2">{{ s.code }}</span>{{ s.name }}</span> 
+           @if (confirmingId()==s.id) {
+            <div class="flex items-center gap-2">
+                <span class="text-xs text-error">Delete with all its tickets?</span>
+                <button class="btn btn-xs btn-error rounded-full" (click)="remove(s.id)">Yes</button>
+                <button class="btn btn-xs btn-ghost rounded-full" (click)="cancelRemove()">Cancel</button>
+            </div>
+           } @else {
+            <button class="btn btn-xs btn-outline btn-error rounded-full" 
+            [disabled]="s.hasActiveTickets"
+            [title]="s.hasActiveTickets?'Service has active tickets' : '' "
+            (click)="askRemove(s.id)">Delete</button>
+           }
+
         </div>
         } @empty {
         <p class="text-sm">No services yet</p>

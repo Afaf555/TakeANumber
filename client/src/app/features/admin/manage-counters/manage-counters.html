@@ -2,59 +2,57 @@
   <div class="card bg-base-100 shadow-md">
     <form class="card-body gap-3" (ngSubmit)="add()">
       <h2 class="card-title text-sm uppercase tracking-widest">New counter</h2>
-      <input class="input w-full rounded-full" name="name" placeholder="Counter name"
-             [(ngModel)]="newName" required />
+      <input class="input w-full rounded-full" name="name" placeholder="Counter name" [(ngModel)]="newName" required />
       <button class="btn btn-primary rounded-full" type="submit">Add</button>
     </form>
   </div>
 
   @if (error()) {
-    <p class="text-error text-sm">{{ error() }}</p>
+  <p class="text-error text-sm">{{ error() }}</p>
   }
 
   @for (c of counters(); track c.id) {
-    <div class="card bg-base-100 shadow-md">
-      <div class="card-body gap-3">
-        <div class="flex items-center justify-between">
-@if (editingId === c.id) {
-  <div class="flex items-center gap-2">
-    <input class="input input-sm rounded-full" name="editName"
-           [(ngModel)]="editName" (keyup.enter)="saveEdit(c)" />
-    <button class="btn btn-xs btn-primary rounded-full" (click)="saveEdit(c)">Save</button>
-    <button class="btn btn-xs btn-ghost rounded-full" (click)="cancelEdit()">Cancel</button>
-  </div>
-} @else {
-  <div class="flex items-center gap-2">
-    <h2 class="card-title">{{ c.name }}</h2>
-    <button class="btn btn-xs btn-outline rounded-full" (click)="startEdit(c)">Edit</button>
-  </div>
-}          <label class="flex items-center gap-2 text-sm">
-            Active
-            <input type="checkbox" class="toggle toggle-primary toggle-sm"
-                   [checked]="c.isActive" #active
-                   (change)="toggleActive(c, active.checked)" />
-          </label>
-           <button class="btn btn-xs btn-outline btn-error rounded-full" (click)="remove(c.id)">
-      Delete
-    </button>
+  <div class="card bg-base-100 shadow-md">
+    <div class="card-body gap-3">
+      <div class="flex items-center justify-between">
+        @if (editingId === c.id) {
+        <div class="flex items-center gap-2">
+          <input class="input input-sm rounded-full" name="editName" [(ngModel)]="editName"
+            (keyup.enter)="saveEdit(c)" />
+          <button class="btn btn-xs btn-primary rounded-full" (click)="saveEdit(c)">Save</button>
+          <button class="btn btn-xs btn-ghost rounded-full" (click)="cancelEdit()">Cancel</button>
         </div>
+        } @else {
+        <div class="flex items-center gap-2">
+          <h2 class="card-title">{{ c.name }}</h2>
+          <button class="btn btn-xs btn-outline rounded-full" (click)="startEdit(c)">Edit</button>
+        </div>
+        } <label class="flex items-center gap-2 text-sm">
+          Active
+          <input type="checkbox" class="toggle toggle-primary toggle-sm" [checked]="c.isActive" #active
+            (change)="toggleActive(c, active.checked)" />
+        </label>
+        <button class="btn btn-xs btn-outline btn-error rounded-full" [disabled]="c.hasActiveTickets"
+          [title]="c.hasActiveTickets ? 'Counter has active tickets' : ''" (click)="remove(c.id)">
+          Delete
+        </button>
+      </div>
 
-        <p class="text-xs uppercase tracking-widest">Services</p>
-        <div class="flex flex-wrap gap-4">
-          @for (s of services(); track s.id) {
-            <label class="flex items-center gap-2 text-sm">
-              <input type="checkbox" class="checkbox checkbox-primary checkbox-sm"
-                     [checked]="c.serviceIds.includes(s.id)" #cb
-                     (change)="toggleService(c, s.id, cb.checked)" />
-              {{ s.name }}
-            </label>
-          } @empty {
-            <p class="text-sm">Create services first</p>
-          }
-        </div>
+      <p class="text-xs uppercase tracking-widest">Services</p>
+      <div class="flex flex-wrap gap-4">
+        @for (s of services(); track s.id) {
+        <label class="flex items-center gap-2 text-sm">
+          <input type="checkbox" class="checkbox checkbox-primary checkbox-sm" [checked]="c.serviceIds.includes(s.id)"
+            #cb (change)="toggleService(c, s.id, cb.checked)" />
+          {{ s.name }}
+        </label>
+        } @empty {
+        <p class="text-sm">Create services first</p>
+        }
       </div>
     </div>
+  </div>
   } @empty {
-    <p class="text-sm text-center">No counters yet</p>
+  <p class="text-sm text-center">No counters yet</p>
   }
 </div>

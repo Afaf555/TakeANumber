@@ -1,0 +1,152 @@
+<div class="max-w-4xl mx-auto space-y-4">
+  @if (error()) {
+  <p class="text-error text-sm">{{ error() }}</p>
+  }
+  @if (message()) {
+  <p class="text-success text-sm">{{ message() }}</p>
+  }
+  <div class="card bg-base-100 shadow-md">
+    <div class="card-body">
+      <h2 class="card-title text-sm uppercase tracking-widest">Non-working days</h2>
+      <p class="text-xs">Saturdays and Sundays are non-working automatically. Click a day to select it, then add a
+        holiday name.</p>
+
+      <div class="flex flex-wrap items-end gap-3">
+        <input type="date" class="input input-sm rounded-full" [(ngModel)]="newDate" />
+        <input type="text" class="input input-sm rounded-full" placeholder="Name (e.g. New Year)"
+          [(ngModel)]="newName" />
+        <button class="btn btn-sm btn-primary rounded-full" (click)="add()">Add</button>
+
+        <div class="flex items-end gap-2 ml-auto">
+          <label class="text-sm">Year
+            <input type="number" class="input input-sm rounded-full w-24 ml-2" [ngModel]="year()"
+              (ngModelChange)="setYear($event)" />
+          </label>
+          <button class="btn btn-sm rounded-full" (click)="importYear()">Import MK holidays</button>
+        </div>
+      </div>
+
+      <div class="flex items-center justify-between mt-2">
+        <button class="btn btn-sm btn-circle" (click)="prevMonth()">‹</button>
+        <span class="font-semibold uppercase tracking-widest text-sm">{{ monthStart() | date: 'LLLL yyyy' }}</span>
+        <button class="btn btn-sm btn-circle" (click)="nextMonth()">›</button>
+      </div>
+
+      <div class="grid grid-cols-7 gap-2 text-center text-xs uppercase font-semibold opacity-70">
+        @for (w of weekdays; track w) {
+        <div>{{ w }}</div>
+        }
+      </div>
+
+      <div class="grid grid-cols-7 gap-2">
+        @for (c of cells(); track $index) {
+        @if (c) {
+        <div class="min-h-36 rounded-xl p-2 flex flex-col gap-1 cursor-pointer border border-base-300 text-sm"
+          [class.bg-base-200]="c.weekend && !c.holiday" [class.bg-yellow-200]="!!c.holiday"
+          [class.ring-2]="c.key === newDate" [class.ring-primary]="c.key === newDate" (click)="newDate = c.key">
+          <div class="flex items-center justify-between">
+            <span class="font-semibold" [class.text-primary]="c.today">{{ c.day }}</span>
+            @if (c.holiday) {
+            <button class="btn btn-xs btn-circle btn-ghost"
+              (click)="$event.stopPropagation(); remove(c.holiday.id)">✕</button>
+            }
+          </div>
+          @if (c.holiday) {
+          <span class="text-xs font-medium leading-tight">{{ c.holiday.name }}</span>
+          } @else if (c.weekend) {
+          <span class="text-xs opacity-60">Weekend</span>
+          }
+          @if (c.workers.length > 0) {
+          <div class="mt-auto flex flex-col gap-1">
+            @for (w of c.workers; track w.employeeId) {
+            <div
+              class="flex items-center justify-between gap-1 rounded-md bg-success px-1.5 py-0.5 text-xs text-success-content">
+              <span class="truncate">{{ w.username }}</span>
+              <span class="shrink-0 font-semibold">{{ w.hours | number: '1.0-1' }}h</span>
+            </div>
+            }
+          </div>
+          }
+        </div>
+        } @else {
+        <div></div>
+        }
+        }
+      </div>
+    </div>
+  </div>
+
+  <div class="card bg-base-100 shadow-md">
+    <div class="card-body">
+      <h2 class="card-title text-sm uppercase tracking-widest">Work on non-working days</h2>
+
+      <div class="flex flex-wrap items-end gap-3">
+        <label class="text-sm">From
+          <input type="date" class="input input-sm rounded-full block" [(ngModel)]="from" />
+        </label>
+        <label class="text-sm">To
+          <input type="date" class="input input-sm rounded-full block" [(ngModel)]="to" />
+        </label>
+        <button class="btn btn-sm btn-primary rounded-full" (click)="loadWork()">Apply</button>
+      </div>
+
+      <table class="table table-sm">
+        <thead>
+          <tr>
+            <th>Employee</th>
+            <th>Days</th>
+            <th>Hours</th>
+            <th>Tickets</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (s of summary(); track s.username) {
+          <tr>
+            <td class="font-semibold">{{ s.username }}</td>
+            <td>{{ s.days }}</td>
+            <td>{{ s.hours | number: '1.0-1' }}</td>
+            <td>{{ s.tickets }}</td>
+          </tr>
+          } @empty {
+          <tr>
+            <td colspan="4" class="text-sm">Nobody worked on non-working days in this period</td>
+          </tr>
+          }
+        </tbody>
+      </table>
+
+      @if (workedDays().length > 0) {
+      <details class="mt-2">
+        <summary class="cursor-pointer text-sm font-semibold">Details by day ({{ workedDays().length }})</summary>
+        <table class="table table-sm mt-2">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Reason</th>
+              <th>Employee</th>
+              <th>Hours</th>
+              <th>Tickets</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (day of workedDays(); track day.date) {
+            @for (e of day.employees; track e.employeeId; let first = $first) {
+            <tr>
+              <td>{{ first ? (day.date | date: 'EEE dd.MM.yyyy') : '' }}</td>
+              <td>
+                @if (first) {
+                <span class="badge badge-sm" [class.bg-yellow-200]="day.isHoliday">{{ day.reason }}</span>
+                }
+              </td>
+              <td class="font-semibold">{{ e.username }}</td>
+              <td>{{ e.hours | number: '1.0-1' }}</td>
+              <td>{{ e.ticketsServed }}</td>
+            </tr>
+            }
+            }
+          </tbody>
+        </table>
+      </details>
+      }
+    </div>
+  </div>

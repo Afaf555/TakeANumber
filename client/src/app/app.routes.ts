@@ -11,6 +11,8 @@ import { authGuard } from './core/guards/auth-guard';
 import { roleGuard } from './core/guards/role-guard';
 import { guestGuard } from './core/guards/guest-guard';
 import { QueueOverview } from './features/admin/queue-overview/queue-overview';
+import { Reports } from './features/admin/reports/reports/reports';
+import { Calendar } from './features/admin/calendar/calendar/calendar';
 
 export const routes: Routes = [
   { path: '', redirectTo: 'take-ticket', pathMatch: 'full' },
@@ -53,5 +55,18 @@ export const routes: Routes = [
   canActivate: [authGuard, roleGuard],
   data: { roles: ['Admin'] },
 },
-  { path: '**', redirectTo: 'take-ticket', pathMatch: 'full' },
+  
+  {
+  path: 'reports',
+  component: Reports,
+  canActivate: [authGuard, roleGuard],
+  data: { roles: ['Admin'] },
+},
+{
+  path: 'calendar',
+  component: Calendar,
+  canActivate: [authGuard, roleGuard],
+  data: { roles: ['Admin'] },
+},
+{ path: '**', redirectTo: 'take-ticket', pathMatch: 'full' },
 ];

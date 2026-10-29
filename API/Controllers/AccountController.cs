@@ -7,13 +7,15 @@ using API.Entities.Enums;
 using API.Extensions;
 using API.Interfaces;
 using API.Services;
+using API.SignalR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 
 namespace API.Controllers;
 
-public class AccountController(AppDbContext context, ITokenService tokenService, ActivityLogger logger) : BaseApiController
+public class AccountController(AppDbContext context, ITokenService tokenService, ActivityLogger logger, IHubContext<QueueHub> hubContext, ICounterRepository counterRepository) : BaseApiController
 {
     [HttpPost("register")]
     public async Task<ActionResult<UserDto>> Register(RegisterDto dto)
@@ -56,6 +58,14 @@ public class AccountController(AppDbContext context, ITokenService tokenService,
 
         if (user.Role == Role.Employee)
         {
+            var wasOnBreak = user.IsOnBreak;
+            user.IsOnBreak = false;
+            var staleBreaks = await context.EmployeeSessions
+    .Where(s => s.UserId == user.Id && s.BreakStartedAt != null && s.BreakEndedAt == null)
+    .ToListAsync();
+            foreach (var b in staleBreaks) b.BreakEndedAt = DateTime.UtcNow;
+
+
             string? counterName = null;
             string? services = null;
 
@@ -78,7 +88,14 @@ public class AccountController(AppDbContext context, ITokenService tokenService,
 
                 services = names.Count > 0 ? string.Join(", ", names) : null;
             }
-
+            var now=DateTime.UtcNow;
+            var openSessions=await context.EmployeeSessions
+            .Where(s=>s.UserId==user.Id&&s.BreakStartedAt==null&&s.LogoutAt==null).ToListAsync();
+            foreach (var s in openSessions)
+            {
+                var endOfDay=s.LoginAt.Date.AddDays(1);
+                s.LogoutAt=now<endOfDay?now:endOfDay;
+            }
             context.EmployeeSessions.Add(new EmployeeSession
             {
                 UserId = user.Id,
@@ -87,6 +104,10 @@ public class AccountController(AppDbContext context, ITokenService tokenService,
                 Services = services
             });
             await context.SaveChangesAsync();
+
+            if (wasOnBreak)
+                await hubContext.Clients.All.SendAsync("CountersUpdated",
+                    await counterRepository.GetActiveCountersAsync());
 
             await logger.LogAsync(LogActions.EmployeeLogin, "Employee", user.Id,
                 $"counter: {counterName ?? "none"}; services: {services ?? "none"}",
@@ -108,22 +129,26 @@ public class AccountController(AppDbContext context, ITokenService tokenService,
         Token = tokenService.CreateToken(user)
     };
 
-
     [Authorize]
     [HttpPost("logout")]
     public async Task<IActionResult> Logout()
     {
         var userId = User.GetUserId();
         var session = await context.EmployeeSessions
-        .Where(s => s.UserId == userId && s.LogoutAt == null)
-        .OrderByDescending(s => s.LoginAt)
-        .FirstOrDefaultAsync();
+            .Where(s => s.UserId == userId && s.LogoutAt == null && s.BreakStartedAt == null)
+            .OrderByDescending(s => s.LoginAt)
+            .FirstOrDefaultAsync();
+
         if (session != null)
         {
             session.LogoutAt = DateTime.UtcNow;
             await context.SaveChangesAsync();
+
+            var user = await context.Users.FindAsync(userId);
+            await logger.LogAsync(LogActions.EmployeeLogout, "Employee", userId,
+                $"counter: {session.CounterName ?? "none"}",
+                actorId: userId, actorName: user!.Username);
         }
         return NoContent();
     }
-
 }

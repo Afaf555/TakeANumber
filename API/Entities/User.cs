@@ -13,5 +13,6 @@ public class User
     public int? CounterId { get; set; }
     public Counter Counter { get; set; }=null!;
     public List<Ticket> Tickets { get; set; }=[];
+    public bool IsOnBreak { get; set; }
 
 }

@@ -24,4 +24,13 @@ export class EmployeeService {
   noShow(){
     return this.http.post<EmployeeTicket>(this.baseUrl+'no-show',{});
   }
+  getStatus(){
+    return this.http.get<{isOnBreak:boolean}>(this.baseUrl+'status');
+  }
+  startBreak(){
+    return this.http.post(this.baseUrl+'break/start',{});
+  }
+  endBreak(){
+    return this.http.post(this.baseUrl+'break/end',{});
+  }
 }

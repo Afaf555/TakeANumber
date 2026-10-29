@@ -10,5 +10,4 @@ public class Counter
     public List<CounterService> CounterServices { get; set; }=[];
     public List<Ticket> Tickets { get; set; }=[];
     public List<User> Employees { get; set; }=[];
-
 }

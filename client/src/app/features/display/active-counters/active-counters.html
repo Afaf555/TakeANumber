@@ -6,7 +6,9 @@
     <div class="card bg-base-100 shadow-md">
       <div class="card-body items-center text-center gap-1">
         <p class="text-sm uppercase tracking-widest">{{ c.counterName }}</p>
-        @if (c.currentTicketCode !== null) {
+        @if (c.isOnBreak) {
+        <p class="text-3xl font-semibold text-error">On break</p>
+        } @else if (c.currentTicketCode !== null) {
         <p class="text-5xl font-semibold text-primary">{{ c.currentTicketCode }}</p>
         } @else {
         <p class="text-5xl font-semibold opacity-30">-</p>

@@ -35,8 +35,10 @@
               <td class="font-semibold">{{ t.code }}</td>
               <td>{{ t.serviceName }}</td>
               <td>
-                <span class="badge badge-outline"
-                      [class.badge-primary]="t.status === 'InProgress'">{{ t.status }}</span>
+                <span class="badge "
+                   [class.badge-primary]="t.status === 'InProgress'"
+                   [class.badge-success]="t.status === 'Finished'"
+                   [class.badge-error]="t.status === 'NoShow'">{{ t.status }}</span>
               </td>
               <td>{{ t.counterName || '-' }}</td>
               

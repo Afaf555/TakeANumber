@@ -18,8 +18,16 @@ public class AdminController(AppDbContext context, ActivityLogger logger) : Base
     [HttpGet("services")]
     public async Task<ActionResult<List<ServiceDto>>> GetServices()
     {
+        var today = DateTime.UtcNow.Date;
         return await context.Services
-            .Select(x => new ServiceDto { Id = x.Id, Name = x.Name, Code = x.Code })
+            .Select(x => new ServiceDto
+            {
+                Id = x.Id,
+                Name = x.Name,
+                Code = x.Code,
+                HasActiveTickets = context.Tickets.Any(t => t.ServiceId == x.Id && t.CreatedAt >= today &&
+                (t.Status == TicketStatus.InQueue || t.Status == TicketStatus.InProgress))
+            })
             .ToListAsync();
     }
 
@@ -42,18 +50,29 @@ public class AdminController(AppDbContext context, ActivityLogger logger) : Base
     {
         var service = await context.Services.FindAsync(id);
         if (service == null) return NotFound();
-
-     
+        var today = DateTime.UtcNow.Date;
+        if (await context.Tickets.AnyAsync(x => x.ServiceId == id && x.CreatedAt >= today &&
+        (x.Status == TicketStatus.InQueue || x.Status == TicketStatus.InProgress)))
+            return BadRequest("Service has active tickets");
 
         var serviceLabel = $"{service.Code} - {service.Name}";
 
         var tickets = await context.Tickets.Where(x => x.ServiceId == id).ToListAsync();
         context.Tickets.RemoveRange(tickets);
         var links = context.CounterServices.Where(x => x.ServiceId == id);
+        var affectedCounterIds = await context.CounterServices
+     .Where(x => x.ServiceId == id)
+     .Select(x => x.CounterId)
+     .ToListAsync();
         context.CounterServices.RemoveRange(links);
         context.Services.Remove(service);
         await context.SaveChangesAsync();
-
+        var affectedEmployeeIds = await context.Users
+            .Where(x => x.CounterId != null && affectedCounterIds.Contains(x.CounterId.Value))
+            .Select(x => x.Id)
+            .ToListAsync();
+        foreach (var userId in affectedEmployeeIds)
+            await RefreshOpenSessionAsync(userId);
         await logger.LogAsync(LogActions.ServiceDeleted, "Service", id,
                 $"{serviceLabel}: {tickets.Count} tickets deleted");
         return NoContent();
@@ -63,13 +82,18 @@ public class AdminController(AppDbContext context, ActivityLogger logger) : Base
     [HttpGet("counters")]
     public async Task<ActionResult<List<CounterDto>>> GetCounters()
     {
+        var today = DateTime.UtcNow.Date;
         return await context.Counters
             .Select(x => new CounterDto
             {
                 Id = x.Id,
                 Name = x.Name,
                 IsActive = x.IsActive,
-                ServiceIds = x.CounterServices.Select(cs => cs.ServiceId).ToList()
+                ServiceIds = x.CounterServices.Select(cs => cs.ServiceId).ToList(),
+                HasActiveTickets = context.Tickets.Any(t => t.CreatedAt >= today &&
+    ((t.Status == TicketStatus.InProgress && t.CounterId == x.Id) ||
+     (t.Status == TicketStatus.InQueue &&
+      x.CounterServices.Any(cs => cs.ServiceId == t.ServiceId))))
             })
             .ToListAsync();
     }
@@ -109,10 +133,19 @@ public class AdminController(AppDbContext context, ActivityLogger logger) : Base
 
         await context.SaveChangesAsync();
 
-        if (!oldIds.OrderBy(x => x).SequenceEqual(distinctIds.OrderBy(x => x)))     // само ако навистина има промена
+
+        if (!oldIds.OrderBy(x => x).SequenceEqual(distinctIds.OrderBy(x => x)))
+        {
             await logger.LogAsync(LogActions.CounterServicesChanged, "Counter", counter.Id,
                 $"{counter.Name}: [{await ServiceNames(oldIds)}] -> [{await ServiceNames(distinctIds)}]");
 
+            var employeeIds = await context.Users
+                .Where(x => x.CounterId == counter.Id)
+                .Select(x => x.Id)
+                .ToListAsync();
+            foreach (var userId in employeeIds)
+                await RefreshOpenSessionAsync(userId);
+        }
         return new CounterDto
         {
             Id = counter.Id,
@@ -173,13 +206,18 @@ public class AdminController(AppDbContext context, ActivityLogger logger) : Base
     [HttpGet("employees")]
     public async Task<ActionResult<List<EmployeeDto>>> GetEmployees()
     {
+        var today = DateTime.UtcNow.Date;
         return await context.Users
             .Where(x => x.Role == Role.Employee)
             .Select(x => new EmployeeDto
             {
                 Id = x.Id,
                 Username = x.Username,
-                CounterId = x.CounterId
+                CounterId = x.CounterId,
+                HasActiveTickets = x.CounterId != null && context.Tickets.Any(t => t.CreatedAt >= today &&
+                    ((t.Status == TicketStatus.InProgress && t.CounterId == x.CounterId) ||
+                     (t.Status == TicketStatus.InQueue &&
+                      context.CounterServices.Any(cs => cs.CounterId == x.CounterId && cs.ServiceId == t.ServiceId))))
             })
             .ToListAsync();
     }
@@ -203,7 +241,7 @@ public class AdminController(AppDbContext context, ActivityLogger logger) : Base
         var oldCounterId = employee.CounterId;
         employee.CounterId = dto.CounterId;
         await context.SaveChangesAsync();
-
+        await RefreshOpenSessionAsync(employee.Id);
         await logger.LogAsync(LogActions.EmployeeCounterChanged, "Employee", employee.Id,
             $"{employee.Username}: {await CounterName(oldCounterId)} -> {await CounterName(dto.CounterId)}");
 
@@ -217,10 +255,8 @@ public class AdminController(AppDbContext context, ActivityLogger logger) : Base
         if (counter == null) return NotFound();
         var counterName = counter.Name;
 
-        if (await context.Tickets.AnyAsync(x =>
-                x.CounterId == id && x.Status == TicketStatus.InProgress &&
-                x.CreatedAt >= today))
-            return BadRequest("Counter is serving a ticket right now");
+        if (await CounterHasTicketsAsync(id))
+            return BadRequest("Counter has active tickets");
 
         if (await context.Users.AnyAsync(x => x.CounterId == id))
             return BadRequest("Counter has employees assigned and cannot be deleted");
@@ -243,6 +279,9 @@ public class AdminController(AppDbContext context, ActivityLogger logger) : Base
     {
         var employee = await context.Users.SingleOrDefaultAsync(x => x.Id == id && x.Role == Role.Employee);
         if (employee == null) return NotFound();
+        if (employee.CounterId != null && await CounterHasTicketsAsync(employee.CounterId.Value))
+            return BadRequest("The employee's counter has active tickets");
+
         var employeeName = employee.Username;
         var sessions = await context.EmployeeSessions
     .Where(s => s.UserId == id)
@@ -288,7 +327,7 @@ public class AdminController(AppDbContext context, ActivityLogger logger) : Base
         var oldCounterId = employee.CounterId;
         employee.CounterId = null;
         await context.SaveChangesAsync();
-
+        await RefreshOpenSessionAsync(employee.Id);
         await logger.LogAsync(LogActions.EmployeeCounterChanged, "Employee", employee.Id,
             $"{employee.Username}: {await CounterName(oldCounterId)} -> none");
 
@@ -315,6 +354,41 @@ public class AdminController(AppDbContext context, ActivityLogger logger) : Base
             })
             .ToListAsync();
     }
+    private async Task RefreshOpenSessionAsync(int userId)
+    {
+        var session = await context.EmployeeSessions
+                            .Where(s => s.UserId == userId && s.LogoutAt == null && s.BreakStartedAt == null)
+                            .OrderByDescending(s => s.LoginAt)
+                            .FirstOrDefaultAsync();
+
+        if (session == null) return;
+        var counterId = await context.Users
+        .Where(u => u.Id == userId)
+        .Select(u => u.CounterId)
+        .SingleOrDefaultAsync();
+
+        string? counterName = null;
+        string? services = null;
+        if (counterId != null)
+        {
+            counterName = await context.Counters
+            .Where(c => c.Id == counterId)
+            .Select(c => c.Name)
+            .FirstOrDefaultAsync();
+
+            var names = await context.CounterServices
+                    .Where(cs => cs.CounterId == counterId)
+                    .Select(cs => cs.Service.Code + " - " + cs.Service.Name)
+                    .ToListAsync();
+
+            services = names.Count > 0 ? string.Join(", ", names) : null;
+            if (services != null && services.Length > 500) services = services[..500];
+        }
+        session.CounterId = counterId;
+        session.CounterName = counterName;
+        session.Services = services;
+        await context.SaveChangesAsync();
+    }
     private async Task<string> CounterName(int? id)
     {
         return id == null ? "none"
@@ -331,5 +405,13 @@ public class AdminController(AppDbContext context, ActivityLogger logger) : Base
             .ToListAsync();
 
         return string.Join(", ", names);
+    }
+    private async Task<bool> CounterHasTicketsAsync(int counterId)
+    {
+        var today = DateTime.UtcNow.Date;
+        return await context.Tickets.AnyAsync(t => t.CreatedAt >= today &&
+            ((t.Status == TicketStatus.InProgress && t.CounterId == counterId) ||
+             (t.Status == TicketStatus.InQueue &&
+              context.CounterServices.Any(cs => cs.CounterId == counterId && cs.ServiceId == t.ServiceId))));
     }
 }

@@ -13,11 +13,28 @@ export class CounterPanel implements OnInit {
 
   protected ticket = signal<EmployeeTicket | null>(null);
   protected error = signal('');
+  protected onBreak=signal(false);
 
   ngOnInit() {
     this.employeeService.getCurrent().subscribe({
       next: (ticket) => this.ticket.set(ticket),
       error: (err) => this.showError(err, 'Could not load current ticket'),
+    });
+    this.employeeService.getStatus().subscribe({
+      next:(s)=>this.onBreak.set(s.isOnBreak),
+    });
+  }
+  startBreak(){
+    this.employeeService.startBreak().subscribe({
+      next:()=>{this.onBreak.set(true);this.error.set('');},
+      error:(err)=>this.showError(err,'Could not start break'),
+    })
+  }
+
+  endBreak(){
+    this.employeeService.endBreak().subscribe({
+      next:()=>{this.onBreak.set(false);this.error.set('');},
+      error:(err)=>this.showError(err,'Could not end break'),
     });
   }
 

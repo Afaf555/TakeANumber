@@ -109,6 +109,12 @@ namespace API.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<DateTime?>("BreakEndedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("BreakStartedAt")
+                        .HasColumnType("datetime2");
+
                     b.Property<int?>("CounterId")
                         .HasColumnType("int");
 
@@ -134,6 +140,29 @@ namespace API.Migrations
                     b.HasIndex("UserId");
 
                     b.ToTable("EmployeeSessions");
+                });
+
+            modelBuilder.Entity("API.Entities.NonWorkingDay", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("Date")
+                        .HasColumnType("date");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Date")
+                        .IsUnique();
+
+                    b.ToTable("NonWorkingDays");
                 });
 
             modelBuilder.Entity("API.Entities.Service", b =>
@@ -215,6 +244,9 @@ namespace API.Migrations
 
                     b.Property<int?>("CounterId")
                         .HasColumnType("int");
+
+                    b.Property<bool>("IsOnBreak")
+                        .HasColumnType("bit");
 
                     b.Property<byte[]>("PasswordHash")
                         .IsRequired()

@@ -1,5 +1,6 @@
 using API.Entities;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure.Internal;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 namespace API.Data;
@@ -13,8 +14,8 @@ public class AppDbContext(DbContextOptions options) : DbContext(options)
     public DbSet<Ticket> Tickets { get; set; }
     public DbSet<EmployeeSession> EmployeeSessions { get; set; }
     public DbSet<ActivityLog> ActivityLogs { get; set; }
-
-
+    public DbSet<NonWorkingDay> NonWorkingDays { get; set; }
+   // public DbSet<SessionBreak> SessionBreaks { get; set; }
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -67,29 +68,35 @@ public class AppDbContext(DbContextOptions options) : DbContext(options)
             .IsUnique();
 
         modelBuilder.Entity<EmployeeSession>()
-        .HasOne(x=>x.User)
+        .HasOne(x => x.User)
         .WithMany()
-        .HasForeignKey(x=>x.UserId)
+        .HasForeignKey(x => x.UserId)
         .OnDelete(DeleteBehavior.Restrict);
         modelBuilder.Entity<ActivityLog>(e =>
         {
-            e.Property(x=>x.Action).HasMaxLength(50);
-            e.Property(x=>x.EntityType).HasMaxLength(50);
-            e.Property(x=>x.Details).HasMaxLength(500);
-            e.HasIndex(x=>x.CreatedAt);
-            e.HasIndex(x=>x.Action);
+            e.Property(x => x.Action).HasMaxLength(50);
+            e.Property(x => x.EntityType).HasMaxLength(50);
+            e.Property(x => x.Details).HasMaxLength(500);
+            e.HasIndex(x => x.CreatedAt);
+            e.HasIndex(x => x.Action);
         });
         modelBuilder.Entity<Service>(s =>
         {
-            s.Property(x=>x.Code).HasMaxLength(5);
-            s.HasIndex(x=>x.Code).IsUnique();
+            s.Property(x => x.Code).HasMaxLength(5);
+            s.HasIndex(x => x.Code).IsUnique();
         });
         modelBuilder.Entity<EmployeeSession>(e =>
         {
-            e.Property(x=>x.CounterName).HasMaxLength(100);
-            e.Property(x=>x.Services).HasMaxLength(500);
+            e.Property(x => x.CounterName).HasMaxLength(100);
+            e.Property(x => x.Services).HasMaxLength(500);
         });
-
+        modelBuilder.Entity<NonWorkingDay>().Property(x => x.Date).HasColumnType("date");
+        modelBuilder.Entity<NonWorkingDay>().HasIndex(x => x.Date).IsUnique();
+    //     modelBuilder.Entity<SessionBreak>()
+    // .HasOne(x => x.Session)
+    // .WithMany(s => s.Breaks)
+    // .HasForeignKey(x => x.SessionId)
+    // .OnDelete(DeleteBehavior.Cascade);
         var dateTimeConverter = new ValueConverter<DateTime, DateTime>
         (
             v => v.ToUniversalTime(),
@@ -104,6 +111,8 @@ public class AppDbContext(DbContextOptions options) : DbContext(options)
 
         foreach (var entityType in modelBuilder.Model.GetEntityTypes())
         {
+            if (entityType.ClrType == typeof(NonWorkingDay)) continue;
+
             foreach (var property in entityType.GetProperties())
             {
                 if (property.ClrType == typeof(DateTime))
