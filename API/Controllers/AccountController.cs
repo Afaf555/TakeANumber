@@ -56,6 +56,9 @@ public class AccountController(AppDbContext context, ITokenService tokenService,
                 return Unauthorized("Invalid password");
         }
 
+        if (user.Role == Role.Employee && LocalTime.IsClosed(DateTime.UtcNow))
+            return BadRequest($"The system works until {LocalTime.CloseTimeText}");
+
         if (user.Role == Role.Employee)
         {
             var wasOnBreak = user.IsOnBreak;
@@ -93,7 +96,7 @@ public class AccountController(AppDbContext context, ITokenService tokenService,
             .Where(s=>s.UserId==user.Id&&s.BreakStartedAt==null&&s.LogoutAt==null).ToListAsync();
             foreach (var s in openSessions)
             {
-                var endOfDay=s.LoginAt.Date.AddDays(1);
+                var endOfDay=LocalTime.SessionEndUtc(s.LoginAt);
                 s.LogoutAt=now<endOfDay?now:endOfDay;
             }
             context.EmployeeSessions.Add(new EmployeeSession

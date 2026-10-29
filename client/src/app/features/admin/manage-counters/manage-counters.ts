@@ -24,19 +24,24 @@ export class ManageCounters implements OnInit, OnDestroy {
 
 
   ngOnInit(): void {
+    this.loadServices();
+    this.loadCounters();
+    this.updateSub = this.displayService.dataChanged$.subscribe(() => {
+      this.loadServices();
+      this.loadCounters();
+    });
+  }
+
+  private loadServices() {
     this.adminService.getServices().subscribe({
       next: (services) => this.services.set(services),
       error: () => this.error.set('Could not load services')
     });
-   this.loadCounters();
-   this.updateSub=this.displayService.updated$.subscribe(()=>this.loadCounters());
-   this.displayService.startConnection();
   }
 
 
   ngOnDestroy(): void {
     this.updateSub?.unsubscribe();
-    this.displayService.stopConnection();
   }
 loadCounters(){
   this.adminService.getCounters().subscribe({

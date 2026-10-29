@@ -1,3 +1,4 @@
+using API.Extensions;
 using System;
 using API.DTOs;
 using API.Entities;
@@ -19,14 +20,14 @@ public class EmployeeRepository (AppDbContext context): IEmployeeRepository
 
     public async Task<Ticket?> GetCurrentTicketAsync(int counterId)
 {
-    var today = DateTime.UtcNow.Date;
+    var today = LocalTime.TodayStartUtc();
     return await context.Tickets.FirstOrDefaultAsync(x =>
         x.CounterId == counterId && x.Status == TicketStatus.InProgress && x.CreatedAt >= today);
 }
 
 public async Task<Ticket?> GetNextTicketAsync(int counterId)
 {
-    var today = DateTime.UtcNow.Date;
+    var today = LocalTime.TodayStartUtc();
     return await context.Tickets
         .Where(x => x.Status == TicketStatus.InQueue
             && x.CreatedAt >= today

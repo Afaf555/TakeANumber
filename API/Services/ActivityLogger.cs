@@ -1,10 +1,12 @@
 using System.Security.Claims;
 using API.Data;
 using API.Entities;
+using API.SignalR;
+using Microsoft.AspNetCore.SignalR;
 
 namespace API.Services;
 
-public class ActivityLogger(AppDbContext context, IHttpContextAccessor accessor)
+public class ActivityLogger(AppDbContext context, IHttpContextAccessor accessor, IHubContext<QueueHub> hub)
 {
     public async Task LogAsync(string action, string entityType, int? entityId = null,
         string? details = null, int? actorId = null, string? actorName = null)
@@ -26,5 +28,6 @@ public class ActivityLogger(AppDbContext context, IHttpContextAccessor accessor)
             ActorName = actorName
         });
         await context.SaveChangesAsync();
+        await hub.Clients.All.SendAsync("DataChanged", action);
     }
 }

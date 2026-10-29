@@ -235,7 +235,7 @@ public class ReportsController(AppDbContext context) : BaseApiController
         return sessions
             .Select(s =>
             {
-                var endOfDay = s.LoginAt.Date.AddDays(1);
+                var endOfDay = LocalTime.SessionEndUtc(s.LoginAt);
                 var end = s.LogoutAt ?? (now < endOfDay ? now : endOfDay);
                 return new SessionSpan(s, end, BreakHoursOf(s, end, breaks));
             })

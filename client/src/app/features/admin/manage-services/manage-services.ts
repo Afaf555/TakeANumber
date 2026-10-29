@@ -23,14 +23,12 @@ export class ManageServices implements OnInit {
 
   ngOnInit(): void {
     this.load();
-    this.updateSub=this.displayService.updated$.subscribe(()=>this.load());
-    this.displayService.startConnection();
+    this.updateSub=this.displayService.dataChanged$.subscribe(()=>this.load());
 
   
   }
   ngOnDestroy(){
     this.updateSub?.unsubscribe();
-    this.displayService.stopConnection();
   }
   private load(){
       this.adminService.getServices().subscribe({

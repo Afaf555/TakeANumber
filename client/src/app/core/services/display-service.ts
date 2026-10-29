@@ -14,34 +14,48 @@ export class DisplayService {
 
   counters = signal<ActiveCounter[]>([]);
   updated$ = new Subject<void>();
+  dataChanged$ = new Subject<string>();
   queues = signal<ServiceQueue[]>([]);
 
   startConnection() {
+    if (this.hubConnection) return;
     this.loadCounters();
 
     this.hubConnection = new HubConnectionBuilder()
       .withUrl(environment.hubUrl)
       .withAutomaticReconnect()
       .build();
-   
+
     this.hubConnection.on('CountersUpdated', (counters: ActiveCounter[]) => {
-      console.log('CountersUpdated received', counters);
       this.counters.set(counters);
     });
     this.hubConnection.on('QueuesUpdated', (queues: ServiceQueue[]) => {
       this.queues.set(queues);
       this.updated$.next();
     });
+    this.hubConnection.on('DataChanged', (action: string) => {
+      this.loadCounters();
+      this.dataChanged$.next(action);
+    });
     this.hubConnection.onreconnected(() => {
       this.loadCounters();
       this.updated$.next();
+      this.dataChanged$.next('Reconnected');
     });
 
-    this.hubConnection.start().catch((err) => console.log('SignalR error', err));
+    this.connect();
   }
 
   stopConnection() {
     this.hubConnection?.stop();
+    this.hubConnection = undefined;
+  }
+
+  private connect() {
+    this.hubConnection?.start().catch((err) => {
+      console.log('SignalR error', err);
+      setTimeout(() => this.connect(), 5000);
+    });
   }
 
   private loadCounters() {

@@ -28,6 +28,13 @@ export class ManageEmployees implements OnInit, OnDestroy {
   protected counterId: number | null = null;
 
   ngOnInit() {
+    this.loadAll();
+    this.updateSub = this.displayService.dataChanged$.subscribe(() => this.loadAll());
+  }
+  ngOnDestroy() {
+    this.updateSub?.unsubscribe();
+  }
+  private loadAll() {
     this.adminService.getCounters().subscribe({
       next: (counters) => this.counters.set(counters),
       error: () => this.error.set('Could not load counters'),
@@ -37,12 +44,6 @@ export class ManageEmployees implements OnInit, OnDestroy {
       error: () => this.error.set('Could not load services'),
     });
     this.loadEmployees();
-    this.updateSub = this.displayService.updated$.subscribe(() => this.loadEmployees());
-    this.displayService.startConnection();
-  }
-  ngOnDestroy() {
-    this.updateSub?.unsubscribe();
-    this.displayService.stopConnection();
   }
   create() {
     // if (this.counterId === null) return;

@@ -8,7 +8,7 @@
         <input type="date" class="input input-sm rounded-full block" [(ngModel)]="to" />
       </label>
       <button class="btn btn-sm btn-primary rounded-full" (click)="apply()">Apply</button>
-            <button class="btn btn-sm btn-ghost rounded-full" (click)="setToday()">Today</button>
+      <button class="btn btn-sm btn-ghost rounded-full" (click)="setToday()">Today</button>
       <button class="btn btn-sm btn-ghost rounded-full" (click)="setWeek()">This week</button>
       <button class="btn btn-sm btn-ghost rounded-full" (click)="setRange(7)">7 days</button>
       <button class="btn btn-sm btn-ghost rounded-full" (click)="setRange(30)">30 days</button>
@@ -61,7 +61,7 @@
           }
         </tbody>
       </table>
-      <p class="text-xs">Click an employee to see their activity.</p>
+      <p class="text-xs">Choose an employee to see their activity.</p>
     </div>
   </div>
   }
@@ -150,7 +150,6 @@
       </div>
     </div>
 
-    <!-- Finished vs no-show -->
     <div class="card bg-base-100 shadow-md">
       <div class="card-body items-center">
         <h3 class="card-title text-sm uppercase tracking-widest self-start">Tickets</h3>
@@ -171,7 +170,7 @@
     </div>
   </div>
 
-  <!-- Tables with tabs + pagination -->
+
   <div class="card bg-base-100 shadow-md">
     <div class="card-body">
       <div role="tablist" class="tabs tabs-border">
@@ -292,20 +291,20 @@
   <div class="card bg-base-100 shadow-md">
     <div class="card-body flex-row flex-wrap items-end gap-3">
       <label class="text-sm">Group by
-        <select class="select select-sm rounded-full block" [ngModel]="groupBy"
+        <select class="select select-sm rounded-full flex  text-center [text-align-last:center]" [ngModel]="groupBy"
           (ngModelChange)="groupBy = $event; loadHours()">
-          <option value="day">Day</option>
-          <option value="week">Week</option>
-          <option value="month">Month</option>
-          <option value="year">Year</option>
+          <option class="text-center" value="day">Day</option>
+          <option class="text-center" value="week">Week</option>
+          <option class="text-center" value="month">Month</option>
+          <option class="text-center" value="year">Year</option>
         </select>
       </label>
       <label class="text-sm">Employee
-        <select class="select select-sm rounded-full block w-48" [ngModel]="analyticsEmployeeId"
+        <select class="select select-sm rounded-full flex text-center [text-align-last:center]" [ngModel]="analyticsEmployeeId"
           (ngModelChange)="analyticsEmployeeId = $event; loadHours()">
-          <option [ngValue]="null">All employees</option>
+          <option class="text-center" [ngValue]="null">All employees</option>
           @for (r of rows(); track r.id) {
-          <option [ngValue]="r.id">{{ r.username }}</option>
+          <option class="text-center" [ngValue]="r.id">{{ r.username }}</option>
           }
         </select>
       </label>
@@ -313,75 +312,97 @@
   </div>
 
   @if (hours(); as h) {
-  <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+  <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
     <div class="card bg-base-100 shadow-md">
       <div class="card-body p-4">
-        <p class="text-xs uppercase">Total hours</p>
+        <p class="text-xs uppercase opacity-60">Total hours</p>
         <p class="text-2xl font-semibold">{{ h.totalHours | hm }}</p>
+        <p class="text-xs opacity-60">Time logged in, minus breaks</p>
       </div>
     </div>
     <div class="card bg-base-100 shadow-md">
       <div class="card-body p-4">
-        <p class="text-xs uppercase">Avg hours / {{ groupBy }}</p>
+        <p class="text-xs uppercase opacity-60">Avg hours / {{ groupBy }}</p>
         <p class="text-2xl font-semibold">{{ h.avgHoursPerPeriod | hm }}</p>
+        <p class="text-xs opacity-60">Total / {{ h.points.length }} {{ groupBy }}(s) in range, empty ones included</p>
       </div>
     </div>
     <div class="card bg-base-100 shadow-md">
       <div class="card-body p-4">
-        <p class="text-xs uppercase">Avg hours / worked day</p>
+        <p class="text-xs uppercase opacity-60">Avg hours / worked day</p>
         <p class="text-2xl font-semibold">{{ h.avgHoursPerWorkedDay | hm }}</p>
-        <p class="text-xs">{{ h.workedDays }} worked days</p>
+        <p class="text-xs opacity-60">Total / {{ h.workedDays }} days with at least one session</p>
       </div>
     </div>
     <div class="card bg-base-100 shadow-md">
       <div class="card-body p-4">
-        <p class="text-xs uppercase">Avg session</p>
-        <p class="text-2xl font-semibold">{{ h.avgSessionHours | hm }} </p>
+        <p class="text-xs uppercase opacity-60">Avg session</p>
+        <p class="text-2xl font-semibold">{{ h.avgSessionHours | hm }}</p>
+        <p class="text-xs opacity-60">Total / {{ totalSessions() }} sessions (login to logout)</p>
       </div>
     </div>
     <div class="card bg-base-100 shadow-md">
       <div class="card-body p-4">
-        <p class="text-xs uppercase">Tickets served</p>
+        <p class="text-xs uppercase opacity-60">Tickets served</p>
         <p class="text-2xl font-semibold">{{ h.totalTickets }}</p>
+        <p class="text-xs opacity-60">Finished only, no-shows not counted</p>
       </div>
     </div>
     <div class="card bg-base-100 shadow-md">
       <div class="card-body p-4">
-        <p class="text-xs uppercase">Avg service time</p>
+        <p class="text-xs uppercase opacity-60">Avg service time</p>
         <p class="text-2xl font-semibold">{{ h.avgServiceMinutes | number: '1.0-1' }} min</p>
+        <p class="text-xs opacity-60">Average of call → finish on finished tickets</p>
       </div>
     </div>
   </div>
 
   <div class="card bg-base-100 shadow-md">
-    <div class="card-body overflow-x-auto">
-      <table class="table table-sm">
-        <thead>
-          <tr>
-            <th>Period</th>
-            <th class="w-1/3">Hours</th>
-            <th>Sessions</th>
-            <th>Tickets</th>
-            <th>Avg min</th>
-          </tr>
-        </thead>
-        <tbody>
-          @for (p of h.points; track p.periodStart) {
-          <tr>
-            <td>{{ p.label }}</td>
-            <td>
-              <div class="flex items-center gap-2">
-                <div class="h-2 rounded-full bg-primary" [style.width.%]="p.hours / maxHours() * 100"></div>
-                <span class="text-xs">{{ p.hours | hm }}</span>
-              </div>
-            </td>
-            <td>{{ p.sessions }}</td>
-            <td>{{ p.tickets }}</td>
-            <td>{{ p.avgServiceMinutes | number: '1.0-1' }}</td>
-          </tr>
-          }
-        </tbody>
-      </table>
+    <div class="card-body">
+      <div class="overflow-x-auto">
+        <table class="table table-sm">
+          <thead>
+            <tr>
+              <th>Period</th>
+              <th class="w-1/3">Hours</th>
+              <th>Sessions</th>
+              <th>Tickets</th>
+              <th>Avg min</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (p of pagedPoints(); track p.periodStart) {
+            <tr>
+              <td>{{ p.label }}</td>
+              <td>
+                <div class="flex items-center gap-2">
+                  <div class="h-2 rounded-full bg-primary" [style.width.%]="p.hours / maxHours() * 100"></div>
+                  <span class="text-xs">{{ p.hours | hm }}</span>
+                </div>
+              </td>
+              <td>{{ p.sessions }}</td>
+              <td>{{ p.tickets }}</td>
+              <td>{{ p.avgServiceMinutes | number: '1.0-1' }}</td>
+            </tr>
+            } @empty {
+            <tr>
+              <td colspan="5" class="text-sm">No data in this period</td>
+            </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+
+      <div class="flex items-center justify-between text-sm">
+        <span class="opacity-60">{{ h.points.length }} periods</span>
+        <div class="join">
+          <button class="join-item btn btn-sm" [disabled]="analyticsPage() === 0"
+            (click)="analyticsPage.set(analyticsPage() - 1)">«</button>
+          <button class="join-item btn btn-sm no-animation">{{ analyticsPage() + 1 }} / {{ analyticsPages() }}</button>
+          <button class="join-item btn btn-sm" [disabled]="analyticsPage() + 1 >= analyticsPages()"
+            (click)="analyticsPage.set(analyticsPage() + 1)">»</button>
+        </div>
+      </div>
     </div>
   </div>
   }

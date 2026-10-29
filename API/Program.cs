@@ -38,6 +38,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(tokenKey)),
             ValidateIssuer = false,
             ValidateAudience = false,
+            ClockSkew = TimeSpan.Zero,
             RoleClaimType = "role",
             NameClaimType = "unique_name"
         };

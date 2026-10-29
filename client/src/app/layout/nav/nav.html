@@ -2,6 +2,7 @@
   <div class="flex-1">
     <a [routerLink]="accountService.homeFor(accountService.currentUser()?.role)"
       class="text-sm uppercase tracking-widest font-semibold">Queue</a>
+    <span class="text-xs opacity-60 ml-4 hidden md:inline">The system works until {{ closeTime }}</span>
   </div>
 
   <ul class="menu menu-horizontal gap-1 items-center">

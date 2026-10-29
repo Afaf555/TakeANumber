@@ -1,4 +1,4 @@
-import { Component, inject, OnDestroy, OnInit } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { DisplayService } from '../../../core/services/display-service';
 
 @Component({
@@ -7,14 +7,6 @@ import { DisplayService } from '../../../core/services/display-service';
   templateUrl: './active-counters.html',
   styleUrl: './active-counters.css',
 })
-export class ActiveCounters implements OnInit, OnDestroy {
+export class ActiveCounters {
   protected displayService = inject(DisplayService);
-
-  ngOnInit() {
-    this.displayService.startConnection();
-  }
-
-  ngOnDestroy() {
-    this.displayService.stopConnection();
-  }
 }

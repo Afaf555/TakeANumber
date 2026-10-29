@@ -1,4 +1,4 @@
-// Data/CounterRepository.cs
+
 using API.DTOs;
 using API.Entities.Enums;
 using API.Extensions;
@@ -11,7 +11,7 @@ public class CounterRepository(AppDbContext context) : ICounterRepository
 {
     public async Task<IReadOnlyList<ActiveCounterDto>> GetActiveCountersAsync()
     {
-        var today = DateTime.UtcNow.Date;
+        var today = LocalTime.TodayStartUtc();
 
         var counters = await context.Counters
             .Where(x => x.IsActive)
@@ -42,7 +42,7 @@ public class CounterRepository(AppDbContext context) : ICounterRepository
 
     public async Task<IReadOnlyList<ServiceQueueDto>> GetServiceQueuesAsync()
     {
-        var today = DateTime.UtcNow.Date;
+        var today = LocalTime.TodayStartUtc();
 
         var tickets = await context.Tickets
             .Where(t => t.CreatedAt >= today &&

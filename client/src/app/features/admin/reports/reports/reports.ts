@@ -1,4 +1,6 @@
-import { Component, computed, inject, OnInit, signal } from '@angular/core';
+import { Component, computed, inject, OnDestroy, OnInit, signal } from '@angular/core';
+import { Subscription } from 'rxjs';
+import { DisplayService } from '../../../../core/services/display-service';
 import { ReportsService } from '../../../../core/services/reports-service';
 import { EmployeeActivity, EmployeeReportRow, HoursReport } from '../../../../types/reports';
 import { DatePipe, DecimalPipe } from '@angular/common';
@@ -18,8 +20,10 @@ const daysAgo = (n: number) => {
   styleUrl: './reports.css',
   templateUrl: './reports.html',
 })
-export class Reports implements OnInit {
+export class Reports implements OnInit, OnDestroy {
   private reportsService = inject(ReportsService);
+  private displayService = inject(DisplayService);
+  private updateSub?: Subscription;
   protected tab = signal<'employees' | 'activity' | 'analytics'>('employees');
   protected from = daysAgo(30);
   protected to = iso(new Date());
@@ -35,11 +39,35 @@ export class Reports implements OnInit {
   protected maxHours = computed(() => Math.max(1, ...(this.hours()?.points.map((p) => p.hours) ?? []))
   );
   protected sub = signal<'sessions' | 'tickets' | 'log'>('sessions');
+  protected analyticsPage = signal(0);
+  protected readonly analyticsPageSize = 8;
+  protected pagedPoints = computed(() => {
+    const pts = [...(this.hours()?.points ?? [])].reverse();
+    const start = this.analyticsPage() * this.analyticsPageSize;
+    return pts.slice(start, start + this.analyticsPageSize);
+  });
+  protected analyticsPages = computed(() =>
+    Math.max(1, Math.ceil((this.hours()?.points.length ?? 0) / this.analyticsPageSize))
+  );
+  protected totalSessions = computed(() =>
+    (this.hours()?.points ?? []).reduce((sum, p) => sum + p.sessions, 0)
+  );
   protected page = signal(0);
   protected readonly pageSize = 8;
 
-    ngOnInit(): void {
-    this.apply()
+  ngOnInit(): void {
+    this.apply();
+    this.updateSub = this.displayService.dataChanged$.subscribe(() => this.refresh());
+  }
+
+  ngOnDestroy(): void {
+    this.updateSub?.unsubscribe();
+  }
+
+  private refresh() {
+    this.loadEmployees();
+    this.loadHours(false);
+    if (this.selected()) this.loadActivity(false);
   }
 
   setRange(days: number) {
@@ -70,23 +98,26 @@ export class Reports implements OnInit {
       error: () => this.error.set('Could not load employees report'),
     });
   }
-    loadActivity() {
+  loadActivity(reset = true) {
     const e = this.selected();
     if (!e) return;
     const range = { from: this.from, to: this.to };
     this.reportsService.getActivity(e.id, range.from, range.to).subscribe({
       next: (a) => {
         this.chartRange.set(range);
-        this.chartPage.set(0);
+        if (reset) this.chartPage.set(0);
         this.activity.set(a);
       },
       error: () => this.error.set('Could not load activity'),
     });
   }
-  loadHours() {
+  loadHours(reset = true) {
     this.reportsService.getHours(this.from, this.to, this.groupBy, this.analyticsEmployeeId)
       .subscribe({
-        next: (h) => this.hours.set(h),
+        next: (h) => {
+          this.hours.set(h);
+          if (reset) this.analyticsPage.set(0);
+        },
         error: () => this.error.set('Could not load analytics'),
       })
   }

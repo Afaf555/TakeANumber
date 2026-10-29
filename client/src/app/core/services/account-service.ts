@@ -3,7 +3,8 @@ import { inject, Injectable, signal } from '@angular/core';
 import { tap, catchError, of } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { LoginCreds, RegisterCreds, User } from '../../types/user';
-import { Router } from '@angular/router';
+import { Router, RouteReuseStrategy } from '@angular/router';
+import { CachedRouteReuseStrategy } from '../routing/cached-route-reuse-strategy';
 
 @Injectable({
   providedIn: 'root',
@@ -13,6 +14,7 @@ export class AccountService {
   private baseUrl = environment.apiUrl;
   currentUser = signal<User | null>(this.loadUser());
   private router = inject(Router);
+  private reuse = inject(RouteReuseStrategy) as CachedRouteReuseStrategy;
   private dayTimer?: ReturnType<typeof setInterval>;
 
   constructor(){
@@ -20,17 +22,21 @@ export class AccountService {
   }
   
   private today(){
-    return new Date().toISOString().slice(0,10);
+    return new Date().toLocaleDateString('sv-SE');
+  }
+  private closed(){
+    return new Date().getHours() >= environment.closeHour;
   }
   private watchDay(){
     clearInterval(this.dayTimer);
     if(this.currentUser()?.role!=='Employee') return;
 
     this.dayTimer=setInterval(()=>{
-      if(localStorage.getItem('loginDay')!==this.today()){
+      if(localStorage.getItem('loginDay')!==this.today() || this.closed()){
         clearInterval(this.dayTimer);
         localStorage.removeItem('user');
         localStorage.removeItem('loginDay');
+        this.reuse.clear();
         this.currentUser.set(null);
         this.router.navigateByUrl('/login');
       }
@@ -54,6 +60,7 @@ export class AccountService {
   }
 
   setCurrentUser(user: User) {
+    this.reuse.clear();
     localStorage.setItem('user', JSON.stringify(user));
     localStorage.setItem('loginDay',this.today());
     this.currentUser.set(user);
@@ -68,6 +75,7 @@ export class AccountService {
       localStorage.removeItem('user');
       localStorage.removeItem('loginDay')
       localStorage.removeItem('ticketId');
+      this.reuse.clear();
       this.currentUser.set(null);
       this.router.navigateByUrl('/take-ticket');
     })
@@ -86,7 +94,7 @@ export class AccountService {
     if(!json) return null;
 
     const user:User=JSON.parse(json);
-    if(user.role=='Employee' && localStorage.getItem('loginDay')!== this.today()){
+    if(user.role=='Employee' && (localStorage.getItem('loginDay')!== this.today() || this.closed())){
       localStorage.removeItem('user');
       localStorage.removeItem('loginDay');
       return null;

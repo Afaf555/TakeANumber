@@ -1,4 +1,6 @@
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { Component, inject, OnDestroy, OnInit, signal } from '@angular/core';
+import { Subscription } from 'rxjs';
+import { DisplayService } from '../../../core/services/display-service';
 import { EmployeeService } from '../../../core/services/employee-service';
 import { EmployeeTicket } from '../../../types/employee';
 
@@ -8,16 +10,30 @@ import { EmployeeTicket } from '../../../types/employee';
   templateUrl: './counter-panel.html',
   styleUrl: './counter-panel.css',
 })
-export class CounterPanel implements OnInit {
+export class CounterPanel implements OnInit, OnDestroy {
   private employeeService = inject(EmployeeService);
+  private displayService = inject(DisplayService);
+  private updateSub?: Subscription;
 
   protected ticket = signal<EmployeeTicket | null>(null);
   protected error = signal('');
   protected onBreak=signal(false);
 
   ngOnInit() {
+    this.load();
+    this.updateSub = this.displayService.dataChanged$.subscribe(() => this.load());
+  }
+
+  ngOnDestroy() {
+    this.updateSub?.unsubscribe();
+  }
+
+  private load() {
     this.employeeService.getCurrent().subscribe({
-      next: (ticket) => this.ticket.set(ticket),
+      next: (ticket) => {
+        this.ticket.set(ticket);
+        this.error.set('');
+      },
       error: (err) => this.showError(err, 'Could not load current ticket'),
     });
     this.employeeService.getStatus().subscribe({

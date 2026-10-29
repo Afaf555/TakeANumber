@@ -1,3 +1,4 @@
+using API.Extensions;
 using System;
 using API.DTOs;
 using API.Entities;
@@ -16,7 +17,7 @@ public class TicketRepository(AppDbContext context) : ITicketRepository
 
     public async Task<int> GetLastNumberTodayAsync()
     {
-        var today = DateTime.UtcNow.Date;
+        var today = LocalTime.TodayStartUtc();
 
         return await context.Tickets
             .Where(x => x.CreatedAt >= today)
@@ -34,7 +35,7 @@ public class TicketRepository(AppDbContext context) : ITicketRepository
 
     public async Task<TicketDto?> GetTicketAsync(int ticketId)
     {
-        var today = DateTime.UtcNow.Date;
+        var today = LocalTime.TodayStartUtc();
 
         return await context.Tickets
             .Where(x => x.Id == ticketId && x.CreatedAt >= today)

@@ -21,13 +21,18 @@ export class TakeTicket implements OnInit, OnDestroy {
   private resetTimer?: ReturnType<typeof setTimeout>;
 
   ngOnInit() {
+    this.loadServices();
+    this.updateSub = this.displayService.dataChanged$.subscribe(() => {
+      this.loadServices();
+      this.refresh();
+    });
+  }
+
+  private loadServices() {
     this.clientService.getServices().subscribe({
       next: (services) => this.services.set(services),
       error: () => this.error.set('Could not load services'),
     });
-
-    this.updateSub = this.displayService.updated$.subscribe(() => this.refresh());
-    this.displayService.startConnection();
   }
   ngOnDestroy() {
     clearTimeout(this.resetTimer);

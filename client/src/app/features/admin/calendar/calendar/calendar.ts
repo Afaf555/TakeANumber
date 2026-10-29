@@ -1,7 +1,9 @@
 import { DatePipe, DecimalPipe } from '@angular/common';
-import { Component, computed, inject, OnInit, signal } from '@angular/core';
+import { Component, computed, inject, OnDestroy, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { Subscription } from 'rxjs';
 import { CalendarService } from '../../../../core/services/calendar-service';
+import { DisplayService } from '../../../../core/services/display-service';
 import { EmployeeWork, NonWorkingDay, NonWorkingDayWork } from '../../../../types/calendar';
 
 type DayCell = {
@@ -19,8 +21,10 @@ type DayCell = {
   templateUrl: './calendar.html',
   styleUrl: './calendar.css',
 })
-export class Calendar implements OnInit {
+export class Calendar implements OnInit, OnDestroy {
   private calendarService = inject(CalendarService);
+  private displayService = inject(DisplayService);
+  private updateSub?: Subscription;
 
   protected days = signal<NonWorkingDay[]>([]);
   protected work = signal<NonWorkingDayWork[]>([]);
@@ -82,6 +86,14 @@ export class Calendar implements OnInit {
   ngOnInit() {
     this.loadDays();
     this.loadWork();
+    this.updateSub = this.displayService.dataChanged$.subscribe(() => {
+      this.loadDays();
+      this.loadWork();
+    });
+  }
+
+  ngOnDestroy() {
+    this.updateSub?.unsubscribe();
   }
 
   setYear(y: number) {

@@ -1,3 +1,5 @@
+using API.Extensions;
+using API.Entities.Enums;
 // Services/TokenService.cs
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
@@ -29,7 +31,9 @@ public class TokenService(IConfiguration config) : ITokenService
         var tokenDescriptor = new SecurityTokenDescriptor
         {
             Subject = new ClaimsIdentity(claims),
-            Expires = DateTime.UtcNow.AddDays(7),
+            Expires = user.Role == Role.Employee
+                ? LocalTime.CloseOfDayUtc(DateTime.UtcNow)
+                : DateTime.UtcNow.AddDays(7),
             SigningCredentials = creds
         };
 
