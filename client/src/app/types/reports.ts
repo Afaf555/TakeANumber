@@ -43,7 +43,8 @@ export type WorkforceReport = {
 };
 export type PtoRow = {
     id: number; username: string;
-    vacationAllowance: number; vacationAccrued: number; vacationUsed: number;
+    vacationAllowance: number; 
+    vacationUsed: number;
     vacationScheduled: number; vacationRemaining: number;
     sickAllowance: number; sickUsed: number; sickRemaining: number;
 };

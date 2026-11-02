@@ -132,8 +132,6 @@ public class AppDbContext(DbContextOptions options) : DbContext(options)
 
             foreach (var property in entityType.GetProperties())
             {
-                // StartDate/EndDate na Leave se datumi (kolona "date"), ne momenti vo vreme:
-                // UTC konverzijata gi pomestuva za eden den, pa gi preskoknuvame.
                 if (entityType.ClrType == typeof(Leave)
                     && (property.Name is nameof(Leave.StartDate) or nameof(Leave.EndDate)))
                     continue;

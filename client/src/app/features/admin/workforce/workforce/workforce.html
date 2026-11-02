@@ -167,7 +167,6 @@
             <tr>
               <th>Employee</th>
               <th>Vacation allowance</th>
-              <th>Accrued to date</th>
               <th>Used</th>
               <th>Scheduled</th>
               <th>Remaining</th>
@@ -181,7 +180,6 @@
             <tr>
               <td class="font-semibold">{{ p.username }}</td>
               <td>{{ p.vacationAllowance }}</td>
-              <td>{{ p.vacationAccrued | number: '1.0-1' }}</td>
               <td>{{ p.vacationUsed }}</td>
               <td>{{ p.vacationScheduled }}</td>
               <td [class.text-error]="p.vacationRemaining < 0">{{ p.vacationRemaining }}</td>

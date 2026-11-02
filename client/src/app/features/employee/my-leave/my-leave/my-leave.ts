@@ -35,7 +35,6 @@ export class MyLeave implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.load();
-    // admin odluka stignuva preku SignalR (DataChanged)
     this.updateSub = this.displayService.dataChanged$.subscribe(() => this.load());
   }
 

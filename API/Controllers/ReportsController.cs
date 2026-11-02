@@ -363,7 +363,7 @@ public class ReportsController(AppDbContext context) : BaseApiController
 
         var daysInYear = (end - start).TotalDays;
         var elapsed = Math.Clamp((today - start).TotalDays + 1, 0, daysInYear);
-        double Accrue(int allowance) => Math.Round(allowance * elapsed / daysInYear, 1);
+        
 
         var holidays = (await context.NonWorkingDays.AsNoTracking()
                 .Where(x => x.Date >= start && x.Date < end)
@@ -396,7 +396,7 @@ public class ReportsController(AppDbContext context) : BaseApiController
                 Id = e.Id,
                 Username = e.Username,
                 VacationAllowance = e.AnnualLeaveDays,
-                VacationAccrued = Accrue(e.AnnualLeaveDays),
+              
                 VacationUsed = used,
                 VacationScheduled = scheduled,
                 VacationRemaining = e.AnnualLeaveDays - used - scheduled,

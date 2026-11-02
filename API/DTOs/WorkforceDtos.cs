@@ -44,7 +44,6 @@ public class PtoRowDto
     public int Id { get; set; }
     public string Username { get; set; } = "";
     public int VacationAllowance { get; set; }
-    public double VacationAccrued { get; set; }
     public int VacationUsed { get; set; }
     public int VacationScheduled { get; set; }
     public int VacationRemaining { get; set; }
