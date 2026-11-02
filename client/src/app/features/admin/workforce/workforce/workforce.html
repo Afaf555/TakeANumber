@@ -1,0 +1,255 @@
+<div class="space-y-4">
+  <div>
+    <h1 class="text-2xl font-semibold">Workforce</h1>
+    <p class="text-sm opacity-60">Attendance, punctuality, overtime and paid leave</p>
+  </div>
+
+  @if (error()) {
+  <p class="text-error text-sm">{{ error() }}</p>
+  }
+
+  <div class="card bg-base-100 shadow-md">
+    <div role="tablist" class="tabs tabs-border px-4 pt-2">
+      <a role="tab" class="tab" [class.tab-active]="tab() === 'attendance'" (click)="tab.set('attendance')">Attendance</a>
+      <a role="tab" class="tab" [class.tab-active]="tab() === 'pto'" (click)="tab.set('pto')">Paid leave
+        @if (pending().length) {
+        <span class="badge badge-sm badge-warning ml-2">{{ pending().length }}</span>
+        }
+      </a>
+    </div>
+
+    <div class="card-body p-4 gap-4">
+
+      @if (tab() === 'attendance') {
+      <div class="flex flex-wrap items-end gap-2">
+        <label class="text-xs uppercase opacity-60">From
+          <input type="date" class="input input-sm rounded-full block" [(ngModel)]="from" />
+        </label>
+        <label class="text-xs uppercase opacity-60">To
+          <input type="date" class="input input-sm rounded-full block" [(ngModel)]="to" />
+        </label>
+        <button class="btn btn-sm btn-primary rounded-full" (click)="loadReport()">Apply</button>
+        <button class="btn btn-sm btn-ghost rounded-full" (click)="setRange(7)">7 days</button>
+        <button class="btn btn-sm btn-ghost rounded-full" (click)="setRange(30)">30 days</button>
+        <button class="btn btn-sm btn-ghost rounded-full" (click)="setRange(90)">90 days</button>
+      </div>
+
+      @if (report(); as r) {
+      <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="card border border-base-300">
+          <div class="card-body p-4 gap-0">
+            <p class="text-xs uppercase opacity-60">Absenteeism rate</p>
+            <p class="text-2xl font-semibold">{{ r.absenteeismRate | number: '1.0-1' }}%</p>
+            <p class="text-xs opacity-60">Unplanned absent days ÷ available work days</p>
+          </div>
+        </div>
+        <div class="card border border-base-300">
+          <div class="card-body p-4 gap-0">
+            <p class="text-xs uppercase opacity-60">Late arrivals</p>
+            <p class="text-2xl font-semibold">{{ r.totalLateArrivals }}</p>
+            <p class="text-xs opacity-60">First login after 08:10</p>
+          </div>
+        </div>
+        <div class="card border border-base-300">
+          <div class="card-body p-4 gap-0">
+            <p class="text-xs uppercase opacity-60">Early departures</p>
+            <p class="text-2xl font-semibold">{{ r.totalEarlyDepartures }}</p>
+            <p class="text-xs opacity-60">Manual logout before 16:50</p>
+          </div>
+        </div>
+        <div class="card border border-base-300">
+          <div class="card-body p-4 gap-0">
+            <p class="text-xs uppercase opacity-60">Overtime</p>
+            <p class="text-2xl font-semibold">{{ r.totalOvertimeHours | hm }}</p>
+            <p class="text-xs opacity-60">Above 8h per working day</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="overflow-x-auto">
+        <table class="table table-sm">
+          <thead class="bg-base-200/60 text-xs uppercase">
+            <tr>
+              <th>Employee</th>
+              <th>Tenure (days)</th>
+              <th>Available days</th>
+              <th>Worked</th>
+              <th>Absent</th>
+              <th>Absence %</th>
+              <th>Vacation</th>
+              <th>Sick</th>
+              <th>Late</th>
+              <th>Avg late (min)</th>
+              <th>Early out</th>
+              <th>Overtime</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (e of employees(); track e.id) {
+            <tr>
+              <td class="font-semibold">{{ e.username }}</td>
+              <td>{{ e.tenureDays }}</td>
+              <td>{{ e.expectedDays }}</td>
+              <td>{{ e.workedDays }}</td>
+              <td>{{ e.absentDays }}</td>
+              <td>{{ e.absenteeismRate | number: '1.0-1' }}%</td>
+              <td>{{ e.vacationDays }}</td>
+              <td>{{ e.sickDays }}</td>
+              <td>{{ e.lateArrivals }}</td>
+              <td>{{ e.avgLateMinutes | number: '1.0-1' }}</td>
+              <td>{{ e.earlyDepartures }}</td>
+              <td>{{ e.overtimeHours | hm }}</td>
+            </tr>
+            } @empty {
+            <tr><td colspan="12" class="text-sm">No employees</td></tr>
+            }
+          </tbody>
+        </table>
+      </div>
+      <p class="text-xs opacity-60">
+        Every working day (no weekend/holiday) without a session counts as an absence, except approved vacation.
+        Tenure is counted from the first login.
+      </p>
+
+      <div class="card border border-base-300">
+        <div class="card-body p-4">
+          <h3 class="text-xs font-semibold uppercase tracking-widest">Overtime by counter</h3>
+          @for (c of r.overtimeByCounter; track c.counterName) {
+          <div class="flex items-center gap-3 text-sm">
+            <span class="w-32 truncate">{{ c.counterName }}</span>
+            <div class="flex-1 h-3 bg-base-200 rounded-full overflow-hidden">
+              <div class="h-full bg-primary" [style.width.%]="(c.overtimeHours / maxCounterOvertime()) * 100"></div>
+            </div>
+            <span class="w-20 text-right">{{ c.overtimeHours | hm }}</span>
+            <span class="w-24 text-right opacity-60">{{ c.employees }} employee(s)</span>
+          </div>
+          } @empty {
+          <p class="text-sm opacity-60">No counters</p>
+          }
+        </div>
+      </div>
+      }
+      }
+
+      @if (tab() === 'pto') {
+      @if (pending().length) {
+      <div class="card border border-warning">
+        <div class="card-body p-4 gap-2">
+          <h3 class="text-xs font-semibold uppercase tracking-widest">Pending requests ({{ pending().length }})</h3>
+          @for (l of pending(); track l.id) {
+          <div class="flex flex-wrap items-center gap-3 text-sm">
+            <span class="font-semibold w-32 truncate">{{ l.username }}</span>
+            <span class="badge badge-outline">{{ l.type }}</span>
+            <span>{{ l.startDate | date: 'dd.MM.yyyy' }} - {{ l.endDate | date: 'dd.MM.yyyy' }}</span>
+            @if (l.note) {
+            <span class="opacity-60 italic flex-1 truncate">{{ l.note }}</span>
+            } @else {
+            <span class="flex-1"></span>
+            }
+            <button class="btn btn-xs btn-primary rounded-full" (click)="approve(l.id)">Allow</button>
+            <button class="btn btn-xs btn-outline btn-error rounded-full" (click)="reject(l.id)">Reject</button>
+          </div>
+          }
+        </div>
+      </div>
+      }
+
+      <div class="flex flex-wrap items-end gap-2">
+        <label class="text-xs uppercase opacity-60">Year
+          <input type="number" class="input input-sm rounded-full block w-28" [(ngModel)]="year"
+            (change)="loadPto(); loadLeaves()" />
+        </label>
+      </div>
+
+      <div class="overflow-x-auto">
+        <table class="table table-sm">
+          <thead class="bg-base-200/60 text-xs uppercase">
+            <tr>
+              <th>Employee</th>
+              <th>Vacation allowance</th>
+              <th>Accrued to date</th>
+              <th>Used</th>
+              <th>Scheduled</th>
+              <th>Remaining</th>
+              <th>Sick allowance</th>
+              <th>Sick used</th>
+              <th>Sick remaining</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (p of pto(); track p.id) {
+            <tr>
+              <td class="font-semibold">{{ p.username }}</td>
+              <td>{{ p.vacationAllowance }}</td>
+              <td>{{ p.vacationAccrued | number: '1.0-1' }}</td>
+              <td>{{ p.vacationUsed }}</td>
+              <td>{{ p.vacationScheduled }}</td>
+              <td [class.text-error]="p.vacationRemaining < 0">{{ p.vacationRemaining }}</td>
+              <td>{{ p.sickAllowance }}</td>
+              <td>{{ p.sickUsed }}</td>
+              <td [class.text-error]="p.sickRemaining < 0">{{ p.sickRemaining }}</td>
+            </tr>
+            } @empty {
+            <tr><td colspan="9" class="text-sm">No employees</td></tr>
+            }
+          </tbody>
+        </table>
+      </div>
+      <p class="text-xs opacity-60">Only working days (no weekends or holidays) are counted. Allowances are in working days per year.</p>
+
+      <div class="card border border-base-300">
+        <form class="card-body p-4 gap-3" (ngSubmit)="addLeave()">
+          <h3 class="text-xs font-semibold uppercase tracking-widest">Add leave</h3>
+          <div class="flex flex-wrap items-end gap-2">
+            <select class="select select-sm rounded-full" name="employee" [(ngModel)]="leaveEmployeeId" required>
+              <option [ngValue]="null" disabled>Employee</option>
+              @for (p of pto(); track p.id) {
+              <option [ngValue]="p.id">{{ p.username }}</option>
+              }
+            </select>
+            <select class="select select-sm rounded-full" name="type" [(ngModel)]="leaveType">
+              <option [ngValue]="vacation">Vacation</option>
+              <option [ngValue]="sick">Sick</option>
+            </select>
+            <input type="date" class="input input-sm rounded-full" name="start" [(ngModel)]="leaveStart" required />
+            <input type="date" class="input input-sm rounded-full" name="end" [(ngModel)]="leaveEnd" required />
+            <input type="text" class="input input-sm rounded-full" name="note" maxlength="200" placeholder="Note (optional)" [(ngModel)]="leaveNote" />
+            <button class="btn btn-sm btn-primary rounded-full" type="submit">Add</button>
+          </div>
+        </form>
+      </div>
+
+      <div class="overflow-x-auto">
+        <table class="table table-sm">
+          <thead class="bg-base-200/60 text-xs uppercase">
+            <tr><th>Employee</th><th>Reason</th><th>Note</th><th>From</th><th>To</th><th>Status</th><th></th></tr>
+          </thead>
+          <tbody>
+            @for (l of leaves(); track l.id) {
+            <tr>
+              <td class="font-semibold">{{ l.username }}</td>
+              <td>{{ l.type }}</td>
+              <td class="max-w-48 truncate">{{ l.note }}</td>
+              <td>{{ l.startDate | date: 'dd.MM.yyyy' }}</td>
+              <td>{{ l.endDate | date: 'dd.MM.yyyy' }}</td>
+              <td>
+                <span class="badge badge-sm"
+                  [class.badge-success]="l.status === 'Approved'"
+                  [class.badge-warning]="l.status === 'Pending'"
+                  [class.badge-error]="l.status === 'Rejected'">{{ l.status }}</span>
+              </td>
+              <td class="text-right">
+                <button class="btn btn-xs btn-outline btn-error rounded-full" (click)="removeLeave(l.id)">Delete</button>
+              </td>
+            </tr>
+            } @empty {
+            <tr><td colspan="7" class="text-sm">No leaves this year</td></tr>
+            }
+          </tbody>
+        </table>
+      </div>
+      }
+
+    </div>
+  </div>
+</div>

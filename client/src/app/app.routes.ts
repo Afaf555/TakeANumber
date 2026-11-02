@@ -26,6 +26,12 @@ export const routes: Routes = [
     data: { roles: ['Employee'] },
   },
   {
+    path: 'my-leave',
+    loadComponent: () => import('./features/employee/my-leave/my-leave/my-leave').then((m) => m.MyLeave),
+    canActivate: [authGuard, roleGuard],
+    data: { roles: ['Employee'] },
+  },
+  {
     path: 'manage-services',
     loadComponent: () => import('./features/admin/manage-services/manage-services').then((m) => m.ManageServices),
     canActivate: [authGuard, roleGuard],
@@ -52,6 +58,12 @@ export const routes: Routes = [
   {
   path: 'reports',
   loadComponent: () => import('./features/admin/reports/reports/reports').then((m) => m.Reports),
+  canActivate: [authGuard, roleGuard],
+  data: { roles: ['Admin'] },
+},
+{
+  path: 'workforce',
+  loadComponent: () => import('./features/admin/workforce/workforce/workforce').then((m) => m.Workforce),
   canActivate: [authGuard, roleGuard],
   data: { roles: ['Admin'] },
 },

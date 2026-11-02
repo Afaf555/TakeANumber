@@ -15,6 +15,7 @@ public class AppDbContext(DbContextOptions options) : DbContext(options)
     public DbSet<EmployeeSession> EmployeeSessions { get; set; }
     public DbSet<ActivityLog> ActivityLogs { get; set; }
     public DbSet<NonWorkingDay> NonWorkingDays { get; set; }
+    public DbSet<Leave> Leaves {get; set;}
    // public DbSet<SessionBreak> SessionBreaks { get; set; }
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -101,7 +102,18 @@ public class AppDbContext(DbContextOptions options) : DbContext(options)
         });
         modelBuilder.Entity<NonWorkingDay>().Property(x => x.Date).HasColumnType("date");
         modelBuilder.Entity<NonWorkingDay>().HasIndex(x => x.Date).IsUnique();
- 
+
+        modelBuilder.Entity<Leave>(e =>
+        {
+           e.Property(x=>x.StartDate).HasColumnType("date");
+           e.Property(x=>x.EndDate).HasColumnType("date");
+           e.Property(x=>x.Type).HasConversion<string>(); 
+           e.HasIndex(x=>new {x.UserId,x.StartDate});
+           e.HasOne(x=>x.User)
+           .WithMany()
+           .HasForeignKey(x=>x.UserId)
+           .OnDelete(DeleteBehavior.Cascade);
+        });
         var dateTimeConverter = new ValueConverter<DateTime, DateTime>
         (
             v => v.ToUniversalTime(),
@@ -120,6 +132,12 @@ public class AppDbContext(DbContextOptions options) : DbContext(options)
 
             foreach (var property in entityType.GetProperties())
             {
+                // StartDate/EndDate na Leave se datumi (kolona "date"), ne momenti vo vreme:
+                // UTC konverzijata gi pomestuva za eden den, pa gi preskoknuvame.
+                if (entityType.ClrType == typeof(Leave)
+                    && (property.Name is nameof(Leave.StartDate) or nameof(Leave.EndDate)))
+                    continue;
+
                 if (property.ClrType == typeof(DateTime))
                 {
                     property.SetValueConverter(dateTimeConverter);

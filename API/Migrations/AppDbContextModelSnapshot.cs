@@ -146,6 +146,40 @@ namespace API.Migrations
                     b.ToTable("EmployeeSessions");
                 });
 
+            modelBuilder.Entity("API.Entities.Leave", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("EndDate")
+                        .HasColumnType("date");
+
+                    b.Property<string>("Note")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("StartDate")
+                        .HasColumnType("date");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId", "StartDate");
+
+                    b.ToTable("Leaves");
+                });
+
             modelBuilder.Entity("API.Entities.NonWorkingDay", b =>
                 {
                     b.Property<int>("Id")
@@ -246,6 +280,12 @@ namespace API.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<int>("AnnualLeaveDays")
+                        .HasColumnType("int");
+
+                    b.Property<int>("AnnualSickDays")
+                        .HasColumnType("int");
+
                     b.Property<int?>("CounterId")
                         .HasColumnType("int");
 
@@ -302,6 +342,17 @@ namespace API.Migrations
                         .WithMany()
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("API.Entities.Leave", b =>
+                {
+                    b.HasOne("API.Entities.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.Navigation("User");

@@ -1,0 +1,102 @@
+<div class="max-w-2xl mx-auto space-y-4">
+  <div>
+    <h1 class="text-2xl font-semibold">My leave</h1>
+    <p class="text-sm opacity-60">Request time off. An admin has to allow it.</p>
+  </div>
+
+  @if (balance(); as b) {
+  <div class="grid grid-cols-2 gap-3">
+    <div class="card bg-base-100 shadow-md">
+      <div class="card-body p-4 gap-0">
+        <p class="text-xs uppercase opacity-60">Vacation left ({{ b.year }})</p>
+        <p class="text-2xl font-semibold" [class.text-error]="b.vacationRemaining <= 0">
+          {{ b.vacationRemaining }} <span class="text-sm font-normal opacity-60">/ {{ b.vacationAllowance }} days</span>
+        </p>
+      </div>
+    </div>
+    <div class="card bg-base-100 shadow-md">
+      <div class="card-body p-4 gap-0">
+        <p class="text-xs uppercase opacity-60">Sick leave left ({{ b.year }})</p>
+        <p class="text-2xl font-semibold" [class.text-error]="b.sickRemaining <= 0">
+          {{ b.sickRemaining }} <span class="text-sm font-normal opacity-60">/ {{ b.sickAllowance }} days</span>
+        </p>
+      </div>
+    </div>
+  </div>
+  <p class="text-xs opacity-60 -mt-2">Working days only (no weekends or holidays). Pending requests are already counted.</p>
+  }
+
+  <div class="card bg-base-100 shadow-md">
+    <form class="card-body gap-4" (ngSubmit)="submit()">
+      <h3 class="text-xs font-semibold uppercase tracking-widest">New request</h3>
+
+      <div class="grid gap-3 sm:grid-cols-3">
+        <div class="flex flex-col gap-1 min-w-0">
+          <label class="text-xs uppercase opacity-60" for="type">Reason</label>
+          <select id="type" class="select select-sm w-full rounded-full" name="type" [(ngModel)]="type">
+            @for (r of reasons; track r.value) {
+            <option [ngValue]="r.value">{{ r.label }}</option>
+            }
+          </select>
+        </div>
+        <div class="flex flex-col gap-1 min-w-0">
+          <label class="text-xs uppercase opacity-60" for="start">From</label>
+          <input id="start" type="date" class="input input-sm w-full rounded-full" name="start" [(ngModel)]="start" required />
+        </div>
+        <div class="flex flex-col gap-1 min-w-0">
+          <label class="text-xs uppercase opacity-60" for="end">To</label>
+          <input id="end" type="date" class="input input-sm w-full rounded-full" name="end" [(ngModel)]="end" required />
+        </div>
+      </div>
+
+      <div class="flex flex-col gap-1 min-w-0">
+        <label class="text-xs uppercase opacity-60" for="note">Note (optional)</label>
+        <input id="note" type="text" class="input input-sm w-full rounded-full" name="note" maxlength="200"
+          placeholder="e.g. family trip, doctor appointment" [(ngModel)]="note" />
+      </div>
+
+      <div class="flex items-center gap-3">
+        <button class="btn btn-sm btn-primary rounded-full" type="submit">Send request</button>
+        @if (error()) {
+        <p class="text-error text-sm">{{ error() }}</p>
+        }
+        @if (success()) {
+        <p class="text-success text-sm">{{ success() }}</p>
+        }
+      </div>
+    </form>
+  </div>
+
+  <div class="card bg-base-100 shadow-md">
+    <div class="card-body p-4 overflow-x-auto">
+      <table class="table table-sm">
+        <thead class="bg-base-200/60 text-xs uppercase">
+          <tr><th>Reason</th><th>From</th><th>To</th><th>Note</th><th>Status</th><th></th></tr>
+        </thead>
+        <tbody>
+          @for (l of leaves(); track l.id) {
+          <tr>
+            <td>{{ l.type }}</td>
+            <td>{{ l.startDate | date: 'dd.MM.yyyy' }}</td>
+            <td>{{ l.endDate | date: 'dd.MM.yyyy' }}</td>
+            <td class="max-w-40 truncate">{{ l.note }}</td>
+            <td>
+              <span class="badge badge-sm"
+                [class.badge-success]="l.status === 'Approved'"
+                [class.badge-warning]="l.status === 'Pending'"
+                [class.badge-error]="l.status === 'Rejected'">{{ l.status }}</span>
+            </td>
+            <td class="text-right">
+              @if (l.status === 'Pending') {
+              <button class="btn btn-xs btn-outline btn-error rounded-full" (click)="cancel(l.id)">Cancel</button>
+              }
+            </td>
+          </tr>
+          } @empty {
+          <tr><td colspan="6" class="text-sm">No requests this year</td></tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>

@@ -214,6 +214,199 @@ public class ReportsController(AppDbContext context) : BaseApiController
 
         return result.OrderByDescending(x => x.Date).ToList();
     }
+    private static readonly TimeSpan OpenTime = new(8, 0, 0);
+    private static readonly TimeSpan LateGrace = TimeSpan.FromMinutes(10);
+    private static readonly TimeSpan EarlyGrace = TimeSpan.FromMinutes(10);
+    private const double StandardDayHours = 8;
+
+    private static IEnumerable<DateTime> EachDay(DateTime from, DateTime to)
+    {
+        for (var d = from.Date; d <= to.Date; d = d.AddDays(1)) yield return d;
+    }
+
+    [HttpGet("workforce")]
+    public async Task<ActionResult<WorkforceReportDto>> GetWorkforce(
+        [FromQuery] DateTime from, [FromQuery] DateTime to)
+    {
+        var (f, t) = Range(from, to);
+        var todayLocal = LocalTime.ToLocal(DateTime.UtcNow).Date;
+
+        var employees = await context.Users.AsNoTracking()
+            .Where(u => u.Role == Role.Employee)
+            .Select(u => new { u.Id, u.Username, u.CounterId })
+            .ToListAsync();
+        var counters = await context.Counters.AsNoTracking()
+            .Select(c => new { c.Id, c.Name })
+            .ToListAsync();
+        var firstLogins = await context.EmployeeSessions.AsNoTracking()
+            .Where(s => s.BreakStartedAt == null)
+            .GroupBy(s => s.UserId)
+            .Select(g => new { UserId = g.Key, First = g.Min(s => s.LoginAt) })
+            .ToDictionaryAsync(x => x.UserId, x => x.First);
+        var holidays = (await context.NonWorkingDays.AsNoTracking()
+                .Where(x => x.Date >= f && x.Date < t)
+                .Select(x => x.Date).ToListAsync())
+            .Select(d => d.Date).ToHashSet();
+        var autoLogouts = await context.ActivityLogs.AsNoTracking()
+            .Where(l => l.Action == LogActions.EmployeeLogout
+                        && l.Details.Contains("auto logout") && l.CreatedAt >= f)
+            .Select(l => new { l.ActorId, l.CreatedAt })
+            .ToListAsync();
+        var leaves = await context.Leaves.AsNoTracking()
+            .Where(l => l.EndDate >= f && l.StartDate < t)
+            .ToListAsync();
+        var spans = (await LoadSpansAsync(f, t, null)).Where(x => x.S.LoginAt >= f).ToList();
+
+        bool IsNonWorking(DateTime d) =>
+            holidays.Contains(d) || d.DayOfWeek is DayOfWeek.Saturday or DayOfWeek.Sunday;
+
+        bool IsAutoLogout(EmployeeSession s)
+        {
+            var dayEnd = LocalTime.NextMidnightUtc(s.LoginAt);
+            return autoLogouts.Any(l => l.ActorId == s.UserId
+                                        && l.CreatedAt >= dayEnd && l.CreatedAt < dayEnd.AddDays(1));
+        }
+
+        HashSet<DateTime> LeaveDays(int userId, LeaveType type) => leaves
+            .Where(l => l.UserId == userId && l.Type == type)
+            .SelectMany(l => EachDay(l.StartDate, l.EndDate))
+            .ToHashSet();
+
+        var workDays = new List<DateTime>();
+        for (var d = f.Date; d < t && d < todayLocal; d = d.AddDays(1))
+            if (!IsNonWorking(d)) workDays.Add(d);
+
+        var rows = employees.Select(e =>
+        {
+            var byDay = spans.Where(x => x.S.UserId == e.Id)
+                .GroupBy(x => LocalTime.ToLocal(x.S.LoginAt).Date)
+                .ToDictionary(g => g.Key, g => g.OrderBy(x => x.S.LoginAt).ToList());
+
+            DateTime? first = firstLogins.TryGetValue(e.Id, out var fl) ? fl : null;
+            var startDay = first == null ? DateTime.MaxValue.Date : LocalTime.ToLocal(first.Value).Date;
+
+            var vacation = LeaveDays(e.Id, LeaveType.Vacation);
+            var sick = LeaveDays(e.Id, LeaveType.Sick);
+            var expected = workDays.Count(d => d >= startDay && !vacation.Contains(d));
+            var absent = workDays.Count(d => d >= startDay && !vacation.Contains(d) && !byDay.ContainsKey(d));
+
+            int late = 0, early = 0;
+            double lateMinutes = 0, overtime = 0;
+            foreach (var (day, list) in byDay.Where(kv => !IsNonWorking(kv.Key)))
+            {
+                var login = LocalTime.ToLocal(list[0].S.LoginAt).TimeOfDay;
+                if (login > OpenTime + LateGrace)
+                {
+                    late++;
+                    lateMinutes += (login - OpenTime).TotalMinutes;
+                }
+
+                var last = list[^1].S;
+                if (day < todayLocal && last.LogoutAt != null && !IsAutoLogout(last))
+                {
+                    var logout = LocalTime.ToLocal(last.LogoutAt.Value);
+                    if (logout.Date == day && logout.TimeOfDay < LocalTime.CloseTime - EarlyGrace) early++;
+                }
+
+                overtime += Math.Max(0, list.Sum(x => x.Hours) - StandardDayHours);
+            }
+
+            return new EmployeeWorkforceRowDto
+            {
+                Id = e.Id,
+                Username = e.Username,
+                FirstLoginAt = first,
+                TenureDays = first == null ? 0 : (int)(todayLocal - LocalTime.ToLocal(first.Value).Date).TotalDays,
+                ExpectedDays = expected,
+                WorkedDays = byDay.Count,
+                AbsentDays = absent,
+                AbsenteeismRate = expected == 0 ? 0 : Math.Round(absent * 100.0 / expected, 1),
+                VacationDays = workDays.Count(d => d >= startDay && vacation.Contains(d)),
+                SickDays = workDays.Count(d => d >= startDay && sick.Contains(d) && !byDay.ContainsKey(d)),
+                LateArrivals = late,
+                AvgLateMinutes = late == 0 ? 0 : Math.Round(lateMinutes / late, 1),
+                EarlyDepartures = early,
+                OvertimeHours = Math.Round(overtime, 2)
+            };
+        }).OrderBy(r => r.Username).ToList();
+
+        var totalExpected = rows.Sum(r => r.ExpectedDays);
+
+        return new WorkforceReportDto
+        {
+            TotalEmployees = employees.Count,
+            ActiveInRange = rows.Count(r => r.WorkedDays > 0),
+            AbsenteeismRate = totalExpected == 0 ? 0 : Math.Round(rows.Sum(r => r.AbsentDays) * 100.0 / totalExpected, 1),
+            TotalLateArrivals = rows.Sum(r => r.LateArrivals),
+            TotalEarlyDepartures = rows.Sum(r => r.EarlyDepartures),
+            TotalOvertimeHours = Math.Round(rows.Sum(r => r.OvertimeHours), 2),
+            OvertimeByCounter = counters.Select(c =>
+            {
+                var ids = employees.Where(e => e.CounterId == c.Id).Select(e => e.Id).ToHashSet();
+                return new CounterOvertimeDto
+                {
+                    CounterName = c.Name,
+                    Employees = ids.Count,
+                    OvertimeHours = Math.Round(rows.Where(r => ids.Contains(r.Id)).Sum(r => r.OvertimeHours), 2)
+                };
+            }).OrderBy(c => c.CounterName).ToList(),
+            Employees = rows
+        };
+    }
+
+    [HttpGet("pto")]
+    public async Task<ActionResult<List<PtoRowDto>>> GetPto([FromQuery] int year)
+    {
+        var start = new DateTime(year, 1, 1);
+        var end = start.AddYears(1);
+        var today = LocalTime.ToLocal(DateTime.UtcNow).Date;
+
+        var daysInYear = (end - start).TotalDays;
+        var elapsed = Math.Clamp((today - start).TotalDays + 1, 0, daysInYear);
+        double Accrue(int allowance) => Math.Round(allowance * elapsed / daysInYear, 1);
+
+        var holidays = (await context.NonWorkingDays.AsNoTracking()
+                .Where(x => x.Date >= start && x.Date < end)
+                .Select(x => x.Date).ToListAsync())
+            .Select(d => d.Date).ToHashSet();
+        bool IsWorking(DateTime d) =>
+            !holidays.Contains(d) && d.DayOfWeek is not (DayOfWeek.Saturday or DayOfWeek.Sunday);
+
+        var employees = await context.Users.AsNoTracking()
+            .Where(u => u.Role == Role.Employee)
+            .Select(u => new { u.Id, u.Username, u.AnnualLeaveDays, u.AnnualSickDays })
+            .ToListAsync();
+        var leaves = await context.Leaves.AsNoTracking()
+            .Where(l => l.EndDate >= start && l.StartDate < end)
+            .ToListAsync();
+
+        return employees.Select(e =>
+        {
+            var days = leaves.Where(l => l.UserId == e.Id)
+                .SelectMany(l => EachDay(l.StartDate, l.EndDate)
+                    .Where(d => d >= start && d < end && IsWorking(d))
+                    .Select(d => new { l.Type, Day = d }))
+                .ToList();
+            var used = days.Count(x => x.Type == LeaveType.Vacation && x.Day <= today);
+            var scheduled = days.Count(x => x.Type == LeaveType.Vacation && x.Day > today);
+            var sickUsed = days.Count(x => x.Type == LeaveType.Sick && x.Day <= today);
+
+            return new PtoRowDto
+            {
+                Id = e.Id,
+                Username = e.Username,
+                VacationAllowance = e.AnnualLeaveDays,
+                VacationAccrued = Accrue(e.AnnualLeaveDays),
+                VacationUsed = used,
+                VacationScheduled = scheduled,
+                VacationRemaining = e.AnnualLeaveDays - used - scheduled,
+                SickAllowance = e.AnnualSickDays,
+                SickUsed = sickUsed,
+                SickRemaining = e.AnnualSickDays - sickUsed
+            };
+        }).OrderBy(r => r.Username).ToList();
+    }
+
     private static (DateTime From, DateTime ToExcl) Range(DateTime from, DateTime to)
     {
         var today = DateTime.UtcNow.Date;

@@ -22,5 +22,10 @@ public static class LogActions
     public const string NonWorkingDayRemoved="NonWorkingDayRemoved";
     public const string BreakStarted="BreakStarted";
     public const string BreakEnded="BreakEnded";
-    
+    public const string LeaveAdded="LeaveAdded";
+    public const string LeaveRemoved="LeaveRemoved";
+    public const string LeaveRequested="LeaveRequested";
+    public const string LeaveApproved="LeaveApproved";
+    public const string LeaveRejected="LeaveRejected";
+    public const string LeaveCancelled="LeaveCancelled";
     }

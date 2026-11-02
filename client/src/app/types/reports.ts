@@ -29,3 +29,32 @@ export type HoursReport = {
     points: HoursPoint[]; totalHours: number; avgHoursPerPeriod: number; workedDays: number;
     avgHoursPerWorkedDay: number; avgSessionHours: number; totalTickets: number; avgServiceMinutes: number;
 };
+export type CounterOvertime = { counterName: string; employees: number; overtimeHours: number };
+export type EmployeeWorkforceRow = {
+    id: number; username: string; firstLoginAt: string | null; tenureDays: number;
+    expectedDays: number; workedDays: number; absentDays: number; absenteeismRate: number;
+    vacationDays: number; sickDays: number; lateArrivals: number; avgLateMinutes: number;
+    earlyDepartures: number; overtimeHours: number;
+};
+export type WorkforceReport = {
+    totalEmployees: number; activeInRange: number; absenteeismRate: number;
+    totalLateArrivals: number; totalEarlyDepartures: number; totalOvertimeHours: number;
+    overtimeByCounter: CounterOvertime[]; employees: EmployeeWorkforceRow[];
+};
+export type PtoRow = {
+    id: number; username: string;
+    vacationAllowance: number; vacationAccrued: number; vacationUsed: number;
+    vacationScheduled: number; vacationRemaining: number;
+    sickAllowance: number; sickUsed: number; sickRemaining: number;
+};
+export type Leave = {
+    id: number; employeeId: number; username: string; type: string;
+    startDate: string; endDate: string;
+    status: 'Approved' | 'Pending' | 'Rejected'; note: string | null;
+};
+export type LeaveBalance = {
+    year: number;
+    vacationAllowance: number; vacationUsed: number; vacationRemaining: number;
+    sickAllowance: number; sickUsed: number; sickRemaining: number;
+};
+export const LeaveTypeValue = { Vacation: 0, Sick: 1 } as const;

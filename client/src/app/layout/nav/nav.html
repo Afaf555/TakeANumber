@@ -13,6 +13,7 @@
     }
     @if (user.role === 'Employee') {
     <li><a routerLink="/counter-panel" routerLinkActive="menu-active">Counter</a></li>
+    <li><a routerLink="/my-leave" routerLinkActive="menu-active">My leave</a></li>
     }
     @if (user.role === 'Admin') {
     <li><a routerLink="/manage-services" routerLinkActive="menu-active">Services</a></li>
@@ -20,6 +21,7 @@
     <li><a routerLink="/manage-employees" routerLinkActive="menu-active">Employees</a></li>
     <li><a routerLink="/queue-overview" routerLinkActive="menu-active">Queue</a></li>
     <li><a routerLink="/reports" routerLinkActive="menu-active">Reports</a></li>
+    <li><a routerLink="/workforce" routerLinkActive="menu-active">Workforce</a></li>
     <li><a routerLink="/calendar" routerLinkActive="menu-active">Calendar</a></li>
     }
     <li class="text-sm px-3">{{ user.username }}</li>
