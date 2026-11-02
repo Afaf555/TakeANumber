@@ -24,6 +24,14 @@ export class QueueOverview implements OnInit, OnDestroy {
       ? this.tickets()
       : this.tickets().filter((t) => t.status === 'InQueue' || t.status === 'InProgress')
   );
+  protected page = signal(0);
+  protected readonly pageSize = 10;
+  protected pages = computed(() => Math.max(1, Math.ceil(this.visible().length / this.pageSize)));
+  protected current = computed(() => Math.min(this.page(), this.pages() - 1));
+  protected paged = computed(() => {
+    const start = this.current() * this.pageSize;
+    return this.visible().slice(start, start + this.pageSize);
+  });
   protected waiting = computed(() => this.tickets().filter((t) => t.status === 'InQueue').length);
 
   ngOnInit() {

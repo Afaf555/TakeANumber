@@ -27,16 +27,23 @@ public class SessionCleanupService(IServiceScopeFactory scopeFactory, ILogger<Se
         var hub = scope.ServiceProvider.GetRequiredService<IHubContext<QueueHub>>();
         var counterRepository = scope.ServiceProvider.GetRequiredService<ICounterRepository>();
         var today = LocalTime.TodayStartUtc();
-        var closed = LocalTime.IsClosed(DateTime.UtcNow);
+        var now = DateTime.UtcNow;
         var staleSessions = await context.EmployeeSessions
-        .Where(s => s.BreakStartedAt == null && s.LogoutAt == null && (closed || s.LoginAt < today))
+        .Where(s => s.BreakStartedAt == null && s.LogoutAt == null && s.LoginAt < today)
         .ToListAsync();
-        var staleBreaks = await context.EmployeeSessions.Where(s => s.BreakStartedAt != null && s.BreakEndedAt == null && (closed || s.BreakStartedAt < today)).ToListAsync();
+        var staleBreaks = await context.EmployeeSessions.Where(s => s.BreakStartedAt != null && s.BreakEndedAt == null && s.BreakStartedAt < today).ToListAsync();
         if (staleSessions.Count == 0 && staleBreaks.Count == 0) return;
         foreach (var s in staleSessions)
-            s.LogoutAt = LocalTime.SessionEndUtc(s.LoginAt);
+            s.LogoutAt = await SessionEnd.ForOpenSessionAsync(context, s, now);
+        await context.SaveChangesAsync();
         foreach (var b in staleBreaks)
-            b.BreakEndedAt = LocalTime.SessionEndUtc(b.BreakStartedAt!.Value);
+        {
+            var sessionEnd = await context.EmployeeSessions
+                .Where(w => w.UserId == b.UserId && w.LoginAt == b.LoginAt && w.BreakStartedAt == null)
+                .Select(w => w.LogoutAt)
+                .FirstOrDefaultAsync();
+            b.BreakEndedAt = sessionEnd != null && sessionEnd > b.BreakStartedAt ? sessionEnd : b.BreakStartedAt;
+        }
 
         var userIds = staleSessions.Select(s => s.UserId)
         .Concat(staleBreaks.Select(b => b.UserId))
@@ -48,7 +55,7 @@ public class SessionCleanupService(IServiceScopeFactory scopeFactory, ILogger<Se
         await context.SaveChangesAsync();
         foreach (var s in staleSessions)
             await logger.LogAsync(LogActions.EmployeeLogout,"Employee",s.UserId,
-            $"counter: {s.CounterName ?? "none"}; auto logout at {LocalTime.CloseTimeText}",actorId:s.UserId,actorName:"system");
+            $"counter: {s.CounterName ?? "none"}; auto logout (last ticket call + 5 min)",actorId:s.UserId,actorName:"system");
         if(onBreakUsers.Count>0)
             await hub.Clients.All.SendAsync("CountersUpdated",await counterRepository.GetActiveCountersAsync());
 

@@ -71,3 +71,26 @@ public class HoursReportDto
     public int TotalTickets { get; set; }
     public double AvgServiceMinutes { get; set; }
 }
+public class HourBucketDto
+{
+    public int Hour {get; set; }
+    public int Tickets {get; set; }
+    public double AvgWaitMinutes {get; set;}
+
+}
+public class WeekdayBucketDto
+{
+    public string Label { get; set; }="";
+    public int Tickets { get; set; }
+    public double AvgWaitMinutes { get; set; }
+}
+public class QueueReportDto
+{
+    public int Tickets { get; set; }
+    public int Called { get; set; }
+    public double AvgWaitMinutes { get; set; }
+    public double MedianWaitMinutes { get; set; }
+    public double MaxWaitMinutes { get; set; }
+    public List<HourBucketDto> ByHour { get; set; }=[];
+    public List<WeekdayBucketDto> ByWeekday { get; set; }=[];
+}

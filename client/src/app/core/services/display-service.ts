@@ -1,7 +1,7 @@
 import { HttpClient } from '@angular/common/http';
 import { inject, Injectable, signal } from '@angular/core';
 import { HubConnection, HubConnectionBuilder } from '@microsoft/signalr';
-import { Subject } from 'rxjs';
+import { debounceTime, Subject } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { ActiveCounter, ServiceQueue } from '../../types/display';
 
@@ -14,8 +14,13 @@ export class DisplayService {
 
   counters = signal<ActiveCounter[]>([]);
   updated$ = new Subject<void>();
-  dataChanged$ = new Subject<string>();
+  private rawChange$ = new Subject<string>();
+  dataChanged$ = this.rawChange$.pipe(debounceTime(300));
   queues = signal<ServiceQueue[]>([]);
+
+  constructor() {
+    this.dataChanged$.subscribe(() => this.loadCounters());
+  }
 
   startConnection() {
     if (this.hubConnection) return;
@@ -34,13 +39,11 @@ export class DisplayService {
       this.updated$.next();
     });
     this.hubConnection.on('DataChanged', (action: string) => {
-      this.loadCounters();
-      this.dataChanged$.next(action);
+      this.rawChange$.next(action);
     });
     this.hubConnection.onreconnected(() => {
-      this.loadCounters();
       this.updated$.next();
-      this.dataChanged$.next('Reconnected');
+      this.rawChange$.next('Reconnected');
     });
 
     this.connect();

@@ -32,7 +32,7 @@ public class TokenService(IConfiguration config) : ITokenService
         {
             Subject = new ClaimsIdentity(claims),
             Expires = user.Role == Role.Employee
-                ? LocalTime.CloseOfDayUtc(DateTime.UtcNow)
+                ? LocalTime.NextMidnightUtc(DateTime.UtcNow)
                 : DateTime.UtcNow.AddDays(7),
             SigningCredentials = creds
         };

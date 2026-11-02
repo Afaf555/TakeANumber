@@ -79,6 +79,7 @@ public class AppDbContext(DbContextOptions options) : DbContext(options)
             e.Property(x => x.Details).HasMaxLength(500);
             e.HasIndex(x => x.CreatedAt);
             e.HasIndex(x => x.Action);
+            e.HasIndex(x=> new { x.ActorId,x.CreatedAt});
         });
         modelBuilder.Entity<Service>(s =>
         {
@@ -89,14 +90,18 @@ public class AppDbContext(DbContextOptions options) : DbContext(options)
         {
             e.Property(x => x.CounterName).HasMaxLength(100);
             e.Property(x => x.Services).HasMaxLength(500);
+            e.HasIndex(x=>new {x.UserId,x.LoginAt});
+            e.HasIndex(x=>new {x.CounterId,x.LoginAt});
+        });
+        modelBuilder.Entity<Ticket>(e=>{
+
+            e.HasIndex(x=>new{x.CounterId,x.StartedAt});
+            e.HasIndex(x=>new {x.ServiceId,x.CreatedAt});
+
         });
         modelBuilder.Entity<NonWorkingDay>().Property(x => x.Date).HasColumnType("date");
         modelBuilder.Entity<NonWorkingDay>().HasIndex(x => x.Date).IsUnique();
-    //     modelBuilder.Entity<SessionBreak>()
-    // .HasOne(x => x.Session)
-    // .WithMany(s => s.Breaks)
-    // .HasForeignKey(x => x.SessionId)
-    // .OnDelete(DeleteBehavior.Cascade);
+ 
         var dateTimeConverter = new ValueConverter<DateTime, DateTime>
         (
             v => v.ToUniversalTime(),

@@ -2,17 +2,10 @@ import { Routes } from '@angular/router';
 import { Login } from './features/account/login/login';
 import { Register } from './features/account/register/register';
 import { TakeTicket } from './features/client/take-ticket/take-ticket';
-import { CounterPanel } from './features/employee/counter-panel/counter-panel';
-import { ManageServices } from './features/admin/manage-services/manage-services';
-import { ManageCounters } from './features/admin/manage-counters/manage-counters';
-import { ManageEmployees } from './features/admin/manage-employees/manage-employees';
 import { ActiveCounters } from './features/display/active-counters/active-counters';
 import { authGuard } from './core/guards/auth-guard';
 import { roleGuard } from './core/guards/role-guard';
 import { guestGuard } from './core/guards/guest-guard';
-import { QueueOverview } from './features/admin/queue-overview/queue-overview';
-import { Reports } from './features/admin/reports/reports/reports';
-import { Calendar } from './features/admin/calendar/calendar/calendar';
 
 export const routes: Routes = [
   { path: '', redirectTo: 'take-ticket', pathMatch: 'full' },
@@ -28,43 +21,43 @@ export const routes: Routes = [
   },
   {
     path: 'counter-panel',
-    component: CounterPanel,
+    loadComponent: () => import('./features/employee/counter-panel/counter-panel').then((m) => m.CounterPanel),
     canActivate: [authGuard, roleGuard],
     data: { roles: ['Employee'] },
   },
   {
     path: 'manage-services',
-    component: ManageServices,
+    loadComponent: () => import('./features/admin/manage-services/manage-services').then((m) => m.ManageServices),
     canActivate: [authGuard, roleGuard],
     data: { roles: ['Admin'] },
   },
   {
     path: 'manage-counters',
-    component: ManageCounters,
+    loadComponent: () => import('./features/admin/manage-counters/manage-counters').then((m) => m.ManageCounters),
     canActivate: [authGuard, roleGuard],
     data: { roles: ['Admin'] },
   },
   {
     path: 'manage-employees',
-    component: ManageEmployees,
+    loadComponent: () => import('./features/admin/manage-employees/manage-employees').then((m) => m.ManageEmployees),
     canActivate: [authGuard, roleGuard],
     data: { roles: ['Admin'] },
   },{
   path: 'queue-overview',
-  component: QueueOverview,
+  loadComponent: () => import('./features/admin/queue-overview/queue-overview').then((m) => m.QueueOverview),
   canActivate: [authGuard, roleGuard],
   data: { roles: ['Admin'] },
 },
   
   {
   path: 'reports',
-  component: Reports,
+  loadComponent: () => import('./features/admin/reports/reports/reports').then((m) => m.Reports),
   canActivate: [authGuard, roleGuard],
   data: { roles: ['Admin'] },
 },
 {
   path: 'calendar',
-  component: Calendar,
+  loadComponent: () => import('./features/admin/calendar/calendar/calendar').then((m) => m.Calendar),
   canActivate: [authGuard, roleGuard],
   data: { roles: ['Admin'] },
 },

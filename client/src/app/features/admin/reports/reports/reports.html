@@ -1,410 +1,407 @@
-<div class="max-w-5xl mx-auto space-y-4">
-  <div class="card bg-base-100 shadow-md">
-    <div class="card-body flex-row flex-wrap items-end gap-3">
-      <label class="text-sm">From
-        <input type="date" class="input input-sm rounded-full block" [(ngModel)]="from" />
-      </label>
-      <label class="text-sm">To
-        <input type="date" class="input input-sm rounded-full block" [(ngModel)]="to" />
-      </label>
-      <button class="btn btn-sm btn-primary rounded-full" (click)="apply()">Apply</button>
-      <button class="btn btn-sm btn-ghost rounded-full" (click)="setToday()">Today</button>
-      <button class="btn btn-sm btn-ghost rounded-full" (click)="setWeek()">This week</button>
-      <button class="btn btn-sm btn-ghost rounded-full" (click)="setRange(7)">7 days</button>
-      <button class="btn btn-sm btn-ghost rounded-full" (click)="setRange(30)">30 days</button>
-      <button class="btn btn-sm btn-ghost rounded-full" (click)="setRange(365)">Year</button>
-    </div>
+<div class="space-y-4">
+  <div>
+    <h1 class="text-2xl font-semibold">Reports</h1>
+    <p class="text-sm opacity-60">Reports › {{ tabLabels[tab()] }}</p>
   </div>
 
   @if (error()) {
   <p class="text-error text-sm">{{ error() }}</p>
   }
 
-  <div role="tablist" class="tabs tabs-box w-fit">
-    <a role="tab" class="tab" [class.tab-active]="tab() === 'employees'" (click)="tab.set('employees')">Employees</a>
-    <a role="tab" class="tab" [class.tab-active]="tab() === 'activity'" (click)="tab.set('activity')">Activity</a>
-    <a role="tab" class="tab" [class.tab-active]="tab() === 'analytics'" (click)="tab.set('analytics')">Analytics</a>
-  </div>
+  <div class="grid lg:grid-cols-[17rem_1fr] gap-4 items-start">
 
-  @if (tab() === 'employees') {
-  <div class="card bg-base-100 shadow-md">
-    <div class="card-body overflow-x-auto">
-      <table class="table">
-        <thead>
-          <tr>
-            <th>Employee</th>
-            <th>Counter</th>
-            <th>Productive</th>
-            <th>Break h</th>
-            <th>Served</th>
-            <th>No-show</th>
-            <th>Avg min</th>
-            <th>Last login</th>
-          </tr>
-        </thead>
-        <tbody>
-         @for (r of rows(); track r.id) {
-          <tr class="hover cursor-pointer" (click)="select(r)">
-            <td class="font-semibold">{{ r.username }}</td>
-            <td>{{ r.counterName || '-' }}</td>
-            <td class="font-semibold">{{ r.hoursWorked | hm }}</td>
-            <td>{{ r.breakHours | hm }}</td>
-            <td>{{ r.ticketsServed }}</td>
-            <td>{{ r.noShows }}</td>
-            <td>{{ r.avgServiceMinutes | number: '1.0-1' }}</td>
-            <td>{{ r.lastLoginAt ? (r.lastLoginAt | date: 'dd.MM.yyyy HH:mm') : '-' }}</td>
-          </tr>
-          } @empty {
-          <tr>
-            <td colspan="8" class="text-sm">No employees</td>
-          </tr>
-          }
-        </tbody>
-      </table>
-      <p class="text-xs">Choose an employee to see their activity.</p>
-    </div>
-  </div>
-  }
+    <!-- ================= MAIN ================= -->
+    <div class="space-y-4 min-w-0">
 
-  @if (tab() === 'activity') {
-  @if (selected(); as e) {
-  <div class="flex items-center justify-between">
-    <div>
-      <h2 class="text-xl font-semibold">{{ e.username }}</h2>
-      <p class="text-sm opacity-60">{{ e.counterName || 'No counter' }} · {{ from }} - {{ to }}</p>
-    </div>
-    <button class="btn btn-sm btn-ghost rounded-full" (click)="tab.set('employees')">← Employees</button>
-  </div>
-
-  <div class="grid grid-cols-2 md:grid-cols-5 gap-3">
-    <div class="card bg-base-100 shadow-md">
-      <div class="card-body p-4">
-        <p class="text-xs uppercase opacity-60">Hours worked</p>
-        <p class="text-2xl font-semibold">{{ e.hoursWorked | hm }}</p>
-      </div>
-    </div>
-    <div class="card bg-base-100 shadow-md">
-      <div class="card-body p-4">
-        <p class="text-xs uppercase opacity-60">Breaks</p>
-        <p class="text-2xl font-semibold">{{ e.breakHours | hm }}</p>
-      </div>
-    </div>
-    <div class="card bg-base-100 shadow-md">
-      <div class="card-body p-4">
-        <p class="text-xs uppercase opacity-60">Served</p>
-        <p class="text-2xl font-semibold">{{ e.ticketsServed }}</p>
-      </div>
-    </div>
-    <div class="card bg-base-100 shadow-md">
-      <div class="card-body p-4">
-        <p class="text-xs uppercase opacity-60">No-shows</p>
-        <p class="text-2xl font-semibold">{{ e.noShows }}</p>
-      </div>
-    </div>
-    <div class="card bg-base-100 shadow-md">
-      <div class="card-body p-4">
-        <p class="text-xs uppercase opacity-60">Avg service</p>
-        <p class="text-2xl font-semibold">{{ e.avgServiceMinutes | number: '1.0-1' }} min</p>
-      </div>
-    </div>
-  </div>
-
-  @if (activity(); as a) {
-  <div class="grid md:grid-cols-3 gap-4">
-
-  
-    <div class="card bg-base-100 shadow-md md:col-span-2">
-      <div class="card-body">
-        <div class="flex items-center justify-between">
-          <h3 class="card-title text-sm uppercase tracking-widest">Hours per day</h3>
-          <div class="flex items-center gap-2">
-            <span class="text-xs opacity-60">{{ chart().label }}</span>
-            <div class="join">
-              <button class="join-item btn btn-xs" [disabled]="!chart().canOlder"
-                (click)="chartPage.set(chartPage() + 1)">‹</button>
-              <button class="join-item btn btn-xs" [disabled]="!chart().canNewer"
-                (click)="chartPage.set(chartPage() - 1)">›</button>
+      @let hd = head();
+      <div class="grid sm:grid-cols-[1fr_14rem] gap-4">
+        <div class="card bg-base-100 shadow-md">
+          <div class="card-body flex-row items-center gap-4 p-4">
+            <div class="avatar avatar-placeholder">
+              <div class="bg-primary/10 text-primary w-14 rounded-full">
+                <span class="font-semibold">{{ hd.initials }}</span>
+              </div>
+            </div>
+            <div class="min-w-0">
+              <p class="text-xs uppercase opacity-60">{{ tabLabels[tab()] }}</p>
+              <h2 class="text-xl font-semibold truncate">{{ hd.name }}</h2>
+              <p class="text-sm opacity-60">{{ hd.sub }} · {{ from }} - {{ to }}</p>
             </div>
           </div>
         </div>
-
-        <div class="flex gap-2 h-40 border-b border-base-300">
-          @for (b of chart().bars; track b.day) {
-          <div class="flex-1 h-full flex items-end" [class.tooltip]="!b.empty" [attr.data-tip]="b.hours | hm">
-            @if (!b.empty) {
-            <div class="w-3/5 mx-auto rounded-t bg-primary" [style.height.%]="b.height"></div>
-            }
+        <div class="card bg-primary/10 shadow-md">
+          <div class="card-body p-4 items-center justify-center text-center gap-0">
+            <p class="text-xs uppercase font-semibold opacity-70">Hours worked</p>
+            <p class="text-3xl font-semibold text-black">{{ hd.hours | hm }}</p>
           </div>
+        </div>
+      </div>
+
+      <div class="card bg-base-100 shadow-md">
+        <div role="tablist" class="tabs tabs-border px-4 pt-2">
+          <a role="tab" class="tab" [class.tab-active]="tab() === 'employees'" (click)="tab.set('employees')">Employees</a>
+          <a role="tab" class="tab" [class.tab-active]="tab() === 'activity'" (click)="tab.set('activity')">Activity</a>
+          <a role="tab" class="tab" [class.tab-active]="tab() === 'analytics'" (click)="tab.set('analytics')">Analytics</a>
+        </div>
+
+        <div class="card-body p-4 gap-4">
+
+          @if (tab() === 'employees') {
+          <div class="overflow-x-auto">
+            <table class="table table-sm">
+              <thead class="bg-base-200/60 text-xs uppercase">
+                <tr>
+                  <th>Employee</th>
+                  <th>Counter</th>
+                  <th>Productive</th>
+                  <th>Break</th>
+                  <th>Served</th>
+                  <th>No-show</th>
+                  <th>Avg min</th>
+                  <th>Last login</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (r of pagedRows(); track r.id) {
+                <tr class="hover cursor-pointer" (click)="select(r)">
+                  <td class="font-semibold">{{ r.username }}</td>
+                  <td>{{ r.counterName || '-' }}</td>
+                  <td class="font-semibold">{{ r.hoursWorked | hm }}</td>
+                  <td>{{ r.breakHours | hm }}</td>
+                  <td>{{ r.ticketsServed }}</td>
+                  <td>{{ r.noShows }}</td>
+                  <td>{{ r.avgServiceMinutes | number: '1.0-1' }}</td>
+                  <td>{{ r.lastLoginAt ? (r.lastLoginAt | date: 'dd.MM.yyyy HH:mm') : '-' }}</td>
+                </tr>
+                } @empty {
+                <tr><td colspan="8" class="text-sm">No employees</td></tr>
+                }
+              </tbody>
+            </table>
+          </div>
+          <p class="text-xs opacity-60">Click an employee to see their activity.</p>
+      <div class="flex items-center justify-between text-sm">
+        <span class="opacity-60">{{ rows().length }} employees</span>
+        <div class="join">
+          <button class="join-item btn btn-sm" [disabled]="empPage() === 0" (click)="empPage.set(empPage() - 1)">«</button>
+          <button class="join-item btn btn-sm no-animation">{{ empPage() + 1 }} / {{ empPages() }}</button>
+          <button class="join-item btn btn-sm" [disabled]="empPage() + 1 >= empPages()" (click)="empPage.set(empPage() + 1)">»</button>
+        </div>
+      </div>
           }
-        </div>
-        <div class="flex gap-2">
-          @for (b of chart().bars; track b.day) {
-          <div class="flex-1 text-center">
-            @if (!b.empty) {
-            <p class="text-xs">{{ b.label }}</p>
-            <p class="text-[10px] opacity-60">{{ b.hours | hm }}</p>
+
+          @if (tab() === 'activity') {
+          @if (selected()) {
+          <div class="flex justify-end">
+            <button class="btn btn-sm btn-ghost rounded-full" (click)="tab.set('employees')">← Employees</button>
+          </div>
+
+          @if (activity(); as a) {
+          <div class="grid md:grid-cols-3 gap-4">
+            <div class="card border border-base-300 md:col-span-2">
+              <div class="card-body p-4">
+                <div class="flex items-center justify-between">
+                  <h3 class="text-xs font-semibold uppercase tracking-widest">Hours per day</h3>
+                  <div class="flex items-center gap-2">
+                    <span class="text-xs opacity-60">{{ chart().label }}</span>
+                    <div class="join">
+                      <button class="join-item btn btn-xs" [disabled]="!chart().canOlder"
+                        (click)="chartPage.set(chartPage() + 1)">‹</button>
+                      <button class="join-item btn btn-xs" [disabled]="!chart().canNewer"
+                        (click)="chartPage.set(chartPage() - 1)">›</button>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="flex gap-2 h-40 border-b border-base-300">
+                  @for (b of chart().bars; track b.day) {
+                  <div class="flex-1 h-full flex items-end" [class.tooltip]="!b.empty" [attr.data-tip]="b.hours | hm">
+                    @if (!b.empty) {
+                    <div class="w-3/5 mx-auto rounded-t bg-primary" [style.height.%]="b.height"></div>
+                    }
+                  </div>
+                  }
+                </div>
+                <div class="flex gap-2">
+                  @for (b of chart().bars; track b.day) {
+                  <div class="flex-1 text-center">
+                    @if (!b.empty) {
+                    <p class="text-xs">{{ b.label }}</p>
+                    <p class="text-[10px] opacity-60">{{ b.hours | hm }}</p>
+                    }
+                  </div>
+                  }
+                </div>
+              </div>
+            </div>
+
+            <div class="card border border-base-300">
+              <div class="card-body p-4 items-center">
+                <h3 class="text-xs font-semibold uppercase tracking-widest self-start">Tickets</h3>
+                <div class="w-32 h-32 rounded-full grid place-items-center" [style.background]="ticketStats().donut">
+                  <div class="w-20 h-20 rounded-full bg-base-100 grid place-items-center text-xl font-semibold">
+                    {{ ticketStats().total }}
+                  </div>
+                </div>
+                <div class="flex gap-4 text-xs">
+                  <span class="flex items-center gap-1">
+                    <span class="w-2 h-2 rounded-full bg-success"></span> Served {{ ticketStats().served }}
+                  </span>
+                  <span class="flex items-center gap-1">
+                    <span class="w-2 h-2 rounded-full bg-error"></span> No-show {{ ticketStats().noShow }}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div role="tablist" class="tabs tabs-box tabs-sm w-fit">
+            <a role="tab" class="tab" [class.tab-active]="sub() === 'sessions'" (click)="setSub('sessions')">Sessions</a>
+            <a role="tab" class="tab" [class.tab-active]="sub() === 'tickets'" (click)="setSub('tickets')">Tickets</a>
+            <a role="tab" class="tab" [class.tab-active]="sub() === 'log'" (click)="setSub('log')">Activity log</a>
+          </div>
+
+          <div class="overflow-x-auto">
+            @switch (sub()) {
+            @case ('sessions') {
+            <table class="table table-sm">
+              <thead class="bg-base-200/60 text-xs uppercase">
+                <tr><th>Login</th><th>Logout</th><th>Hours</th><th>Break min</th><th>Counter</th></tr>
+              </thead>
+              <tbody>
+                @for (s of pagedSessions(); track s.id) {
+                <tr class="hover">
+                  <td>{{ s.loginAt | date: 'dd.MM.yyyy HH:mm' }}</td>
+                  <td>
+                    @if (s.isOpen) { <span class="badge badge-success badge-sm">open</span> }
+                    @else { {{ s.logoutAt | date: 'dd.MM.yyyy HH:mm' }} }
+                  </td>
+                  <td>{{ s.durationHours | hm }}</td>
+                  <td>{{ s.breakMinutes }}</td>
+                  <td>{{ s.counterName || '-' }}</td>
+                </tr>
+                } @empty {
+                <tr><td colspan="5" class="text-sm">No sessions in this period</td></tr>
+                }
+              </tbody>
+            </table>
+            }
+            @case ('tickets') {
+            <table class="table table-sm">
+              <thead class="bg-base-200/60 text-xs uppercase">
+                <tr><th>#</th><th>Service</th><th>Started</th><th>Status</th><th>Minutes</th></tr>
+              </thead>
+              <tbody>
+                @for (t of pagedTickets(); track t.code + t.startedAt) {
+                <tr class="hover">
+                  <td class="font-semibold">{{ t.code }}</td>
+                  <td>{{ t.serviceName }}</td>
+                  <td>{{ t.startedAt | date: 'dd.MM.yyyy HH:mm' }}</td>
+                  <td>
+                    <span class="badge badge-sm" [class.badge-success]="t.status === 'Finished'"
+                      [class.badge-error]="t.status === 'NoShow'">{{ t.status }}</span>
+                  </td>
+                  <td>{{ t.durationMinutes !== null ? (t.durationMinutes | number: '1.0-1') : '-' }}</td>
+                </tr>
+                } @empty {
+                <tr><td colspan="5" class="text-sm">No tickets in this period</td></tr>
+                }
+              </tbody>
+            </table>
+            }
+            @case ('log') {
+            <table class="table table-sm">
+              <thead class="bg-base-200/60 text-xs uppercase">
+                <tr><th>Time</th><th>Action</th><th>Details</th></tr>
+              </thead>
+              <tbody>
+                @for (l of pagedLog(); track l.createdAt + l.action) {
+                <tr class="hover">
+                  <td>{{ l.createdAt | date: 'dd.MM.yyyy HH:mm:ss' }}</td>
+                  <td>{{ l.action }}</td>
+                  <td class="text-xs">{{ l.details }}</td>
+                </tr>
+                } @empty {
+                <tr><td colspan="3" class="text-sm">No activity</td></tr>
+                }
+              </tbody>
+            </table>
+            }
             }
           </div>
-          }
-        </div>
-      </div>
-    </div>
-
-    <div class="card bg-base-100 shadow-md">
-      <div class="card-body items-center">
-        <h3 class="card-title text-sm uppercase tracking-widest self-start">Tickets</h3>
-        <div class="w-32 h-32 rounded-full grid place-items-center" [style.background]="ticketStats().donut">
-          <div class="w-20 h-20 rounded-full bg-base-100 grid place-items-center text-xl font-semibold">
-            {{ ticketStats().total }}
-          </div>
-        </div>
-        <div class="flex gap-4 text-xs">
-          <span class="flex items-center gap-1">
-            <span class="w-2 h-2 rounded-full bg-success"></span> Served {{ ticketStats().served }}
-          </span>
-          <span class="flex items-center gap-1">
-            <span class="w-2 h-2 rounded-full bg-error"></span> No-show {{ ticketStats().noShow }}
-          </span>
-        </div>
-      </div>
-    </div>
-  </div>
-
-
-  <div class="card bg-base-100 shadow-md">
-    <div class="card-body">
-      <div role="tablist" class="tabs tabs-border">
-        <a role="tab" class="tab" [class.tab-active]="sub() === 'sessions'" (click)="setSub('sessions')">Sessions</a>
-        <a role="tab" class="tab" [class.tab-active]="sub() === 'tickets'" (click)="setSub('tickets')">Tickets</a>
-        <a role="tab" class="tab" [class.tab-active]="sub() === 'log'" (click)="setSub('log')">Activity log</a>
-      </div>
-
-      <div class="overflow-x-auto">
-        @switch (sub()) {
-        @case ('sessions') {
-        <table class="table table-sm">
-          <thead>
-            <tr>
-              <th>Login</th>
-              <th>Logout</th>
-              <th>Hours</th>
-              <th>Break min</th>
-              <th>Counter</th>
-            </tr>
-          </thead>
-          <tbody>
-            @for (s of pagedSessions(); track s.id) {
-            <tr>
-              <td>{{ s.loginAt | date: 'dd.MM.yyyy HH:mm' }}</td>
-              <td>
-                @if (s.isOpen) { <span class="badge badge-success badge-sm">open</span> }
-                @else { {{ s.logoutAt | date: 'dd.MM.yyyy HH:mm' }} }
-              </td>
-              <td>{{ s.durationHours | hm }}</td>
-              <td>{{ s.breakMinutes }}</td>
-              <td>{{ s.counterName || '-' }}</td>
-            </tr>
-            } @empty {
-            <tr>
-              <td colspan="5" class="text-sm">No sessions in this period</td>
-            </tr>
-            }
-          </tbody>
-        </table>
-        }
-        @case ('tickets') {
-        <table class="table table-sm">
-          <thead>
-            <tr>
-              <th>#</th>
-              <th>Service</th>
-              <th>Started</th>
-              <th>Status</th>
-              <th>Minutes</th>
-            </tr>
-          </thead>
-          <tbody>
-            @for (t of pagedTickets(); track t.code + t.startedAt) {
-            <tr>
-              <td class="font-semibold">{{ t.code }}</td>
-              <td>{{ t.serviceName }}</td>
-              <td>{{ t.startedAt | date: 'dd.MM.yyyy HH:mm' }}</td>
-              <td>
-                <span class="badge badge-sm" [class.badge-success]="t.status === 'Finished'"
-                  [class.badge-error]="t.status === 'NoShow'">{{ t.status }}</span>
-              </td>
-              <td>{{ t.durationMinutes !== null ? (t.durationMinutes | number: '1.0-1') : '-' }}</td>
-            </tr>
-            } @empty {
-            <tr>
-              <td colspan="5" class="text-sm">No tickets in this period</td>
-            </tr>
-            }
-          </tbody>
-        </table>
-        }
-        @case ('log') {
-        <table class="table table-sm">
-          <thead>
-            <tr>
-              <th>Time</th>
-              <th>Action</th>
-              <th>Details</th>
-            </tr>
-          </thead>
-          <tbody>
-            @for (l of pagedLog(); track l.createdAt + l.action) {
-            <tr>
-              <td>{{ l.createdAt | date: 'dd.MM.yyyy HH:mm:ss' }}</td>
-              <td>{{ l.action }}</td>
-              <td class="text-xs">{{ l.details }}</td>
-            </tr>
-            } @empty {
-            <tr>
-              <td colspan="3" class="text-sm">No activity</td>
-            </tr>
-            }
-          </tbody>
-        </table>
-        }
-        }
-      </div>
-
       <div class="flex items-center justify-between text-sm">
         <span class="opacity-60">{{ total() }} entries</span>
         <div class="join">
           <button class="join-item btn btn-sm" [disabled]="page() === 0" (click)="page.set(page() - 1)">«</button>
           <button class="join-item btn btn-sm no-animation">{{ page() + 1 }} / {{ pages() }}</button>
-          <button class="join-item btn btn-sm" [disabled]="page() + 1 >= pages()"
-            (click)="page.set(page() + 1)">»</button>
+          <button class="join-item btn btn-sm" [disabled]="page() + 1 >= pages()" (click)="page.set(page() + 1)">»</button>
         </div>
       </div>
-    </div>
-  </div>
-  }
-  } @else {
-  <p class="text-sm">Select an employee from the Employees tab.</p>
-  }
-  }
-
-  @if (tab() === 'analytics') {
-  <div class="card bg-base-100 shadow-md">
-    <div class="card-body flex-row flex-wrap items-end gap-3">
-      <label class="text-sm">Group by
-        <select class="select select-sm rounded-full flex  text-center [text-align-last:center]" [ngModel]="groupBy"
-          (ngModelChange)="groupBy = $event; loadHours()">
-          <option class="text-center" value="day">Day</option>
-          <option class="text-center" value="week">Week</option>
-          <option class="text-center" value="month">Month</option>
-          <option class="text-center" value="year">Year</option>
-        </select>
-      </label>
-      <label class="text-sm">Employee
-        <select class="select select-sm rounded-full flex text-center [text-align-last:center]" [ngModel]="analyticsEmployeeId"
-          (ngModelChange)="analyticsEmployeeId = $event; loadHours()">
-          <option class="text-center" [ngValue]="null">All employees</option>
-          @for (r of rows(); track r.id) {
-          <option class="text-center" [ngValue]="r.id">{{ r.username }}</option>
           }
-        </select>
-      </label>
-    </div>
-  </div>
+          } @else {
+          <p class="text-sm">Select an employee from the Employees tab.</p>
+          }
+          }
 
-  @if (hours(); as h) {
-  <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
-    <div class="card bg-base-100 shadow-md">
-      <div class="card-body p-4">
-        <p class="text-xs uppercase opacity-60">Total hours</p>
-        <p class="text-2xl font-semibold">{{ h.totalHours | hm }}</p>
-        <p class="text-xs opacity-60">Time logged in, minus breaks</p>
-      </div>
-    </div>
-    <div class="card bg-base-100 shadow-md">
-      <div class="card-body p-4">
-        <p class="text-xs uppercase opacity-60">Avg hours / {{ groupBy }}</p>
-        <p class="text-2xl font-semibold">{{ h.avgHoursPerPeriod | hm }}</p>
-        <p class="text-xs opacity-60">Total / {{ h.points.length }} {{ groupBy }}(s) in range, empty ones included</p>
-      </div>
-    </div>
-    <div class="card bg-base-100 shadow-md">
-      <div class="card-body p-4">
-        <p class="text-xs uppercase opacity-60">Avg hours / worked day</p>
-        <p class="text-2xl font-semibold">{{ h.avgHoursPerWorkedDay | hm }}</p>
-        <p class="text-xs opacity-60">Total / {{ h.workedDays }} days with at least one session</p>
-      </div>
-    </div>
-    <div class="card bg-base-100 shadow-md">
-      <div class="card-body p-4">
-        <p class="text-xs uppercase opacity-60">Avg session</p>
-        <p class="text-2xl font-semibold">{{ h.avgSessionHours | hm }}</p>
-        <p class="text-xs opacity-60">Total / {{ totalSessions() }} sessions (login to logout)</p>
-      </div>
-    </div>
-    <div class="card bg-base-100 shadow-md">
-      <div class="card-body p-4">
-        <p class="text-xs uppercase opacity-60">Tickets served</p>
-        <p class="text-2xl font-semibold">{{ h.totalTickets }}</p>
-        <p class="text-xs opacity-60">Finished only, no-shows not counted</p>
-      </div>
-    </div>
-    <div class="card bg-base-100 shadow-md">
-      <div class="card-body p-4">
-        <p class="text-xs uppercase opacity-60">Avg service time</p>
-        <p class="text-2xl font-semibold">{{ h.avgServiceMinutes | number: '1.0-1' }} min</p>
-        <p class="text-xs opacity-60">Average of call → finish on finished tickets</p>
-      </div>
-    </div>
-  </div>
-
-  <div class="card bg-base-100 shadow-md">
-    <div class="card-body">
-      <div class="overflow-x-auto">
-        <table class="table table-sm">
-          <thead>
-            <tr>
-              <th>Period</th>
-              <th class="w-1/3">Hours</th>
-              <th>Sessions</th>
-              <th>Tickets</th>
-              <th>Avg min</th>
-            </tr>
-          </thead>
-          <tbody>
-            @for (p of pagedPoints(); track p.periodStart) {
-            <tr>
-              <td>{{ p.label }}</td>
-              <td>
-                <div class="flex items-center gap-2">
-                  <div class="h-2 rounded-full bg-primary" [style.width.%]="p.hours / maxHours() * 100"></div>
-                  <span class="text-xs">{{ p.hours | hm }}</span>
+        
+          @if (tab() === 'analytics') {
+          @if (queue(); as q) {
+          <div class="grid md:grid-cols-3 gap-4">
+            <div class="card border border-base-300 md:col-span-2">
+              <div class="card-body p-4">
+                <h3 class="text-xs font-semibold uppercase tracking-widest">Tickets by hour</h3>
+                <div class="flex gap-1 h-40 border-b border-base-300">
+                  @for (b of hourBars(); track b.hour) {
+                  <div class="flex-1 h-full flex items-end tooltip"
+                    [attr.data-tip]="b.tickets + ' tickets, avg wait ' + (b.avgWaitMinutes | number: '1.0-1') + ' min'">
+                    <div class="w-3/5 mx-auto rounded-t bg-primary" [style.height.%]="b.height"></div>
+                  </div>
+                  } @empty {
+                  <p class="text-sm opacity-60 m-auto">No tickets in this period</p>
+                  }
                 </div>
-              </td>
-              <td>{{ p.sessions }}</td>
-              <td>{{ p.tickets }}</td>
-              <td>{{ p.avgServiceMinutes | number: '1.0-1' }}</td>
-            </tr>
-            } @empty {
-            <tr>
-              <td colspan="5" class="text-sm">No data in this period</td>
-            </tr>
-            }
-          </tbody>
-        </table>
-      </div>
+                <div class="flex gap-1">
+                  @for (b of hourBars(); track b.hour) {
+                  <div class="flex-1 text-center text-[10px] opacity-60">{{ b.label }}</div>
+                  }
+                </div>
+              </div>
+            </div>
 
+            <div class="card border border-base-300">
+              <div class="card-body p-4">
+                <h3 class="text-xs font-semibold uppercase tracking-widest">Tickets by weekday</h3>
+                <div class="flex gap-1 h-40 border-b border-base-300">
+                  @for (b of weekdayBars(); track b.label) {
+                  <div class="flex-1 h-full flex items-end tooltip"
+                    [attr.data-tip]="b.tickets + ' tickets, avg wait ' + (b.avgWaitMinutes | number: '1.0-1') + ' min'">
+                    <div class="w-3/5 mx-auto rounded-t bg-primary" [style.height.%]="b.height"></div>
+                  </div>
+                  }
+                </div>
+                <div class="flex gap-1">
+                  @for (b of weekdayBars(); track b.label) {
+                  <div class="flex-1 text-center text-[10px] opacity-60">{{ b.label }}</div>
+                  }
+                </div>
+              </div>
+            </div>
+          </div>
+          <p class="text-xs opacity-60">
+            Whole queue, all employees. {{ q.called }} of {{ q.tickets }} tickets were called; wait = ticket taken to called.
+          </p>
+          }
+
+          @if (hours(); as h) {
+          <div class="overflow-x-auto">
+            <table class="table table-sm">
+              <thead class="bg-base-200/60 text-xs uppercase">
+                <tr>
+                  <th>Period</th>
+                  <th class="w-1/3">Hours</th>
+                  <th>Sessions</th>
+                  <th>Tickets</th>
+                  <th>Avg min</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (p of pagedPoints(); track p.periodStart) {
+                <tr class="hover">
+                  <td>{{ p.label }}</td>
+                  <td>
+                    <div class="flex items-center gap-2">
+                      <div class="h-2 rounded-full bg-primary" [style.width.%]="p.hours / maxHours() * 100"></div>
+                      <span class="text-xs">{{ p.hours | hm }}</span>
+                    </div>
+                  </td>
+                  <td>{{ p.sessions }}</td>
+                  <td>{{ p.tickets }}</td>
+                  <td>{{ p.avgServiceMinutes | number: '1.0-1' }}</td>
+                </tr>
+                } @empty {
+                <tr><td colspan="5" class="text-sm">No data in this period</td></tr>
+                }
+              </tbody>
+            </table>
+          </div>
       <div class="flex items-center justify-between text-sm">
         <span class="opacity-60">{{ h.points.length }} periods</span>
         <div class="join">
-          <button class="join-item btn btn-sm" [disabled]="analyticsPage() === 0"
-            (click)="analyticsPage.set(analyticsPage() - 1)">«</button>
+          <button class="join-item btn btn-sm" [disabled]="analyticsPage() === 0" (click)="analyticsPage.set(analyticsPage() - 1)">«</button>
           <button class="join-item btn btn-sm no-animation">{{ analyticsPage() + 1 }} / {{ analyticsPages() }}</button>
-          <button class="join-item btn btn-sm" [disabled]="analyticsPage() + 1 >= analyticsPages()"
-            (click)="analyticsPage.set(analyticsPage() + 1)">»</button>
+          <button class="join-item btn btn-sm" [disabled]="analyticsPage() + 1 >= analyticsPages()" (click)="analyticsPage.set(analyticsPage() + 1)">»</button>
+        </div>
+      </div>
+          }
+          }
+
         </div>
       </div>
     </div>
+
+    <div class="space-y-4 order-first">
+
+      <div class="card bg-base-100 shadow-md overflow-hidden">
+        <div class="bg-primary text-primary-content px-4 py-2 text-xs font-semibold uppercase tracking-widest">
+          Overview
+        </div>
+        <div class="card-body p-4 gap-3">
+          @for (row of overview(); track row.label) {
+          <div class="flex items-start justify-between gap-2">
+            <div>
+              <p class="text-sm">{{ row.label }}</p>
+              @if (row.hint) { <p class="text-[11px] opacity-60 leading-tight">{{ row.hint }}</p> }
+            </div>
+            <p class="text-sm font-semibold whitespace-nowrap">{{ row.value }}</p>
+          </div>
+          } @empty {
+          <p class="text-sm opacity-60">No data</p>
+          }
+        </div>
+      </div>
+
+      <div class="card bg-base-100 shadow-md">
+        <div class="card-body p-4 gap-3">
+          <h3 class="text-xs font-semibold uppercase tracking-widest text-primary">Period</h3>
+          <label class="text-xs flex flex-col gap-1.5">From
+            <input type="date" class="input input-sm rounded-full w-full" [(ngModel)]="from" />
+          </label>
+          <label class="text-xs flex flex-col gap-1.5">To
+            <input type="date" class="input input-sm rounded-full w-full" [(ngModel)]="to" />
+          </label>
+
+          @if (tab() === 'analytics') {
+          <label class="text-xs flex flex-col gap-1.5">Group by
+            <select class="select select-sm rounded-full flex w-full px-8 text-center [text-align-last:center]"
+              [ngModel]="groupBy" (ngModelChange)="groupBy = $event; loadHours()">
+              <option class="text-center" value="day">Day</option>
+              <option class="text-center" value="week">Week</option>
+              <option class="text-center" value="month">Month</option>
+              <option class="text-center" value="year">Year</option>
+            </select>
+            
+          </label>
+          <label class="text-xs flex flex-col gap-1.5">Employee
+            <select class="select select-sm rounded-full flex w-full px-8 text-center [text-align-last:center]"
+              [ngModel]="analyticsEmployeeId" (ngModelChange)="analyticsEmployeeId = $event; loadHours()">
+              <option class="text-center" [ngValue]="null">All employees</option>
+              @for (r of rows(); track r.id) {
+              <option class="text-center" [ngValue]="r.id">{{ r.username }}</option>
+              }
+            </select>
+          </label>
+          }
+
+          <button class="btn btn-primary btn-sm rounded-full w-full" (click)="apply()">Apply</button>
+        </div>
+      </div>
+      <div class="grid grid-cols-3 gap-2">
+        <button class="btn bg-base-100 shadow-sm h-14 flex-col gap-0 text-xs" (click)="setToday()">Today</button>
+        <button class="btn bg-base-100 shadow-sm h-14 flex-col gap-0 text-xs" (click)="setWeek()">This week</button>
+        <button class="btn bg-base-100 shadow-sm h-14 flex-col gap-0 text-xs" (click)="setRange(7)">7 days</button>
+        <button class="btn bg-base-100 shadow-sm h-14 flex-col gap-0 text-xs" (click)="setRange(30)">30 days</button>
+        <button class="btn bg-base-100 shadow-sm h-14 flex-col gap-0 text-xs col-span-2" (click)="setRange(365)">Year</button>
+      </div>
+    </div>
   </div>
-  }
-  }
 </div>

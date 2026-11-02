@@ -12,8 +12,7 @@ import { environment } from '../../../environments/environment';
 export class Nav {
   protected accountService = inject(AccountService);
   private router = inject(Router);
-  protected closeTime = String(environment.closeHour).padStart(2, '0') + ':00';
-
+  
   logout() {
     this.accountService.logout();
    // this.router.navigateByUrl('/login');

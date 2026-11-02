@@ -19,6 +19,12 @@ export type HoursPoint = {
     periodStart: string; label: string; hours: number; sessions: number;
     tickets: number; avgServiceMinutes: number;
 };
+export type HourBucket = { hour: number; tickets: number; avgWaitMinutes: number };
+export type WeekdayBucket = { label: string; tickets: number; avgWaitMinutes: number };
+export type QueueReport = {
+    tickets: number; called: number; avgWaitMinutes: number; medianWaitMinutes: number;
+    maxWaitMinutes: number; byHour: HourBucket[]; byWeekday: WeekdayBucket[];
+};
 export type HoursReport = {
     points: HoursPoint[]; totalHours: number; avgHoursPerPeriod: number; workedDays: number;
     avgHoursPerWorkedDay: number; avgSessionHours: number; totalTickets: number; avgServiceMinutes: number;

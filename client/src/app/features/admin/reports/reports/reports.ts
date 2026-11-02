@@ -2,7 +2,7 @@ import { Component, computed, inject, OnDestroy, OnInit, signal } from '@angular
 import { Subscription } from 'rxjs';
 import { DisplayService } from '../../../../core/services/display-service';
 import { ReportsService } from '../../../../core/services/reports-service';
-import { EmployeeActivity, EmployeeReportRow, HoursReport } from '../../../../types/reports';
+import { EmployeeActivity, EmployeeReportRow, HoursReport, QueueReport } from '../../../../types/reports';
 import { DatePipe, DecimalPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HoursMinutesPipe } from '../../../../core/pipes/hours-minutes-pipe';
@@ -34,6 +34,7 @@ export class Reports implements OnInit, OnDestroy {
   protected selected = signal<EmployeeReportRow | null>(null);
   protected activity = signal<EmployeeActivity | null>(null);
   protected hours = signal<HoursReport | null>(null);
+  protected queue = signal<QueueReport | null>(null);
   protected error = signal('');
 
   protected maxHours = computed(() => Math.max(1, ...(this.hours()?.points.map((p) => p.hours) ?? []))
@@ -55,6 +56,97 @@ export class Reports implements OnInit, OnDestroy {
   protected page = signal(0);
   protected readonly pageSize = 8;
 
+  private hmPipe = new HoursMinutesPipe();
+  protected tabLabels: Record<'employees' | 'activity' | 'analytics', string> = {
+    employees: 'Employees',
+    activity: 'Activity',
+    analytics: 'Analytics',
+  };
+
+  protected empPage = signal(0);
+  protected pagedRows = computed(() => {
+    const start = this.empPage() * this.pageSize;
+    return this.rows().slice(start, start + this.pageSize);
+  });
+  protected empPages = computed(() => Math.max(1, Math.ceil(this.rows().length / this.pageSize)));
+
+  protected totals = computed(() => {
+    const r = this.rows();
+    const sum = (f: (x: EmployeeReportRow) => number) => r.reduce((a, x) => a + f(x), 0);
+    const served = sum((x) => x.ticketsServed);
+    return {
+      hours: sum((x) => x.hoursWorked),
+      breaks: sum((x) => x.breakHours),
+      sessions: sum((x) => x.sessions),
+      served,
+      noShows: sum((x) => x.noShows),
+      avg: served ? sum((x) => x.avgServiceMinutes * x.ticketsServed) / served : 0,
+    };
+  });
+
+  protected head = computed(() => {
+    const e = this.selected();
+    if (this.tab() === 'activity' && e) {
+      return { initials: e.username.slice(0, 2).toUpperCase(), name: e.username,
+        sub: e.counterName || 'No counter', hours: e.hoursWorked };
+    }
+    if (this.tab() === 'analytics') {
+      const emp = this.rows().find((r) => r.id === this.analyticsEmployeeId);
+      return { initials: emp ? emp.username.slice(0, 2).toUpperCase() : 'ALL',
+        name: emp ? emp.username : 'All employees',
+        sub: `Grouped by ${this.groupBy}`, hours: this.hours()?.totalHours ?? 0 };
+    }
+    return { initials: 'ALL', name: 'All employees',
+      sub: `${this.rows().length} employees`, hours: this.totals().hours };
+  });
+
+  protected overview = computed<{ label: string; value: string; hint?: string }[]>(() => {
+    const hm = (h: number) => this.hmPipe.transform(h);
+    const min = (m: number) => `${Math.round(m * 10) / 10} min`;
+    const e = this.selected();
+
+    if (this.tab() === 'activity' && e) {
+      return [
+        { label: 'Hours worked', value: hm(e.hoursWorked), hint: 'Logged in, minus breaks' },
+        { label: 'Breaks', value: hm(e.breakHours) },
+        { label: 'Sessions', value: String(e.sessions) },
+        { label: 'Served', value: String(e.ticketsServed), hint: 'Finished tickets' },
+        { label: 'No-shows', value: String(e.noShows) },
+        { label: 'Avg service', value: min(e.avgServiceMinutes), hint: 'Call to finish' },
+      ];
+    }
+    if (this.tab() === 'analytics') {
+      const h = this.hours();
+      const q = this.queue();
+      if (!h) return [];
+      return [
+        { label: 'Total hours', value: hm(h.totalHours), hint: 'Logged in, minus breaks' },
+        { label: `Avg / ${this.groupBy}`, value: hm(h.avgHoursPerPeriod),
+          hint: `Total ÷ ${h.points.length} ${this.groupBy}(s), empty ones included` },
+        { label: 'Avg / worked day', value: hm(h.avgHoursPerWorkedDay),
+          hint: `Total ÷ ${h.workedDays} days with a session` },
+        { label: 'Avg session', value: hm(h.avgSessionHours),
+          hint: `Total ÷ ${this.totalSessions()} sessions` },
+        { label: 'Tickets served', value: String(h.totalTickets), hint: 'Finished only, no-shows excluded' },
+        { label: 'Avg service time', value: min(h.avgServiceMinutes), hint: 'Call to finish' },
+        ...(q ? [
+          { label: 'Avg wait', value: min(q.avgWaitMinutes), hint: 'Ticket taken to called' },
+          { label: 'Median wait', value: min(q.medianWaitMinutes), hint: 'Half of the clients wait less' },
+          { label: 'Max wait', value: min(q.maxWaitMinutes), hint: 'Longest single wait' },
+        ] : []),
+      ];
+    }
+    const t = this.totals();
+    return [
+      { label: 'Total hours',value: hm(t.hours), hint: 'Logged in, minus breaks' },
+      { label: 'Breaks', value: hm(t.breaks) },
+      { label: 'Sessions', value: String(t.sessions) },
+      { label: 'Served', value: String(t.served), hint: 'Finished tickets' },
+      { label: 'No-shows', value: String(t.noShows) },
+      { label: 'Avg service', value: min(t.avg), hint: 'Call to finish' },
+    ];
+  });
+
   ngOnInit(): void {
     this.apply();
     this.updateSub = this.displayService.dataChanged$.subscribe(() => this.refresh());
@@ -67,6 +159,7 @@ export class Reports implements OnInit, OnDestroy {
   private refresh() {
     this.loadEmployees();
     this.loadHours(false);
+    this.loadQueue();
     if (this.selected()) this.loadActivity(false);
   }
 
@@ -78,6 +171,7 @@ export class Reports implements OnInit, OnDestroy {
   apply() {
     this.loadEmployees();
     this.loadHours();
+    this.loadQueue();
     if (this.selected()) this.loadActivity()
   }
   select(row: EmployeeReportRow) {
@@ -121,6 +215,31 @@ export class Reports implements OnInit, OnDestroy {
         error: () => this.error.set('Could not load analytics'),
       })
   }
+  loadQueue() {
+    this.reportsService.getQueue(this.from, this.to).subscribe({
+      next: (q) => this.queue.set(q),
+      error: () => this.error.set('Could not load queue report'),
+    });
+  }
+
+  protected hourBars = computed(() => {
+    const all = this.queue()?.byHour ?? [];
+    const used = all.filter((x) => x.tickets > 0);
+    if (!used.length) return [];
+    const first = used[0].hour;
+    const last = used[used.length - 1].hour;
+    const max = Math.max(...used.map((x) => x.tickets));
+    return all
+      .filter((x) => x.hour >= first && x.hour <= last)
+      .map((x) => ({ ...x, label: String(x.hour).padStart(2, '0'), height: (x.tickets / max) * 100 }));
+  });
+
+  protected weekdayBars = computed(() => {
+    const all = this.queue()?.byWeekday ?? [];
+    const max = Math.max(1, ...all.map((x) => x.tickets));
+    return all.map((x) => ({ ...x, height: (x.tickets / max) * 100 }));
+  });
+
   protected chartPage=signal(0);
   private readonly chartDays=7;
   private chartRange=signal({from:this.from,to:this.to});

@@ -63,6 +63,8 @@ namespace API.Migrations
 
                     b.HasIndex("CreatedAt");
 
+                    b.HasIndex("ActorId", "CreatedAt");
+
                     b.ToTable("ActivityLogs");
                 });
 
@@ -137,7 +139,9 @@ namespace API.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("UserId");
+                    b.HasIndex("CounterId", "LoginAt");
+
+                    b.HasIndex("UserId", "LoginAt");
 
                     b.ToTable("EmployeeSessions");
                 });
@@ -227,9 +231,9 @@ namespace API.Migrations
 
                     b.HasIndex("ClientId");
 
-                    b.HasIndex("CounterId");
+                    b.HasIndex("CounterId", "StartedAt");
 
-                    b.HasIndex("ServiceId");
+                    b.HasIndex("ServiceId", "CreatedAt");
 
                     b.ToTable("Tickets");
                 });

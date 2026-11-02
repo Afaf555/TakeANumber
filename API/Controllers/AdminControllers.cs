@@ -122,7 +122,7 @@ public class AdminController(AppDbContext context, ActivityLogger logger) : Base
         if (existingCount != distinctIds.Count)
             return BadRequest("One or more services do not exist");
 
-        var oldIds = counter.CounterServices.Select(cs => cs.ServiceId).ToList();   // ← ново
+        var oldIds = counter.CounterServices.Select(cs => cs.ServiceId).ToList();   
 
         context.CounterServices.RemoveRange(counter.CounterServices);
 

@@ -24,15 +24,12 @@ export class AccountService {
   private today(){
     return new Date().toLocaleDateString('sv-SE');
   }
-  private closed(){
-    return new Date().getHours() >= environment.closeHour;
-  }
   private watchDay(){
     clearInterval(this.dayTimer);
     if(this.currentUser()?.role!=='Employee') return;
 
     this.dayTimer=setInterval(()=>{
-      if(localStorage.getItem('loginDay')!==this.today() || this.closed()){
+      if(localStorage.getItem('loginDay')!==this.today()){
         clearInterval(this.dayTimer);
         localStorage.removeItem('user');
         localStorage.removeItem('loginDay');
@@ -94,7 +91,7 @@ export class AccountService {
     if(!json) return null;
 
     const user:User=JSON.parse(json);
-    if(user.role=='Employee' && (localStorage.getItem('loginDay')!== this.today() || this.closed())){
+    if(user.role=='Employee' && localStorage.getItem('loginDay')!== this.today()){
       localStorage.removeItem('user');
       localStorage.removeItem('loginDay');
       return null;

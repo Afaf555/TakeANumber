@@ -3,6 +3,7 @@ using API.DTOs;
 using API.Entities;
 using API.Entities.Enums;
 using API.Extensions;
+using API.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -36,7 +37,7 @@ public class ReportsController(AppDbContext context) : BaseApiController
         [FromQuery] DateTime from, [FromQuery] DateTime to)
     {
         var (f, t) = Range(from, to);
-        var counters = await context.Counters.ToDictionaryAsync(c => c.Id, c => c.Name);
+        var counters = await context.Counters.AsNoTracking().ToDictionaryAsync(c => c.Id, c => c.Name);
         var employees = await context.Users
             .Where(u => u.Role == Role.Employee)
             .Select(u => new { u.Id, u.Username, u.CounterId })
@@ -44,7 +45,7 @@ public class ReportsController(AppDbContext context) : BaseApiController
         var spans = await LoadSpansAsync(f, t, null);
         var tickets = await LoadTicketsAsync(f, t);
         var now=DateTime.UtcNow;
-        var breakRows=await context.EmployeeSessions.Where(b=>b.BreakStartedAt!=null && b.BreakStartedAt>=f&& b.BreakStartedAt<t).ToListAsync();
+        var breakRows=await context.EmployeeSessions.AsNoTracking().Where(b=>b.BreakStartedAt!=null && b.BreakStartedAt>=f&& b.BreakStartedAt<t).ToListAsync();
         var holidayDates = (await context.NonWorkingDays.Where(x => x.Date >= f && x.Date < t).Select(x => x.Date).ToListAsync()).ToHashSet();
         bool IsNonWorking(DateTime d) => holidayDates.Contains(d.Date) || d.DayOfWeek == DayOfWeek.Saturday || d.DayOfWeek == DayOfWeek.Sunday;
 
@@ -169,9 +170,11 @@ public class ReportsController(AppDbContext context) : BaseApiController
         var (f, t) = Range(from, to);
 
         var holidays = await context.NonWorkingDays
+            .AsNoTracking()
             .Where(x => x.Date >= f && x.Date < t)
             .ToDictionaryAsync(x => x.Date, x => x.Name);
         var users = await context.Users
+            .AsNoTracking()
             .Where(u => u.Role == Role.Employee)
             .ToDictionaryAsync(u => u.Id, u => u.Username);
 
@@ -222,6 +225,7 @@ public class ReportsController(AppDbContext context) : BaseApiController
     {
         var now = DateTime.UtcNow;
         var query = context.EmployeeSessions
+            .AsNoTracking()
             .Where(s => s.BreakStartedAt == null && s.LoginAt < toExcl && (s.LogoutAt == null || s.LogoutAt >= from));
         if (userId != null) query = query.Where(s => s.UserId == userId);
 
@@ -229,22 +233,22 @@ public class ReportsController(AppDbContext context) : BaseApiController
 
         var userIds = sessions.Select(s => s.UserId).Distinct().ToList();
         var breaks = await context.EmployeeSessions
+            .AsNoTracking()
             .Where(b => b.BreakStartedAt != null && userIds.Contains(b.UserId))
             .ToListAsync();
 
-        return sessions
-            .Select(s =>
-            {
-                var endOfDay = LocalTime.SessionEndUtc(s.LoginAt);
-                var end = s.LogoutAt ?? (now < endOfDay ? now : endOfDay);
-                return new SessionSpan(s, end, BreakHoursOf(s, end, breaks));
-            })
-            .Where(x => x.End >= from)
-            .ToList();
+        var spans = new List<SessionSpan>();
+        foreach (var s in sessions)
+        {
+            var end = s.LogoutAt ?? await SessionEnd.ForOpenSessionAsync(context, s, now);
+            spans.Add(new SessionSpan(s, end, BreakHoursOf(s, end, breaks)));
+        }
+        return spans.Where(x => x.End >= from).ToList();
     }
 
     private Task<List<Ticket>> LoadTicketsAsync(DateTime from, DateTime toExcl) =>
         context.Tickets
+            .AsNoTracking()
             .Include(t => t.Service)
             .Where(t => t.CounterId != null && t.StartedAt != null &&
                         t.StartedAt >= from && t.StartedAt < toExcl)
