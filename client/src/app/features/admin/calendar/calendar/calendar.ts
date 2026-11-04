@@ -1,3 +1,6 @@
+import { DatePicker } from '../../../../shared/date-picker/date-picker/date-picker';
+import { rangeError, todayIso } from '../../../../core/utils/date-range';
+import { AlertModal } from '../../../../shared/alert-modal/alert-modal/alert-modal';
 import { DatePipe, DecimalPipe } from '@angular/common';
 import { Component, computed, inject, OnDestroy, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
@@ -17,7 +20,7 @@ type DayCell = {
 
 @Component({
   selector: 'app-calendar',
-  imports: [FormsModule, DatePipe, DecimalPipe],
+  imports: [FormsModule, DatePipe, DecimalPipe, AlertModal, DatePicker],
   templateUrl: './calendar.html',
   styleUrl: './calendar.css',
 })
@@ -36,7 +39,7 @@ export class Calendar implements OnInit, OnDestroy {
   protected newDate = '';
   protected newName = '';
   protected from = `${new Date().getFullYear()}-01-01`;
-  protected to = new Date().toISOString().slice(0, 10);
+  protected to = todayIso();
   protected weekdays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
   protected monthStart = computed(() => new Date(this.year(), this.month(), 1));
@@ -49,7 +52,7 @@ export class Calendar implements OnInit, OnDestroy {
     const count = new Date(y, m + 1, 0).getDate();
     const holidays = new Map(this.days().map((d) => [d.date.slice(0, 10), d]));
     const worked = new Map(this.work().map((w) => [w.date.slice(0, 10), w.employees]));
-    const todayKey = new Date().toISOString().slice(0, 10);
+    const todayKey = todayIso();
 
     const result: (DayCell | null)[] = Array(offset).fill(null);
     for (let d = 1; d <= count; d++) {
@@ -123,6 +126,11 @@ export class Calendar implements OnInit, OnDestroy {
   }
 
   loadWork() {
+    const err = rangeError(this.from, this.to);
+    if (err) {
+      this.error.set(err);
+      return;
+    }
     this.calendarService.getWork(this.from, this.to).subscribe({
       next: (work) => this.work.set(work),
       error: () => this.error.set('Could not load report'),

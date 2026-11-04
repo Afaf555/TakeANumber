@@ -1,3 +1,4 @@
+import { AlertModal } from '../../../shared/alert-modal/alert-modal/alert-modal';
 import { Component, inject, OnDestroy, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { AdminService } from '../../../core/services/admin-service';
@@ -8,7 +9,7 @@ import { DisplayService } from '../../../core/services/display-service';
 
 @Component({
   selector: 'app-manage-employees',
-  imports: [FormsModule],
+  imports: [FormsModule, AlertModal],
   templateUrl: './manage-employees.html',
   styleUrl: './manage-employees.css',
 })
@@ -86,6 +87,11 @@ export class ManageEmployees implements OnInit, OnDestroy {
         this.loadEmployees();
       },
     });
+  }
+
+  // name of the employee who holds this counter but is on leave today (the counter can be given to someone else)
+  leaveHolder(counterId: number) {
+    return this.employees().find((e) => e.counterId === counterId && e.onLeaveToday)?.username ?? '';
   }
 
   servicesOf(employee: Employee) {

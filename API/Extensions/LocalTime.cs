@@ -23,6 +23,8 @@ public static class LocalTime
     public static DateTime LocalDayStartUtc(DateTime localDate) => ToUtc(localDate.Date);
 
 
+    public static DateTime Today() => ToLocal(DateTime.UtcNow).Date;
+
     public static DateTime TodayStartUtc() => LocalDayStartUtc(ToLocal(DateTime.UtcNow));
 
   

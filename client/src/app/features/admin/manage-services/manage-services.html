@@ -12,9 +12,7 @@
                 Add </button>
         </form>
     </div>
-    @if(error()){
-    <p class="text-error text-sm">{{ error()}}</p>
-    }
+    <app-alert-modal [message]="error()" type="error" (closed)="error.set('')" />
     <div class="card-body gap-2">
         <h2 class="card-title text-sm uppercase tracking-widest">
             Services

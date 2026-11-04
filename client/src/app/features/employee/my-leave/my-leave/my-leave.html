@@ -41,11 +41,11 @@
         </div>
         <div class="flex flex-col gap-1 min-w-0">
           <label class="text-xs uppercase opacity-60" for="start">From</label>
-          <input id="start" type="date" class="input input-sm w-full rounded-full" name="start" [(ngModel)]="start" required />
+          <app-date-picker class="w-full" [(value)]="start" inputId="start" />
         </div>
         <div class="flex flex-col gap-1 min-w-0">
           <label class="text-xs uppercase opacity-60" for="end">To</label>
-          <input id="end" type="date" class="input input-sm w-full rounded-full" name="end" [(ngModel)]="end" required />
+          <app-date-picker class="w-full" [(value)]="end" [min]="start" inputId="end" />
         </div>
       </div>
 
@@ -55,14 +55,10 @@
           placeholder="e.g. family trip, doctor appointment" [(ngModel)]="note" />
       </div>
 
-      <div class="flex items-center gap-3">
+      <div class="flex flex-wrap items-center gap-3">
         <button class="btn btn-sm btn-primary rounded-full" type="submit">Send request</button>
-        @if (error()) {
-        <p class="text-error text-sm">{{ error() }}</p>
-        }
-        @if (success()) {
-        <p class="text-success text-sm">{{ success() }}</p>
-        }
+        <app-alert-modal [message]="error()" type="error" (closed)="error.set('')" />
+        <app-alert-modal [message]="success()" type="success" (closed)="success.set('')" />
       </div>
     </form>
   </div>

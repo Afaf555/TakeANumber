@@ -4,6 +4,7 @@ using API.Data;
 using API.DTOs;
 using API.Entities;
 using API.Entities.Enums;
+using API.Extensions;
 using API.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -174,6 +175,10 @@ public class AdminController(AppDbContext context, ActivityLogger logger) : Base
     [HttpPost("employees")]
     public async Task<ActionResult> CreateEmployee(CreateEmployeeDto dto)
     {
+        var validationError = CredentialRules.Validate(dto.Username, dto.Password);
+        if (validationError != null) return BadRequest(validationError);
+
+        dto.Username = dto.Username.Trim();
         if (await context.Users.AnyAsync(x => x.Username == dto.Username.ToLower()))
             return BadRequest("Username is taken");
 
@@ -182,8 +187,8 @@ public class AdminController(AppDbContext context, ActivityLogger logger) : Base
             if (!await context.Counters.AnyAsync(x => x.Id == dto.CounterId))
                 return BadRequest("Counter does not exist");
 
-            if (await context.Users.AnyAsync(x => x.CounterId == dto.CounterId))
-                return BadRequest("Counter already has an employee");
+            var counterError = await FreeCounterFromLeaveAsync(dto.CounterId.Value, 0, dto.Username);
+            if (counterError != null) return BadRequest(counterError);
         }
 
         using var hmac = new HMACSHA512();
@@ -207,6 +212,7 @@ public class AdminController(AppDbContext context, ActivityLogger logger) : Base
     public async Task<ActionResult<List<EmployeeDto>>> GetEmployees()
     {
         var today = DateTime.UtcNow.Date;
+        var leaveToday = LocalTime.Today();
         return await context.Users
             .Where(x => x.Role == Role.Employee)
             .Select(x => new EmployeeDto
@@ -214,6 +220,8 @@ public class AdminController(AppDbContext context, ActivityLogger logger) : Base
                 Id = x.Id,
                 Username = x.Username,
                 CounterId = x.CounterId,
+                OnLeaveToday = context.Leaves.Any(l => l.UserId == x.Id && l.Status == LeaveStatus.Approved
+                    && l.StartDate <= leaveToday && l.EndDate >= leaveToday),
                 HasActiveTickets = x.CounterId != null && context.Tickets.Any(t => t.CreatedAt >= today &&
                     ((t.Status == TicketStatus.InProgress && t.CounterId == x.CounterId) ||
                      (t.Status == TicketStatus.InQueue &&
@@ -234,8 +242,8 @@ public class AdminController(AppDbContext context, ActivityLogger logger) : Base
             if (!await context.Counters.AnyAsync(x => x.Id == dto.CounterId))
                 return BadRequest("Counter does not exist");
 
-            if (await context.Users.AnyAsync(x => x.CounterId == dto.CounterId && x.Id != id))
-                return BadRequest("Counter already has an employee");
+            var counterError = await FreeCounterFromLeaveAsync(dto.CounterId.Value, id, employee.Username);
+            if (counterError != null) return BadRequest(counterError);
         }
 
         var oldCounterId = employee.CounterId;
@@ -279,8 +287,9 @@ public class AdminController(AppDbContext context, ActivityLogger logger) : Base
     {
         var employee = await context.Users.SingleOrDefaultAsync(x => x.Id == id && x.Role == Role.Employee);
         if (employee == null) return NotFound();
-        if (employee.CounterId != null && await CounterHasTicketsAsync(employee.CounterId.Value))
-            return BadRequest("The employee's counter has active tickets");
+        if (employee.CounterId != null && !await context.IsOnLeaveTodayAsync(id)
+    && await CounterHasTicketsAsync(employee.CounterId.Value))
+    return BadRequest("The employee's counter has active tickets");
 
         var employeeName = employee.Username;
         var sessions = await context.EmployeeSessions
@@ -388,6 +397,32 @@ public class AdminController(AppDbContext context, ActivityLogger logger) : Base
         session.CounterName = counterName;
         session.Services = services;
         await context.SaveChangesAsync();
+    }
+    // A counter held by an employee who is on approved leave today counts as free: the counter
+    // (and the services on it) is taken from him so it can be given to someone else.
+    // Returns an error text if the counter is really taken by somebody who is working.
+    private async Task<string?> FreeCounterFromLeaveAsync(int counterId, int newHolderId, string newHolderName)
+    {
+        var holders = await context.Users
+            .Where(x => x.CounterId == counterId && x.Id != newHolderId)
+            .ToListAsync();
+
+        foreach (var holder in holders)
+        {
+            if (!await context.IsOnLeaveTodayAsync(holder.Id))
+                return "Counter already has an employee";
+        }
+
+        var counterName = await CounterName(counterId);
+        foreach (var holder in holders)
+        {
+            holder.CounterId = null;
+            await context.SaveChangesAsync();
+            await RefreshOpenSessionAsync(holder.Id);
+            await logger.LogAsync(LogActions.EmployeeCounterChanged, "Employee", holder.Id,
+                $"{holder.Username}: {counterName} -> none (on leave, counter given to {newHolderName})");
+        }
+        return null;
     }
     private async Task<string> CounterName(int? id)
     {

@@ -85,7 +85,7 @@ public class LeaveBalanceDto
 {
     public int Year { get; set; }
     public int VacationAllowance { get; set; }
-    public int VacationUsed { get; set; }      // odobreni + na cekanje
+    public int VacationUsed { get; set; }      
     public int VacationRemaining { get; set; }
     public int SickAllowance { get; set; }
     public int SickUsed { get; set; }

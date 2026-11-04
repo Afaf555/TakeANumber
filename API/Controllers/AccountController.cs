@@ -20,6 +20,10 @@ public class AccountController(AppDbContext context, ITokenService tokenService,
     [HttpPost("register")]
     public async Task<ActionResult<UserDto>> Register(RegisterDto dto)
     {
+        var validationError = CredentialRules.Validate(dto.Username, dto.Password);
+        if (validationError != null) return BadRequest(validationError);
+
+        dto.Username = dto.Username.Trim();
         if (await UserExists(dto.Username))
             return BadRequest("Username is taken");
 
@@ -45,19 +49,27 @@ public class AccountController(AppDbContext context, ITokenService tokenService,
         var user = await context.Users
             .SingleOrDefaultAsync(x => x.Username == dto.Username.ToLower());
 
-        if (user == null) return Unauthorized("Invalid username");
+        const string invalidCredentials = "Invalid username or password";
+
+        if (user == null)
+        {
+        
+            using var dummy = new HMACSHA512();
+            dummy.ComputeHash(Encoding.UTF8.GetBytes(dto.Password));
+            return Unauthorized(invalidCredentials);
+        }
 
         using var hmac = new HMACSHA512(user.PasswordSalt);
         var computedHash = hmac.ComputeHash(Encoding.UTF8.GetBytes(dto.Password));
 
-        for (var i = 0; i < computedHash.Length; i++)
-        {
-            if (computedHash[i] != user.PasswordHash[i])
-                return Unauthorized("Invalid password");
-        }
+        if (!CryptographicOperations.FixedTimeEquals(computedHash, user.PasswordHash))
+            return Unauthorized(invalidCredentials);
 
         if (user.Role == Role.Employee)
         {
+            if (await context.IsOnLeaveTodayAsync(user.Id))
+                return StatusCode(StatusCodes.Status403Forbidden, "You are on approved leave today and can't log in");
+
             var wasOnBreak = user.IsOnBreak;
             user.IsOnBreak = false;
             var staleBreaks = await context.EmployeeSessions

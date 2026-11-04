@@ -1,5 +1,3 @@
-
-
 using API.Data;
 using API.DTOs;
 using API.Entities;
@@ -64,4 +62,3 @@ public class ClientController(ITicketRepository ticketRepository,
 
 
 }
-

@@ -36,6 +36,7 @@ public class ReportsController(AppDbContext context) : BaseApiController
     public async Task<ActionResult<List<EmployeeReportRowDto>>> GetEmployees(
         [FromQuery] DateTime from, [FromQuery] DateTime to)
     {
+        if (to.Date < from.Date) return BadRequest("End date is before start date");
         var (f, t) = Range(from, to);
         var counters = await context.Counters.AsNoTracking().ToDictionaryAsync(c => c.Id, c => c.Name);
         var employees = await context.Users
@@ -76,6 +77,7 @@ public class ReportsController(AppDbContext context) : BaseApiController
     public async Task<ActionResult<EmployeeActivityDto>> GetActivity(
         int id, [FromQuery] DateTime from, [FromQuery] DateTime to)
     {
+        if (to.Date < from.Date) return BadRequest("End date is before start date");
         if (!await context.Users.AnyAsync(u => u.Id == id && u.Role == Role.Employee)) return NotFound();
 
         var (f, t) = Range(from, to);
@@ -126,6 +128,7 @@ public class ReportsController(AppDbContext context) : BaseApiController
         [FromQuery] DateTime from, [FromQuery] DateTime to,
         [FromQuery] string groupBy = "week", [FromQuery] int? employeeId = null)
     {
+        if (to.Date < from.Date) return BadRequest("End date is before start date");
         var (f, t) = Range(from, to);
         var spans = await LoadSpansAsync(f, t, employeeId);
         var inRange = spans.Where(x => x.S.LoginAt >= f).ToList();
@@ -167,6 +170,7 @@ public class ReportsController(AppDbContext context) : BaseApiController
     public async Task<ActionResult<List<NonWorkingDayWorkDto>>> GetNonWorkingDayWork(
         [FromQuery] DateTime from, [FromQuery] DateTime to)
     {
+        if (to.Date < from.Date) return BadRequest("End date is before start date");
         var (f, t) = Range(from, to);
 
         var holidays = await context.NonWorkingDays
@@ -228,6 +232,7 @@ public class ReportsController(AppDbContext context) : BaseApiController
     public async Task<ActionResult<WorkforceReportDto>> GetWorkforce(
         [FromQuery] DateTime from, [FromQuery] DateTime to)
     {
+        if (to.Date < from.Date) return BadRequest("End date is before start date");
         var (f, t) = Range(from, to);
         var todayLocal = LocalTime.ToLocal(DateTime.UtcNow).Date;
 

@@ -1,10 +1,6 @@
 <div class="max-w-4xl mx-auto space-y-4">
-  @if (error()) {
-  <p class="text-error text-sm">{{ error() }}</p>
-  }
-  @if (message()) {
-  <p class="text-success text-sm">{{ message() }}</p>
-  }
+  <app-alert-modal [message]="error()" type="error" (closed)="error.set('')" />
+  <app-alert-modal [message]="message()" type="success" (closed)="message.set('')" />
   <div class="card bg-base-100 shadow-md">
     <div class="card-body">
       <h2 class="card-title text-sm uppercase tracking-widest">Non-working days</h2>
@@ -12,7 +8,7 @@
         holiday name.</p>
 
       <div class="flex flex-wrap items-end gap-3">
-        <input type="date" class="input input-sm rounded-full" [(ngModel)]="newDate" />
+        <app-date-picker [(value)]="newDate" />
         <input type="text" class="input input-sm rounded-full" placeholder="Name (e.g. New Year)"
           [(ngModel)]="newName" />
         <button class="btn btn-sm btn-primary rounded-full" (click)="add()">Add</button>
@@ -82,10 +78,10 @@
 
       <div class="flex flex-wrap items-end gap-3">
         <label class="text-sm">From
-          <input type="date" class="input input-sm rounded-full block" [(ngModel)]="from" />
+          <app-date-picker [(value)]="from" [max]="to" />
         </label>
         <label class="text-sm">To
-          <input type="date" class="input input-sm rounded-full block" [(ngModel)]="to" />
+          <app-date-picker [(value)]="to" [min]="from" />
         </label>
         <button class="btn btn-sm btn-primary rounded-full" (click)="loadWork()">Apply</button>
       </div>

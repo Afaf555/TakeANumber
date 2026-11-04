@@ -107,7 +107,7 @@ public class LeaveController(AppDbContext context, ActivityLogger logger) : Base
     public async Task<ActionResult<LeaveDto>> CreateLeave(CreateLeaveDto dto)
     {
         if (!Enum.IsDefined(dto.Type)) return BadRequest("Invalid leave type");
-        var today=DateTime.Now.Date;
+        var today = LocalTime.Today();
         var employee = await context.Users
             .SingleOrDefaultAsync(u => u.Id == dto.EmployeeId && u.Role == Role.Employee);
         if (employee == null) return BadRequest("Employee does not exist");
@@ -211,7 +211,7 @@ public class LeaveController(AppDbContext context, ActivityLogger logger) : Base
     public async Task<ActionResult<LeaveBalanceDto>> GetMyBalance([FromQuery] int? year)
     {
         var userId = User.GetUserId();
-        var y = year ?? DateTime.UtcNow.Year;
+        var y = year ?? LocalTime.Today().Year;
         var employee = await context.Users.AsNoTracking()
             .SingleOrDefaultAsync(u => u.Id == userId && u.Role == Role.Employee);
         if (employee == null) return BadRequest("Employee does not exist");
@@ -242,13 +242,13 @@ public class LeaveController(AppDbContext context, ActivityLogger logger) : Base
         var employee = await context.Users
             .SingleOrDefaultAsync(u => u.Id == userId && u.Role == Role.Employee);
         if (employee == null) return BadRequest("Employee does not exist");
-        var today=DateTime.Now.Date;
+        var today = LocalTime.Today();
         var start = dto.StartDate.Date;
         var end = dto.EndDate.Date;
         if (end < start) return BadRequest("End date is before start date");
         if(start<today) return BadRequest("Can't make a request for previous days");
         
-        if (dto.Type == LeaveType.Vacation && start < DateTime.UtcNow.Date)
+        if (dto.Type == LeaveType.Vacation && start < today)
             return BadRequest("Vacation cannot start in the past");
 
         if (await OverlapsAsync(employee.Id, start, end))

@@ -4,9 +4,7 @@
     <p class="text-sm opacity-60">Attendance, punctuality, overtime and paid leave</p>
   </div>
 
-  @if (error()) {
-  <p class="text-error text-sm">{{ error() }}</p>
-  }
+  <app-alert-modal [message]="error()" type="error" (closed)="error.set('')" />
 
   <div class="card bg-base-100 shadow-md">
     <div role="tablist" class="tabs tabs-border px-4 pt-2">
@@ -22,12 +20,14 @@
 
       @if (tab() === 'attendance') {
       <div class="flex flex-wrap items-end gap-2">
-        <label class="text-xs uppercase opacity-60">From
-          <input type="date" class="input input-sm rounded-full block" [(ngModel)]="from" />
-        </label>
-        <label class="text-xs uppercase opacity-60">To
-          <input type="date" class="input input-sm rounded-full block" [(ngModel)]="to" />
-        </label>
+        <div class="flex flex-col gap-1">
+          <span class="text-xs uppercase opacity-60">From</span>
+          <app-date-picker [(value)]="from" [max]="to" />
+        </div>
+        <div class="flex flex-col gap-1">
+          <span class="text-xs uppercase opacity-60">To</span>
+          <app-date-picker [(value)]="to" [min]="from" />
+        </div>
         <button class="btn btn-sm btn-primary rounded-full" (click)="loadReport()">Apply</button>
         <button class="btn btn-sm btn-ghost rounded-full" (click)="setRange(7)">7 days</button>
         <button class="btn btn-sm btn-ghost rounded-full" (click)="setRange(30)">30 days</button>
@@ -64,6 +64,10 @@
             <p class="text-xs opacity-60">Above 8h per working day</p>
           </div>
         </div>
+      </div>
+
+      <div class="flex justify-end">
+        <button type="button" class="btn btn-sm btn-ghost rounded-full" (click)="exportAttendance()">Export CSV</button>
       </div>
 
       <div class="overflow-x-auto">
@@ -161,6 +165,10 @@
         </label>
       </div>
 
+      <div class="flex justify-end">
+        <button type="button" class="btn btn-sm btn-ghost rounded-full" (click)="exportPto()">Export CSV</button>
+      </div>
+
       <div class="overflow-x-auto">
         <table class="table table-sm">
           <thead class="bg-base-200/60 text-xs uppercase">
@@ -209,8 +217,8 @@
               <option [ngValue]="vacation">Vacation</option>
               <option [ngValue]="sick">Sick</option>
             </select>
-            <input type="date" class="input input-sm rounded-full" name="start" [(ngModel)]="leaveStart" required />
-            <input type="date" class="input input-sm rounded-full" name="end" [(ngModel)]="leaveEnd" required />
+            <app-date-picker [(value)]="leaveStart" />
+            <app-date-picker [(value)]="leaveEnd" [min]="leaveStart" />
             <input type="text" class="input input-sm rounded-full" name="note" maxlength="200" placeholder="Note (optional)" [(ngModel)]="leaveNote" />
             <button class="btn btn-sm btn-primary rounded-full" type="submit">Add</button>
           </div>

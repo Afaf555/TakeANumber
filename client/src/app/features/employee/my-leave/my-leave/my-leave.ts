@@ -1,3 +1,6 @@
+import { DatePicker } from '../../../../shared/date-picker/date-picker/date-picker';
+import { localIso, rangeError } from '../../../../core/utils/date-range';
+import { AlertModal } from '../../../../shared/alert-modal/alert-modal/alert-modal';
 import { Component, inject, OnDestroy, OnInit, signal } from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -6,10 +9,10 @@ import { DisplayService } from '../../../../core/services/display-service';
 import { LeaveService } from '../../../../core/services/leave-service';
 import { Leave, LeaveBalance, LeaveTypeValue } from '../../../../types/reports';
 
-const iso = (d: Date) => d.toISOString().slice(0, 10);
+const iso = localIso;
 
 @Component({
-  imports: [DatePipe, FormsModule],
+  imports: [DatePipe, FormsModule, AlertModal, DatePicker],
   selector: 'app-my-leave',
   templateUrl: './my-leave.html',
 })
@@ -55,6 +58,11 @@ export class MyLeave implements OnInit, OnDestroy {
 
   submit() {
     this.success.set('');
+    const err = rangeError(this.start, this.end);
+    if (err) {
+      this.error.set(err);
+      return;
+    }
     this.leaveService.requestLeave(this.type, this.start, this.end, this.note || null).subscribe({
       next: () => {
         this.error.set('');

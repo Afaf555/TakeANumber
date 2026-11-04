@@ -4,9 +4,10 @@ import { Service } from '../../../types/tickets';
 import { FormsModule } from '@angular/forms';
 import { DisplayService } from '../../../core/services/display-service';
 import { Subscription } from 'rxjs';
+import { AlertModal } from '../../../shared/alert-modal/alert-modal/alert-modal';
 
 @Component({
-  imports: [FormsModule],
+  imports: [FormsModule,AlertModal],
   selector: 'app-manage-services',
   styleUrl: './manage-services.css',
   templateUrl: './manage-services.html',

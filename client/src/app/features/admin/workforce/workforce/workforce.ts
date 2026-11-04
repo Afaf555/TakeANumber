@@ -1,3 +1,7 @@
+import { DatePicker } from '../../../../shared/date-picker/date-picker/date-picker';
+import { localIso, rangeError } from '../../../../core/utils/date-range';
+import { downloadCsv } from '../../../../core/utils/csv';
+import { AlertModal } from '../../../../shared/alert-modal/alert-modal/alert-modal';
 import { Component, computed, inject, OnDestroy, OnInit, signal } from '@angular/core';
 import { DatePipe, DecimalPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -8,7 +12,7 @@ import { ReportsService } from '../../../../core/services/reports-service';
 import { HoursMinutesPipe } from '../../../../core/pipes/hours-minutes-pipe';
 import { Leave, LeaveTypeValue, PtoRow, WorkforceReport } from '../../../../types/reports';
 
-const iso = (d: Date) => d.toISOString().slice(0, 10);
+const iso = localIso;
 const daysAgo = (n: number) => {
   const d = new Date();
   d.setDate(d.getDate() - n);
@@ -16,7 +20,7 @@ const daysAgo = (n: number) => {
 };
 
 @Component({
-  imports: [DatePipe, DecimalPipe, FormsModule, HoursMinutesPipe],
+  imports: [DatePipe, DecimalPipe, FormsModule, HoursMinutesPipe, AlertModal, DatePicker],
   selector: 'app-workforce',
   styleUrl: './workforce.css',
   templateUrl: './workforce.html',
@@ -74,6 +78,11 @@ export class Workforce implements OnInit, OnDestroy {
   }
 
   loadReport() {
+    const err = rangeError(this.from, this.to);
+    if (err) {
+      this.error.set(err);
+      return;
+    }
     this.reportsService.getWorkforce(this.from, this.to).subscribe({
       next: (r) => {
         this.report.set(r);
@@ -98,7 +107,15 @@ export class Workforce implements OnInit, OnDestroy {
   }
 
   addLeave() {
-    if (this.leaveEmployeeId == null) return;
+    if (this.leaveEmployeeId == null) {
+      this.error.set('Please choose an employee');
+      return;
+    }
+    const leaveErr = rangeError(this.leaveStart, this.leaveEnd);
+    if (leaveErr) {
+      this.error.set(leaveErr);
+      return;
+    }
     this.leaveService
       .createLeave(this.leaveEmployeeId, this.leaveType, this.leaveStart, this.leaveEnd, this.leaveNote || null)
       .subscribe({
@@ -131,5 +148,29 @@ export class Workforce implements OnInit, OnDestroy {
       next: () => this.loadAll(),
       error: () => this.error.set('Could not remove leave'),
     });
+  }
+
+  exportAttendance() {
+    downloadCsv(
+      `attendance_${this.from}_${this.to}.csv`,
+      ['Employee', 'Tenure (days)', 'Available days', 'Worked', 'Absent', 'Absence %', 'Vacation', 'Sick',
+       'Late', 'Avg late (min)', 'Early out', 'Overtime (h)'],
+      this.employees().map((e) => [
+        e.username, e.tenureDays, e.expectedDays, e.workedDays, e.absentDays, e.absenteeismRate,
+        e.vacationDays, e.sickDays, e.lateArrivals, e.avgLateMinutes, e.earlyDepartures, e.overtimeHours,
+      ]),
+    );
+  }
+
+  exportPto() {
+    downloadCsv(
+      `paid_leave_${this.year}.csv`,
+      ['Employee', 'Vacation allowance', 'Vacation used', 'Vacation scheduled', 'Vacation remaining',
+       'Sick allowance', 'Sick used', 'Sick remaining'],
+      this.pto().map((p) => [
+        p.username, p.vacationAllowance, p.vacationUsed, p.vacationScheduled, p.vacationRemaining,
+        p.sickAllowance, p.sickUsed, p.sickRemaining,
+      ]),
+    );
   }
 }

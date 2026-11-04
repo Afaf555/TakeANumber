@@ -15,7 +15,7 @@ export type Employee = {
   username: string;
   counterId: number | null;
   hasActiveTickets: boolean;
-
+  onLeaveToday: boolean;
 };
 export type AdminTicket = {
   id: number;

@@ -1,3 +1,7 @@
+import { DatePicker } from '../../../../shared/date-picker/date-picker/date-picker';
+import { localIso, rangeError, todayIso } from '../../../../core/utils/date-range';
+import { downloadCsv, fmtDateTime } from '../../../../core/utils/csv';
+import { AlertModal } from '../../../../shared/alert-modal/alert-modal/alert-modal';
 import { Component, computed, inject, OnDestroy, OnInit, signal } from '@angular/core';
 import { Subscription } from 'rxjs';
 import { DisplayService } from '../../../../core/services/display-service';
@@ -10,12 +14,12 @@ const iso = (d: Date) => d.toISOString().slice(0, 10);
 const daysAgo = (n: number) => {
   const d = new Date();
   d.setDate(d.getDate() - n);
-  return iso(d);
+  return localIso(d);
 };
 
 
 @Component({
-  imports: [DatePipe, FormsModule, DecimalPipe, HoursMinutesPipe],
+  imports: [DatePipe, FormsModule, DecimalPipe, HoursMinutesPipe, AlertModal, DatePicker],
   selector: 'app-reports',
   styleUrl: './reports.css',
   templateUrl: './reports.html',
@@ -26,7 +30,7 @@ export class Reports implements OnInit, OnDestroy {
   private updateSub?: Subscription;
   protected tab = signal<'employees' | 'activity' | 'analytics'>('employees');
   protected from = daysAgo(30);
-  protected to = iso(new Date());
+  protected to = todayIso();
   protected groupBy: 'day' | 'week' | 'month' | 'year' = 'week';
   protected analyticsEmployeeId: number | null = null;
 
@@ -157,6 +161,7 @@ export class Reports implements OnInit, OnDestroy {
   }
 
   private refresh() {
+    if (rangeError(this.from, this.to)) return;
     this.loadEmployees();
     this.loadHours(false);
     this.loadQueue();
@@ -165,10 +170,15 @@ export class Reports implements OnInit, OnDestroy {
 
   setRange(days: number) {
     this.from = daysAgo(days);
-    this.to = iso(new Date());
+    this.to = todayIso();
     this.apply()
   }
   apply() {
+    const err = rangeError(this.from, this.to);
+    if (err) {
+      this.error.set(err);
+      return;
+    }
     this.loadEmployees();
     this.loadHours();
     this.loadQueue();
@@ -310,14 +320,63 @@ export class Reports implements OnInit, OnDestroy {
     this.page.set(0);
   }
   setToday(){
-    this.from=iso(new Date());
-    this.to=iso(new Date())
+    this.from=todayIso();
+    this.to=todayIso()
     this.apply();
   }
   setWeek(){
     const back=(new Date().getDay()+6)%7;
     this.from=daysAgo(back);
-    this.to=iso(new Date());
+    this.to=todayIso();
     this.apply();
+  }
+
+  exportEmployees() {
+    downloadCsv(
+      `employees_${this.from}_${this.to}.csv`,
+      ['Employee', 'Counter', 'Hours worked', 'Break hours', 'Tickets served', 'No-shows', 'Avg service min', 'Last login'],
+      this.rows().map((r) => [
+        r.username, r.counterName, r.hoursWorked, r.breakHours,
+        r.ticketsServed, r.noShows, r.avgServiceMinutes, fmtDateTime(r.lastLoginAt),
+      ]),
+    );
+  }
+
+  exportActivity() {
+    const a = this.activity();
+    if (!a) return;
+    const name = this.selected()?.username ?? 'employee';
+    const file = (what: string) => `${name}_${what}_${this.from}_${this.to}.csv`;
+
+    switch (this.sub()) {
+      case 'sessions':
+        downloadCsv(file('sessions'), ['Login', 'Logout', 'Hours', 'Break min', 'Counter'],
+          a.sessions.map((s) => [
+            fmtDateTime(s.loginAt), s.isOpen ? 'open' : fmtDateTime(s.logoutAt),
+            s.durationHours, s.breakMinutes, s.counterName,
+          ]));
+        break;
+      case 'tickets':
+        downloadCsv(file('tickets'), ['Ticket', 'Service', 'Started', 'Finished', 'Status', 'Minutes'],
+          a.tickets.map((t) => [
+            t.code, t.serviceName, fmtDateTime(t.startedAt), fmtDateTime(t.finishedAt),
+            t.status, t.durationMinutes,
+          ]));
+        break;
+      case 'log':
+        downloadCsv(file('log'), ['Time', 'Action', 'Details'],
+          a.log.map((l) => [fmtDateTime(l.createdAt), l.action, l.details]));
+        break;
+    }
+  }
+
+  exportAnalytics() {
+    const h = this.hours();
+    if (!h) return;
+    downloadCsv(
+      `analytics_${this.from}_${this.to}.csv`,
+      ['Period', 'Hours', 'Sessions', 'Tickets', 'Avg service min'],
+      h.points.map((p) => [p.label, p.hours, p.sessions, p.tickets, p.avgServiceMinutes]),
+    );
   }
 }

@@ -4,9 +4,7 @@
     <p class="text-sm opacity-60">Reports › {{ tabLabels[tab()] }}</p>
   </div>
 
-  @if (error()) {
-  <p class="text-error text-sm">{{ error() }}</p>
-  }
+  <app-alert-modal [message]="error()" type="error" (closed)="error.set('')" />
 
   <div class="grid lg:grid-cols-[17rem_1fr] gap-4 items-start">
 
@@ -47,6 +45,9 @@
         <div class="card-body p-4 gap-4">
 
           @if (tab() === 'employees') {
+          <div class="flex justify-end">
+            <button type="button" class="btn btn-sm btn-ghost rounded-full" (click)="exportEmployees()">Export CSV</button>
+          </div>
           <div class="overflow-x-auto">
             <table class="table table-sm">
               <thead class="bg-base-200/60 text-xs uppercase">
@@ -92,7 +93,8 @@
 
           @if (tab() === 'activity') {
           @if (selected()) {
-          <div class="flex justify-end">
+          <div class="flex justify-end gap-2">
+            <button type="button" class="btn btn-sm btn-ghost rounded-full" (click)="exportActivity()">Export CSV</button>
             <button class="btn btn-sm btn-ghost rounded-full" (click)="tab.set('employees')">← Employees</button>
           </div>
 
@@ -293,6 +295,9 @@
           }
 
           @if (hours(); as h) {
+          <div class="flex justify-end">
+            <button type="button" class="btn btn-sm btn-ghost rounded-full" (click)="exportAnalytics()">Export CSV</button>
+          </div>
           <div class="overflow-x-auto">
             <table class="table table-sm">
               <thead class="bg-base-200/60 text-xs uppercase">
@@ -364,10 +369,10 @@
         <div class="card-body p-4 gap-3">
           <h3 class="text-xs font-semibold uppercase tracking-widest text-primary">Period</h3>
           <label class="text-xs flex flex-col gap-1.5">From
-            <input type="date" class="input input-sm rounded-full w-full" [(ngModel)]="from" />
+            <app-date-picker class="w-full" [(value)]="from" [max]="to" />
           </label>
           <label class="text-xs flex flex-col gap-1.5">To
-            <input type="date" class="input input-sm rounded-full w-full" [(ngModel)]="to" />
+            <app-date-picker class="w-full" [(value)]="to" [min]="from" />
           </label>
 
           @if (tab() === 'analytics') {

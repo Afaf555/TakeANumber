@@ -7,4 +7,5 @@ public class EmployeeDto
     public int? CounterId { get; set; }
     public string? CounterName { get; set; }
     public bool HasActiveTickets { get; set; }
+    public bool OnLeaveToday { get; set; }
 }

@@ -1,3 +1,4 @@
+import { AlertModal } from '../../../shared/alert-modal/alert-modal/alert-modal';
 import { Component, inject, OnDestroy, OnInit, signal } from '@angular/core';
 import { Subscription } from 'rxjs';
 import { DisplayService } from '../../../core/services/display-service';
@@ -7,7 +8,7 @@ import { Counter } from '../../../types/admin';
 import { Service } from '../../../types/tickets';
 
 @Component({
-  imports: [FormsModule],
+  imports: [FormsModule, AlertModal],
   selector: 'app-manage-counters',
   styleUrl: './manage-counters.css',
   templateUrl: './manage-counters.html',

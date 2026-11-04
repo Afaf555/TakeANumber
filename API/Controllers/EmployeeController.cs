@@ -54,6 +54,9 @@ namespace API.Controllers
             if (await context.Users.AnyAsync(u => u.Id == userId && u.IsOnBreak))
                 return BadRequest("You are on break");
 
+            if (await context.IsOnLeaveTodayAsync(userId))
+                return BadRequest("You are on approved leave today");
+
             var active = await employeeRepository.IsCounterActiveAsync(counterId.Value);
             if (!active) return BadRequest("Counter is not active");
 
