@@ -12,8 +12,9 @@ export type HandledTicket = {
     status: string; durationMinutes: number | null;
 };
 export type ActivityEntry = { createdAt: string; action: string; details: string | null };
+export type AbsentDay = { date: string; reason: string };
 export type EmployeeActivity = {
-    sessions: SessionReport[]; tickets: HandledTicket[]; log: ActivityEntry[];
+    sessions: SessionReport[]; absentDays: AbsentDay[]; tickets: HandledTicket[]; log: ActivityEntry[];
 };
 export type HoursPoint = {
     periodStart: string; label: string; hours: number; sessions: number;

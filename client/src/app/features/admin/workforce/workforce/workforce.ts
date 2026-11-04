@@ -55,6 +55,9 @@ export class Workforce implements OnInit, OnDestroy {
   protected maxCounterOvertime = computed(() =>
     Math.max(1, ...(this.report()?.overtimeByCounter.map((c) => c.overtimeHours) ?? []))
   );
+  private lastClick: 'range' | 'apply' = 'range';
+  private appliedFrom = '';
+  private appliedTo = '';
 
   ngOnInit(): void {
     this.loadAll();
@@ -70,13 +73,31 @@ export class Workforce implements OnInit, OnDestroy {
     this.loadPto();
     this.loadLeaves();
   }
+  protected activeRange(): number | null {
+    if (this.to !== iso(new Date())) return null;
+    return [7, 30, 90].find((days) => this.from === daysAgo(days)) ?? null;
+  }
+  protected rangeActive(days: number) {
+    return this.lastClick === 'range' && this.activeRange() === days;
+  }
+
+  protected applyActive() {
+    return this.lastClick === 'apply' && this.from === this.appliedFrom && this.to === this.appliedTo;
+  }
+
+  apply() {
+    this.lastClick = 'apply';
+    this.appliedFrom = this.from;
+    this.appliedTo = this.to;
+    this.loadReport();
+  }
 
   setRange(days: number) {
+    this.lastClick = 'range';
     this.from = daysAgo(days);
     this.to = iso(new Date());
     this.loadReport();
   }
-
   loadReport() {
     const err = rangeError(this.from, this.to);
     if (err) {
@@ -154,7 +175,7 @@ export class Workforce implements OnInit, OnDestroy {
     downloadCsv(
       `attendance_${this.from}_${this.to}.csv`,
       ['Employee', 'Tenure (days)', 'Available days', 'Worked', 'Absent', 'Absence %', 'Vacation', 'Sick',
-       'Late', 'Avg late (min)', 'Early out', 'Overtime (h)'],
+        'Late', 'Avg late (min)', 'Early out', 'Overtime (h)'],
       this.employees().map((e) => [
         e.username, e.tenureDays, e.expectedDays, e.workedDays, e.absentDays, e.absenteeismRate,
         e.vacationDays, e.sickDays, e.lateArrivals, e.avgLateMinutes, e.earlyDepartures, e.overtimeHours,
@@ -166,7 +187,7 @@ export class Workforce implements OnInit, OnDestroy {
     downloadCsv(
       `paid_leave_${this.year}.csv`,
       ['Employee', 'Vacation allowance', 'Vacation used', 'Vacation scheduled', 'Vacation remaining',
-       'Sick allowance', 'Sick used', 'Sick remaining'],
+        'Sick allowance', 'Sick used', 'Sick remaining'],
       this.pto().map((p) => [
         p.username, p.vacationAllowance, p.vacationUsed, p.vacationScheduled, p.vacationRemaining,
         p.sickAllowance, p.sickUsed, p.sickRemaining,

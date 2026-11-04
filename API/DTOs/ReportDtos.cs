@@ -45,9 +45,15 @@ public class ActivityEntryDto
     public string Action { get; set; } = "";
     public string? Details { get; set; }
 }
+public class AbsentDayDto
+{
+    public DateTime Date { get; set; }
+    public string Reason { get; set; } = "";
+}
 public class EmployeeActivityDto
 {
     public List<SessionReportDto> Sessions { get; set; } = [];
+    public List<AbsentDayDto> AbsentDays { get; set; } = [];
     public List<HandledTicketDto> Tickets { get; set; } = [];
     public List<ActivityEntryDto> Log { get; set; } = [];
 }

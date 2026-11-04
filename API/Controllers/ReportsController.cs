@@ -45,8 +45,8 @@ public class ReportsController(AppDbContext context) : BaseApiController
             .ToListAsync();
         var spans = await LoadSpansAsync(f, t, null);
         var tickets = await LoadTicketsAsync(f, t);
-        var now=DateTime.UtcNow;
-        var breakRows=await context.EmployeeSessions.AsNoTracking().Where(b=>b.BreakStartedAt!=null && b.BreakStartedAt>=f&& b.BreakStartedAt<t).ToListAsync();
+        var now = DateTime.UtcNow;
+        var breakRows = await context.EmployeeSessions.AsNoTracking().Where(b => b.BreakStartedAt != null && b.BreakStartedAt >= f && b.BreakStartedAt < t).ToListAsync();
         var holidayDates = (await context.NonWorkingDays.Where(x => x.Date >= f && x.Date < t).Select(x => x.Date).ToListAsync()).ToHashSet();
         bool IsNonWorking(DateTime d) => holidayDates.Contains(d.Date) || d.DayOfWeek == DayOfWeek.Saturday || d.DayOfWeek == DayOfWeek.Sunday;
 
@@ -69,7 +69,7 @@ public class ReportsController(AppDbContext context) : BaseApiController
                 LastLoginAt = mine.Count == 0 ? null : mine.Max(x => x.S.LoginAt),
                 NonWorkingHours = Math.Round(inRange.Where(x => IsNonWorking(x.S.LoginAt)).Sum(x => x.Hours), 2),
                 BreakHours = Math.Round(inRange.Sum(x => x.BreakHours), 2),
-                };
+            };
         }).OrderBy(r => r.Username).ToList();
     }
 
@@ -91,34 +91,57 @@ public class ReportsController(AppDbContext context) : BaseApiController
             .Select(l => new ActivityEntryDto { CreatedAt = l.CreatedAt, Action = l.Action, Details = l.Details })
             .ToListAsync();
 
+        // Working days when the employee was on approved leave: he can't log in then, so the report shows "absent" instead of login/logout
+        var todayLocal = LocalTime.Today();
+        var holidays = (await context.NonWorkingDays.AsNoTracking()
+                .Where(x => x.Date >= f && x.Date < t)
+                .Select(x => x.Date).ToListAsync())
+            .Select(d => d.Date).ToHashSet();
+        var leaves = await context.Leaves.AsNoTracking()
+            .Where(l => l.UserId == id && l.Status == LeaveStatus.Approved && l.EndDate >= f && l.StartDate < t)
+            .ToListAsync();
+        var leaveDays = leaves
+    .SelectMany(l => EachDay(l.StartDate, l.EndDate).Select(d => new { Day = d, l.Type }))
+    .Where(x => x.Day >= f.Date && x.Day < t && x.Day <= todayLocal
+                && x.Day.DayOfWeek is not (DayOfWeek.Saturday or DayOfWeek.Sunday)
+                && !holidays.Contains(x.Day))
+    .OrderByDescending(x => x.Day)
+    .ToList();
+        var leaveDaySet = leaveDays.Select(x => x.Day).ToHashSet();
+        var absentDays = leaveDays
+            .Select(x => new AbsentDayDto { Date = x.Day, Reason = x.Type.ToString() })
+            .ToList();
+
         return new EmployeeActivityDto
         {
+            AbsentDays = absentDays,
+            // a leave day shows only the "leave day" row, no sessions
             Sessions = spans
-                .Where(x => x.S.LoginAt >= f)
+                .Where(x => x.S.LoginAt >= f && !leaveDaySet.Contains(LocalTime.ToLocal(x.S.LoginAt).Date))
                 .OrderByDescending(x => x.S.LoginAt)
                 .Select(x => new SessionReportDto
                 {
                     Id = x.S.Id,
                     LoginAt = x.S.LoginAt,
                     LogoutAt = x.S.LogoutAt,
-                    IsOpen = x.S.LogoutAt==null,
+                    IsOpen = x.S.LogoutAt == null,
                     DurationHours = Math.Round(x.Hours, 2),
                     CounterName = x.S.CounterName,
                     Services = x.S.Services,
                     BreakMinutes = Math.Round(x.BreakHours * 60, 0),
                 }).ToList(),
             Tickets = tickets
-                .OrderByDescending(x => x.StartedAt)
-                .Select(x => new HandledTicketDto
-                {
-                    Code = TicketCode.Format(x.Service.Code, x.Number),
-                    ServiceName = x.Service.Name,
-                    StartedAt = x.StartedAt!.Value,
-                    FinishedAt = x.FinishedAt,
-                    Status = x.Status.ToString(),
-                    DurationMinutes = x.FinishedAt == null ? null
-                        : Math.Round((x.FinishedAt.Value - x.StartedAt!.Value).TotalMinutes, 1)
-                }).ToList(),
+                        .OrderByDescending(x => x.StartedAt)
+                        .Select(x => new HandledTicketDto
+                        {
+                            Code = TicketCode.Format(x.Service.Code, x.Number),
+                            ServiceName = x.Service.Name,
+                            StartedAt = x.StartedAt!.Value,
+                            FinishedAt = x.FinishedAt,
+                            Status = x.Status.ToString(),
+                            DurationMinutes = x.FinishedAt == null ? null
+                                : Math.Round((x.FinishedAt.Value - x.StartedAt!.Value).TotalMinutes, 1)
+                        }).ToList(),
             Log = log
         };
     }
@@ -368,7 +391,7 @@ public class ReportsController(AppDbContext context) : BaseApiController
 
         var daysInYear = (end - start).TotalDays;
         var elapsed = Math.Clamp((today - start).TotalDays + 1, 0, daysInYear);
-        
+
 
         var holidays = (await context.NonWorkingDays.AsNoTracking()
                 .Where(x => x.Date >= start && x.Date < end)
@@ -401,7 +424,7 @@ public class ReportsController(AppDbContext context) : BaseApiController
                 Id = e.Id,
                 Username = e.Username,
                 VacationAllowance = e.AnnualLeaveDays,
-              
+
                 VacationUsed = used,
                 VacationScheduled = scheduled,
                 VacationRemaining = e.AnnualLeaveDays - used - scheduled,
@@ -470,7 +493,7 @@ public class ReportsController(AppDbContext context) : BaseApiController
 
     private static DateTime PeriodStart(DateTime d, string g) => g switch
     {
-        "week" => d.Date.AddDays(-(((int)d.DayOfWeek + 6) % 7)), 
+        "week" => d.Date.AddDays(-(((int)d.DayOfWeek + 6) % 7)),
         "month" => new DateTime(d.Year, d.Month, 1),
         "year" => new DateTime(d.Year, 1, 1),
         _ => d.Date
@@ -492,13 +515,13 @@ public class ReportsController(AppDbContext context) : BaseApiController
         _ => p.ToString("yyyy-MM-dd")
     };
 
-    private static double BreakLengthHours(EmployeeSession b,DateTime now)
+    private static double BreakLengthHours(EmployeeSession b, DateTime now)
     {
-        var start=b.BreakStartedAt!.Value;
-        var endOfDay=start.Date.AddDays(1);
-        var cap=now<endOfDay?now:endOfDay;
-        var stop=b.BreakEndedAt??cap;
-        if(stop>cap) stop=cap;
-        return stop>start?(stop-start).TotalHours:0;
+        var start = b.BreakStartedAt!.Value;
+        var endOfDay = start.Date.AddDays(1);
+        var cap = now < endOfDay ? now : endOfDay;
+        var stop = b.BreakEndedAt ?? cap;
+        if (stop > cap) stop = cap;
+        return stop > start ? (stop - start).TotalHours : 0;
     }
 }

@@ -37,16 +37,19 @@
 
       <div class="card bg-base-100 shadow-md">
         <div role="tablist" class="tabs tabs-border px-4 pt-2">
-          <a role="tab" class="tab" [class.tab-active]="tab() === 'employees'" (click)="tab.set('employees')">Employees</a>
+          <a role="tab" class="tab" [class.tab-active]="tab() === 'employees'"
+            (click)="tab.set('employees')">Employees</a>
           <a role="tab" class="tab" [class.tab-active]="tab() === 'activity'" (click)="tab.set('activity')">Activity</a>
-          <a role="tab" class="tab" [class.tab-active]="tab() === 'analytics'" (click)="tab.set('analytics')">Analytics</a>
+          <a role="tab" class="tab" [class.tab-active]="tab() === 'analytics'"
+            (click)="tab.set('analytics')">Analytics</a>
         </div>
 
         <div class="card-body p-4 gap-4">
 
           @if (tab() === 'employees') {
           <div class="flex justify-end">
-            <button type="button" class="btn btn-sm btn-ghost rounded-full" (click)="exportEmployees()">Export CSV</button>
+            <button type="button" class="btn btn-sm btn-ghost rounded-full" (click)="exportEmployees()">Export
+              CSV</button>
           </div>
           <div class="overflow-x-auto">
             <table class="table table-sm">
@@ -75,26 +78,31 @@
                   <td>{{ r.lastLoginAt ? (r.lastLoginAt | date: 'dd.MM.yyyy HH:mm') : '-' }}</td>
                 </tr>
                 } @empty {
-                <tr><td colspan="8" class="text-sm">No employees</td></tr>
+                <tr>
+                  <td colspan="8" class="text-sm">No employees</td>
+                </tr>
                 }
               </tbody>
             </table>
           </div>
           <p class="text-xs opacity-60">Click an employee to see their activity.</p>
-      <div class="flex items-center justify-between text-sm">
-        <span class="opacity-60">{{ rows().length }} employees</span>
-        <div class="join">
-          <button class="join-item btn btn-sm" [disabled]="empPage() === 0" (click)="empPage.set(empPage() - 1)">«</button>
-          <button class="join-item btn btn-sm no-animation">{{ empPage() + 1 }} / {{ empPages() }}</button>
-          <button class="join-item btn btn-sm" [disabled]="empPage() + 1 >= empPages()" (click)="empPage.set(empPage() + 1)">»</button>
-        </div>
-      </div>
+          <div class="flex items-center justify-between text-sm">
+            <span class="opacity-60">{{ rows().length }} employees</span>
+            <div class="join">
+              <button class="join-item btn btn-sm" [disabled]="empPage() === 0"
+                (click)="empPage.set(empPage() - 1)">«</button>
+              <button class="join-item btn btn-sm no-animation">{{ empPage() + 1 }} / {{ empPages() }}</button>
+              <button class="join-item btn btn-sm" [disabled]="empPage() + 1 >= empPages()"
+                (click)="empPage.set(empPage() + 1)">»</button>
+            </div>
+          </div>
           }
 
           @if (tab() === 'activity') {
           @if (selected()) {
           <div class="flex justify-end gap-2">
-            <button type="button" class="btn btn-sm btn-ghost rounded-full" (click)="exportActivity()">Export CSV</button>
+            <button type="button" class="btn btn-sm btn-ghost rounded-full" (click)="exportActivity()">Export
+              CSV</button>
             <button class="btn btn-sm btn-ghost rounded-full" (click)="tab.set('employees')">← Employees</button>
           </div>
 
@@ -158,7 +166,8 @@
           </div>
 
           <div role="tablist" class="tabs tabs-box tabs-sm w-fit">
-            <a role="tab" class="tab" [class.tab-active]="sub() === 'sessions'" (click)="setSub('sessions')">Sessions</a>
+            <a role="tab" class="tab" [class.tab-active]="sub() === 'sessions'"
+              (click)="setSub('sessions')">Sessions</a>
             <a role="tab" class="tab" [class.tab-active]="sub() === 'tickets'" (click)="setSub('tickets')">Tickets</a>
             <a role="tab" class="tab" [class.tab-active]="sub() === 'log'" (click)="setSub('log')">Activity log</a>
           </div>
@@ -168,11 +177,18 @@
             @case ('sessions') {
             <table class="table table-sm">
               <thead class="bg-base-200/60 text-xs uppercase">
-                <tr><th>Login</th><th>Logout</th><th>Hours</th><th>Break min</th><th>Counter</th></tr>
+                <tr>
+                  <th>Login</th>
+                  <th>Logout</th>
+                  <th>Hours</th>
+                  <th>Break min</th>
+                  <th>Counter</th>
+                </tr>
               </thead>
               <tbody>
-                @for (s of pagedSessions(); track s.id) {
+                @for (r of pagedSessions(); track r.session ? r.session.id : 'absent-' + r.absent?.date) {
                 <tr class="hover">
+                  @if (r.session; as s) {
                   <td>{{ s.loginAt | date: 'dd.MM.yyyy HH:mm' }}</td>
                   <td>
                     @if (s.isOpen) { <span class="badge badge-success badge-sm">open</span> }
@@ -181,9 +197,18 @@
                   <td>{{ s.durationHours | hm }}</td>
                   <td>{{ s.breakMinutes }}</td>
                   <td>{{ s.counterName || '-' }}</td>
+                  } @else if (r.absent; as a) {
+                  <td>{{ a.date | date: 'dd.MM.yyyy' }}</td>
+                  <td colspan="4">
+                    <span class="badge badge-warning badge-sm">Leave day</span>
+                    <span class="ml-2 text-xs">No session · {{ a.reason }} leave</span>
+                  </td>
+                  }
                 </tr>
                 } @empty {
-                <tr><td colspan="5" class="text-sm">No sessions in this period</td></tr>
+                <tr>
+                  <td colspan="5" class="text-sm">No sessions in this period</td>
+                </tr>
                 }
               </tbody>
             </table>
@@ -191,7 +216,13 @@
             @case ('tickets') {
             <table class="table table-sm">
               <thead class="bg-base-200/60 text-xs uppercase">
-                <tr><th>#</th><th>Service</th><th>Started</th><th>Status</th><th>Minutes</th></tr>
+                <tr>
+                  <th>#</th>
+                  <th>Service</th>
+                  <th>Started</th>
+                  <th>Status</th>
+                  <th>Minutes</th>
+                </tr>
               </thead>
               <tbody>
                 @for (t of pagedTickets(); track t.code + t.startedAt) {
@@ -206,7 +237,9 @@
                   <td>{{ t.durationMinutes !== null ? (t.durationMinutes | number: '1.0-1') : '-' }}</td>
                 </tr>
                 } @empty {
-                <tr><td colspan="5" class="text-sm">No tickets in this period</td></tr>
+                <tr>
+                  <td colspan="5" class="text-sm">No tickets in this period</td>
+                </tr>
                 }
               </tbody>
             </table>
@@ -214,7 +247,11 @@
             @case ('log') {
             <table class="table table-sm">
               <thead class="bg-base-200/60 text-xs uppercase">
-                <tr><th>Time</th><th>Action</th><th>Details</th></tr>
+                <tr>
+                  <th>Time</th>
+                  <th>Action</th>
+                  <th>Details</th>
+                </tr>
               </thead>
               <tbody>
                 @for (l of pagedLog(); track l.createdAt + l.action) {
@@ -224,28 +261,31 @@
                   <td class="text-xs">{{ l.details }}</td>
                 </tr>
                 } @empty {
-                <tr><td colspan="3" class="text-sm">No activity</td></tr>
+                <tr>
+                  <td colspan="3" class="text-sm">No activity</td>
+                </tr>
                 }
               </tbody>
             </table>
             }
             }
           </div>
-      <div class="flex items-center justify-between text-sm">
-        <span class="opacity-60">{{ total() }} entries</span>
-        <div class="join">
-          <button class="join-item btn btn-sm" [disabled]="page() === 0" (click)="page.set(page() - 1)">«</button>
-          <button class="join-item btn btn-sm no-animation">{{ page() + 1 }} / {{ pages() }}</button>
-          <button class="join-item btn btn-sm" [disabled]="page() + 1 >= pages()" (click)="page.set(page() + 1)">»</button>
-        </div>
-      </div>
+          <div class="flex items-center justify-between text-sm">
+            <span class="opacity-60">{{ total() }} entries</span>
+            <div class="join">
+              <button class="join-item btn btn-sm" [disabled]="page() === 0" (click)="page.set(page() - 1)">«</button>
+              <button class="join-item btn btn-sm no-animation">{{ page() + 1 }} / {{ pages() }}</button>
+              <button class="join-item btn btn-sm" [disabled]="page() + 1 >= pages()"
+                (click)="page.set(page() + 1)">»</button>
+            </div>
+          </div>
           }
           } @else {
           <p class="text-sm">Select an employee from the Employees tab.</p>
           }
           }
 
-        
+
           @if (tab() === 'analytics') {
           @if (queue(); as q) {
           <div class="grid md:grid-cols-3 gap-4">
@@ -290,13 +330,15 @@
             </div>
           </div>
           <p class="text-xs opacity-60">
-            Whole queue, all employees. {{ q.called }} of {{ q.tickets }} tickets were called; wait = ticket taken to called.
+            Whole queue, all employees. {{ q.called }} of {{ q.tickets }} tickets were called; wait = ticket taken to
+            called.
           </p>
           }
 
           @if (hours(); as h) {
           <div class="flex justify-end">
-            <button type="button" class="btn btn-sm btn-ghost rounded-full" (click)="exportAnalytics()">Export CSV</button>
+            <button type="button" class="btn btn-sm btn-ghost rounded-full" (click)="exportAnalytics()">Export
+              CSV</button>
           </div>
           <div class="overflow-x-auto">
             <table class="table table-sm">
@@ -324,19 +366,24 @@
                   <td>{{ p.avgServiceMinutes | number: '1.0-1' }}</td>
                 </tr>
                 } @empty {
-                <tr><td colspan="5" class="text-sm">No data in this period</td></tr>
+                <tr>
+                  <td colspan="5" class="text-sm">No data in this period</td>
+                </tr>
                 }
               </tbody>
             </table>
           </div>
-      <div class="flex items-center justify-between text-sm">
-        <span class="opacity-60">{{ h.points.length }} periods</span>
-        <div class="join">
-          <button class="join-item btn btn-sm" [disabled]="analyticsPage() === 0" (click)="analyticsPage.set(analyticsPage() - 1)">«</button>
-          <button class="join-item btn btn-sm no-animation">{{ analyticsPage() + 1 }} / {{ analyticsPages() }}</button>
-          <button class="join-item btn btn-sm" [disabled]="analyticsPage() + 1 >= analyticsPages()" (click)="analyticsPage.set(analyticsPage() + 1)">»</button>
-        </div>
-      </div>
+          <div class="flex items-center justify-between text-sm">
+            <span class="opacity-60">{{ h.points.length }} periods</span>
+            <div class="join">
+              <button class="join-item btn btn-sm" [disabled]="analyticsPage() === 0"
+                (click)="analyticsPage.set(analyticsPage() - 1)">«</button>
+              <button class="join-item btn btn-sm no-animation">{{ analyticsPage() + 1 }} / {{ analyticsPages()
+                }}</button>
+              <button class="join-item btn btn-sm" [disabled]="analyticsPage() + 1 >= analyticsPages()"
+                (click)="analyticsPage.set(analyticsPage() + 1)">»</button>
+            </div>
+          </div>
           }
           }
 
@@ -384,7 +431,7 @@
               <option class="text-center" value="month">Month</option>
               <option class="text-center" value="year">Year</option>
             </select>
-            
+
           </label>
           <label class="text-xs flex flex-col gap-1.5">Employee
             <select class="select select-sm rounded-full flex w-full px-8 text-center [text-align-last:center]"
@@ -401,11 +448,16 @@
         </div>
       </div>
       <div class="grid grid-cols-3 gap-2">
-        <button class="btn bg-base-100 shadow-sm h-14 flex-col gap-0 text-xs" (click)="setToday()">Today</button>
-        <button class="btn bg-base-100 shadow-sm h-14 flex-col gap-0 text-xs" (click)="setWeek()">This week</button>
-        <button class="btn bg-base-100 shadow-sm h-14 flex-col gap-0 text-xs" (click)="setRange(7)">7 days</button>
-        <button class="btn bg-base-100 shadow-sm h-14 flex-col gap-0 text-xs" (click)="setRange(30)">30 days</button>
-        <button class="btn bg-base-100 shadow-sm h-14 flex-col gap-0 text-xs col-span-2" (click)="setRange(365)">Year</button>
+        <button class="btn shadow-sm h-14 flex-col gap-0 text-xs" [class]="presetClass('today')"
+          [attr.aria-pressed]="activePreset() === 'today'" (click)="setToday()">Today</button>
+        <button class="btn shadow-sm h-14 flex-col gap-0 text-xs" [class]="presetClass('week')"
+          [attr.aria-pressed]="activePreset() === 'week'" (click)="setWeek()">This week</button>
+        <button class="btn shadow-sm h-14 flex-col gap-0 text-xs" [class]="presetClass('7')"
+          [attr.aria-pressed]="activePreset() === '7'" (click)="setRange(7)">7 days</button>
+        <button class="btn shadow-sm h-14 flex-col gap-0 text-xs" [class]="presetClass('30')"
+          [attr.aria-pressed]="activePreset() === '30'" (click)="setRange(30)">30 days</button>
+        <button class="btn shadow-sm h-14 flex-col gap-0 text-xs col-span-2" [class]="presetClass('365')"
+          [attr.aria-pressed]="activePreset() === '365'" (click)="setRange(365)">Year</button>
       </div>
     </div>
   </div>

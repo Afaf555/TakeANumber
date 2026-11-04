@@ -1,12 +1,12 @@
 import { DatePicker } from '../../../../shared/date-picker/date-picker/date-picker';
 import { localIso, rangeError, todayIso } from '../../../../core/utils/date-range';
-import { downloadCsv, fmtDateTime } from '../../../../core/utils/csv';
+import { downloadCsv, fmtDate, fmtDateTime } from '../../../../core/utils/csv';
 import { AlertModal } from '../../../../shared/alert-modal/alert-modal/alert-modal';
 import { Component, computed, inject, OnDestroy, OnInit, signal } from '@angular/core';
 import { Subscription } from 'rxjs';
 import { DisplayService } from '../../../../core/services/display-service';
 import { ReportsService } from '../../../../core/services/reports-service';
-import { EmployeeActivity, EmployeeReportRow, HoursReport, QueueReport } from '../../../../types/reports';
+import { AbsentDay, EmployeeActivity, EmployeeReportRow, HoursReport, QueueReport, SessionReport } from '../../../../types/reports';
 import { DatePipe, DecimalPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HoursMinutesPipe } from '../../../../core/pipes/hours-minutes-pipe';
@@ -302,14 +302,24 @@ export class Reports implements OnInit, OnDestroy {
     const start = this.page() * this.pageSize;
     return items.slice(start, start + this.pageSize);
   }
-  protected pagedSessions = computed(() => this.slicePage(this.activity()?.sessions ?? []));
+
+  protected sessionRows = computed(() => {
+    const a = this.activity();
+    if (!a) return [];
+    const rows = [
+      ...a.sessions.map((s) => ({ session: s as SessionReport | null, absent: null as AbsentDay | null, time: new Date(s.loginAt).getTime() })),
+      ...(a.absentDays ?? []).map((d) => ({ session: null as SessionReport | null, absent: d as AbsentDay | null, time: new Date(d.date).getTime() })),
+    ];
+    return rows.sort((x, y) => y.time - x.time);
+  });
+  protected pagedSessions = computed(() => this.slicePage(this.sessionRows()));
   protected pagedTickets = computed(() => this.slicePage(this.activity()?.tickets ?? []));
   protected pagedLog = computed(() => this.slicePage(this.activity()?.log ?? []));
 
   protected total = computed(() => {
     const a = this.activity();
     if (!a) return 0;
-    return this.sub() === 'sessions' ? a.sessions.length
+    return this.sub() === 'sessions' ? this.sessionRows().length
       : this.sub() === 'tickets' ? a.tickets.length
         : a.log.length;
   });
@@ -318,6 +328,21 @@ export class Reports implements OnInit, OnDestroy {
   setSub(s: 'sessions' | 'tickets' | 'log') {
     this.sub.set(s);
     this.page.set(0);
+  }
+   
+  protected activePreset(): string | null {
+    const today = todayIso();
+    if (this.to !== today) return null;
+    if (this.from === today) return 'today';
+    if (this.from === daysAgo((new Date().getDay() + 6) % 7)) return 'week';
+    if (this.from === daysAgo(7)) return '7';
+    if (this.from === daysAgo(30)) return '30';
+    if (this.from === daysAgo(365)) return '365';
+    return null;
+  }
+
+  protected presetClass(preset: string) {
+    return this.activePreset() === preset ? 'btn-primary' : 'bg-base-100';
   }
   setToday(){
     this.from=todayIso();
@@ -351,10 +376,10 @@ export class Reports implements OnInit, OnDestroy {
     switch (this.sub()) {
       case 'sessions':
         downloadCsv(file('sessions'), ['Login', 'Logout', 'Hours', 'Break min', 'Counter'],
-          a.sessions.map((s) => [
-            fmtDateTime(s.loginAt), s.isOpen ? 'open' : fmtDateTime(s.logoutAt),
-            s.durationHours, s.breakMinutes, s.counterName,
-          ]));
+          this.sessionRows().map((r) => r.session
+            ? [fmtDateTime(r.session.loginAt), r.session.isOpen ? 'open' : fmtDateTime(r.session.logoutAt),
+               r.session.durationHours, r.session.breakMinutes, r.session.counterName]
+            : [fmtDate(r.absent!.date), `Leave day, no session (${r.absent!.reason})`, '', '', '']));
         break;
       case 'tickets':
         downloadCsv(file('tickets'), ['Ticket', 'Service', 'Started', 'Finished', 'Status', 'Minutes'],
