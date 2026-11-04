@@ -48,7 +48,7 @@
 
           @if (tab() === 'employees') {
           <div class="flex justify-end">
-            <button type="button" class="btn btn-sm btn-ghost rounded-full" (click)="exportEmployees()">Export
+            <button type="button" class="btn btn-sm btn-ghost border border-base-300 rounded-full" (click)="exportEmployees()">Export
               CSV</button>
           </div>
           <div class="overflow-x-auto">
@@ -101,7 +101,7 @@
           @if (tab() === 'activity') {
           @if (selected()) {
           <div class="flex justify-end gap-2">
-            <button type="button" class="btn btn-sm btn-ghost rounded-full" (click)="exportActivity()">Export
+            <button type="button" class="btn btn-sm btn-ghost rounded-full border border-base-300 " (click)="exportActivity()">Export
               CSV</button>
             <button class="btn btn-sm btn-ghost rounded-full" (click)="tab.set('employees')">← Employees</button>
           </div>
@@ -337,7 +337,7 @@
 
           @if (hours(); as h) {
           <div class="flex justify-end">
-            <button type="button" class="btn btn-sm btn-ghost rounded-full" (click)="exportAnalytics()">Export
+            <button type="button" class="btn btn-sm btn-ghost rounded-full border border-base-300 " (click)="exportAnalytics()">Export
               CSV</button>
           </div>
           <div class="overflow-x-auto">
