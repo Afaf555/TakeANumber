@@ -19,7 +19,7 @@ public class AdminController(AppDbContext context, ActivityLogger logger) : Base
     [HttpGet("services")]
     public async Task<ActionResult<List<ServiceDto>>> GetServices()
     {
-        var today = DateTime.UtcNow.Date;
+        var today = LocalTime.TodayStartUtc();
         return await context.Services
             .Select(x => new ServiceDto
             {
@@ -51,7 +51,7 @@ public class AdminController(AppDbContext context, ActivityLogger logger) : Base
     {
         var service = await context.Services.FindAsync(id);
         if (service == null) return NotFound();
-        var today = DateTime.UtcNow.Date;
+        var today = LocalTime.TodayStartUtc();
         if (await context.Tickets.AnyAsync(x => x.ServiceId == id && x.CreatedAt >= today &&
         (x.Status == TicketStatus.InQueue || x.Status == TicketStatus.InProgress)))
             return BadRequest("Service has active tickets");
@@ -83,7 +83,7 @@ public class AdminController(AppDbContext context, ActivityLogger logger) : Base
     [HttpGet("counters")]
     public async Task<ActionResult<List<CounterDto>>> GetCounters()
     {
-        var today = DateTime.UtcNow.Date;
+        var today = LocalTime.TodayStartUtc();
         return await context.Counters
             .Select(x => new CounterDto
             {
@@ -211,7 +211,7 @@ public class AdminController(AppDbContext context, ActivityLogger logger) : Base
     [HttpGet("employees")]
     public async Task<ActionResult<List<EmployeeDto>>> GetEmployees()
     {
-        var today = DateTime.UtcNow.Date;
+        var today = LocalTime.TodayStartUtc();
         var leaveToday = LocalTime.Today();
         return await context.Users
             .Where(x => x.Role == Role.Employee)
@@ -258,7 +258,7 @@ public class AdminController(AppDbContext context, ActivityLogger logger) : Base
     [HttpDelete("counters/{id}")]
     public async Task<ActionResult> DeleteCounter(int id)
     {
-        var today = DateTime.UtcNow.Date;
+        var today = LocalTime.TodayStartUtc();
         var counter = await context.Counters.FindAsync(id);
         if (counter == null) return NotFound();
         var counterName = counter.Name;
@@ -345,7 +345,7 @@ public class AdminController(AppDbContext context, ActivityLogger logger) : Base
     [HttpGet("tickets")]
     public async Task<ActionResult<List<AdminTicketDto>>> GetTickets()
     {
-        var today = DateTime.UtcNow.Date;
+        var today = LocalTime.TodayStartUtc();
 
         return await context.Tickets
             .Where(x => x.CreatedAt >= today)
@@ -398,9 +398,7 @@ public class AdminController(AppDbContext context, ActivityLogger logger) : Base
         session.Services = services;
         await context.SaveChangesAsync();
     }
-    // A counter held by an employee who is on approved leave today counts as free: the counter
-    // (and the services on it) is taken from him so it can be given to someone else.
-    // Returns an error text if the counter is really taken by somebody who is working.
+ 
     private async Task<string?> FreeCounterFromLeaveAsync(int counterId, int newHolderId, string newHolderName)
     {
         var holders = await context.Users
@@ -443,7 +441,7 @@ public class AdminController(AppDbContext context, ActivityLogger logger) : Base
     }
     private async Task<bool> CounterHasTicketsAsync(int counterId)
     {
-        var today = DateTime.UtcNow.Date;
+        var today = LocalTime.TodayStartUtc();
         return await context.Tickets.AnyAsync(t => t.CreatedAt >= today &&
             ((t.Status == TicketStatus.InProgress && t.CounterId == counterId) ||
              (t.Status == TicketStatus.InQueue &&

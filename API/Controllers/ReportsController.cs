@@ -91,7 +91,7 @@ public class ReportsController(AppDbContext context) : BaseApiController
             .Select(l => new ActivityEntryDto { CreatedAt = l.CreatedAt, Action = l.Action, Details = l.Details })
             .ToListAsync();
 
-        // Working days when the employee was on approved leave: he can't log in then, so the report shows "absent" instead of login/logout
+       
         var todayLocal = LocalTime.Today();
         var holidays = (await context.NonWorkingDays.AsNoTracking()
                 .Where(x => x.Date >= f && x.Date < t)
@@ -115,7 +115,7 @@ public class ReportsController(AppDbContext context) : BaseApiController
         return new EmployeeActivityDto
         {
             AbsentDays = absentDays,
-            // a leave day shows only the "leave day" row, no sessions
+           
             Sessions = spans
                 .Where(x => x.S.LoginAt >= f && !leaveDaySet.Contains(LocalTime.ToLocal(x.S.LoginAt).Date))
                 .OrderByDescending(x => x.S.LoginAt)

@@ -31,6 +31,9 @@ export class Reports implements OnInit, OnDestroy {
   protected tab = signal<'employees' | 'activity' | 'analytics'>('employees');
   protected from = daysAgo(30);
   protected to = todayIso();
+  private lastClick: 'range' | 'apply' = 'range';
+  private appliedFrom = '';
+  private appliedTo = '';
   protected groupBy: 'day' | 'week' | 'month' | 'year' = 'week';
   protected analyticsEmployeeId: number | null = null;
 
@@ -169,9 +172,19 @@ export class Reports implements OnInit, OnDestroy {
   }
 
   setRange(days: number) {
+    this.lastClick = 'range';
     this.from = daysAgo(days);
     this.to = todayIso();
     this.apply()
+  }
+  applyClick() {
+    this.lastClick = 'apply';
+    this.appliedFrom = this.from;
+    this.appliedTo = this.to;
+    this.apply();
+  }
+  protected applyActive() {
+    return this.lastClick === 'apply' && this.from === this.appliedFrom && this.to === this.appliedTo;
   }
   apply() {
     const err = rangeError(this.from, this.to);
@@ -257,7 +270,7 @@ export class Reports implements OnInit, OnDestroy {
   protected chart=computed(()=>{
     const byDay=new Map<string,number>();
     for(const s of this.activity()?.sessions??[]){
-      const day=s.loginAt.slice(0,10);
+      const day=localIso(new Date(s.loginAt));
       byDay.set(day,(byDay.get(day)??0)+s.durationHours);
     }
     const all: {day:string;hours:number;label:string}[]=[];
@@ -312,6 +325,7 @@ export class Reports implements OnInit, OnDestroy {
     ];
     return rows.sort((x, y) => y.time - x.time);
   });
+  
   protected pagedSessions = computed(() => this.slicePage(this.sessionRows()));
   protected pagedTickets = computed(() => this.slicePage(this.activity()?.tickets ?? []));
   protected pagedLog = computed(() => this.slicePage(this.activity()?.log ?? []));
@@ -331,6 +345,7 @@ export class Reports implements OnInit, OnDestroy {
   }
    
   protected activePreset(): string | null {
+    if (this.lastClick !== 'range') return null;
     const today = todayIso();
     if (this.to !== today) return null;
     if (this.from === today) return 'today';
@@ -345,11 +360,13 @@ export class Reports implements OnInit, OnDestroy {
     return this.activePreset() === preset ? 'btn-primary' : 'bg-base-100';
   }
   setToday(){
+    this.lastClick='range';
     this.from=todayIso();
     this.to=todayIso()
     this.apply();
   }
   setWeek(){
+    this.lastClick='range';
     const back=(new Date().getDay()+6)%7;
     this.from=daysAgo(back);
     this.to=todayIso();

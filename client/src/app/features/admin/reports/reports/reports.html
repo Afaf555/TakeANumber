@@ -444,7 +444,8 @@
           </label>
           }
 
-          <button class="btn btn-primary btn-sm rounded-full w-full" (click)="apply()">Apply</button>
+          <button class="btn btn-primary btn-sm rounded-full w-full" [class.btn-outline]="!applyActive()"
+            [attr.aria-pressed]="applyActive()" (click)="applyClick()">Apply</button>
         </div>
       </div>
       <div class="grid grid-cols-3 gap-2">

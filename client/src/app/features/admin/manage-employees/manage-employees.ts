@@ -89,7 +89,7 @@ export class ManageEmployees implements OnInit, OnDestroy {
     });
   }
 
-  // name of the employee who holds this counter but is on leave today (the counter can be given to someone else)
+
   leaveHolder(counterId: number) {
     return this.employees().find((e) => e.counterId === counterId && e.onLeaveToday)?.username ?? '';
   }
