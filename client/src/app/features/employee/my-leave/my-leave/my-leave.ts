@@ -10,6 +10,11 @@ import { LeaveService } from '../../../../core/services/leave-service';
 import { Leave, LeaveBalance, LeaveTypeValue } from '../../../../types/reports';
 
 const iso = localIso;
+const tomorrow = () => {
+  const d = new Date();
+  d.setDate(d.getDate() + 1);
+  return iso(d);
+};
 
 @Component({
   imports: [DatePipe, FormsModule, AlertModal, DatePicker],
@@ -32,9 +37,19 @@ export class MyLeave implements OnInit, OnDestroy {
   protected success = signal('');
 
   protected type: number = LeaveTypeValue.Vacation;
-  protected start = iso(new Date());
-  protected end = iso(new Date());
+  protected start = tomorrow();
+  protected end = tomorrow();
   protected note = '';
+
+  protected minStart() {
+    return this.type === LeaveTypeValue.Vacation ? tomorrow() : iso(new Date());
+  }
+
+  onTypeChange() {
+    const min = this.minStart();
+    if (this.start < min) this.start = min;
+    if (this.end < this.start) this.end = this.start;
+  }
 
   ngOnInit(): void {
     this.load();
@@ -58,6 +73,10 @@ export class MyLeave implements OnInit, OnDestroy {
 
   submit() {
     this.success.set('');
+    if (this.start < this.minStart()) {
+      this.error.set('Vacation must be requested at least one day in advance');
+      return;
+    }
     const err = rangeError(this.start, this.end);
     if (err) {
       this.error.set(err);

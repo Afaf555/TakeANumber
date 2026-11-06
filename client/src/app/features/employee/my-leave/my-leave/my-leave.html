@@ -33,7 +33,7 @@
       <div class="grid gap-3 sm:grid-cols-3">
         <div class="flex flex-col gap-1 min-w-0">
           <label class="text-xs uppercase opacity-60" for="type">Reason</label>
-          <select id="type" class="select select-sm w-full rounded-full" name="type" [(ngModel)]="type">
+          <select id="type" class="select select-sm w-full rounded-full" name="type" [(ngModel)]="type" (ngModelChange)="onTypeChange()">
             @for (r of reasons; track r.value) {
             <option [ngValue]="r.value">{{ r.label }}</option>
             }
@@ -41,7 +41,7 @@
         </div>
         <div class="flex flex-col gap-1 min-w-0">
           <label class="text-xs uppercase opacity-60" for="start">From</label>
-          <app-date-picker class="w-full" [(value)]="start" inputId="start" />
+          <app-date-picker class="w-full" [(value)]="start" [min]="minStart()" inputId="start" />
         </div>
         <div class="flex flex-col gap-1 min-w-0">
           <label class="text-xs uppercase opacity-60" for="end">To</label>

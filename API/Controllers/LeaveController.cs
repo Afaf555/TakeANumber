@@ -248,8 +248,8 @@ public class LeaveController(AppDbContext context, ActivityLogger logger) : Base
         if (end < start) return BadRequest("End date is before start date");
         if(start<today) return BadRequest("Can't make a request for previous days");
         
-        if (dto.Type == LeaveType.Vacation && start < today)
-            return BadRequest("Vacation cannot start in the past");
+        if (dto.Type == LeaveType.Vacation && start <= today)
+            return BadRequest("Vacation must be requested at least one day in advance");
 
         if (await OverlapsAsync(employee.Id, start, end))
             return BadRequest("You already have a leave request for these dates");
