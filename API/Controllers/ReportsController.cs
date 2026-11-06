@@ -32,6 +32,23 @@ public class ReportsController(AppDbContext context) : BaseApiController
         return minutes / 60;
     }
 
+    [HttpGet("heatmap")]
+    public async Task<ActionResult<List<HeatmapCellDto>>> GetHeatmap([FromQuery] DateTime from, [FromQuery] DateTime to)
+    {
+        if(to.Date<from.Date) return BadRequest("End date is before start date");
+        var (f,t)=Range (from,to);
+        var created=await context.Tickets
+            .AsNoTracking()
+            .Where(x=>x.CreatedAt>=f && x.CreatedAt<t)
+            .Select(x=>x.CreatedAt)
+            .ToListAsync();
+        
+        return created
+        .Select(LocalTime.ToLocal)
+        .GroupBy(d=>new { Weekday=((int)d.DayOfWeek+6)%7,d.Hour})
+        .Select(g=>new HeatmapCellDto {Weekday=g.Key.Weekday,Hour=g.Key.Hour,Tickets=g.Count()})
+        .ToList();
+    }
     [HttpGet("employees")]
     public async Task<ActionResult<List<EmployeeReportRowDto>>> GetEmployees(
         [FromQuery] DateTime from, [FromQuery] DateTime to)
@@ -91,7 +108,7 @@ public class ReportsController(AppDbContext context) : BaseApiController
             .Select(l => new ActivityEntryDto { CreatedAt = l.CreatedAt, Action = l.Action, Details = l.Details })
             .ToListAsync();
 
-       
+
         var todayLocal = LocalTime.Today();
         var holidays = (await context.NonWorkingDays.AsNoTracking()
                 .Where(x => x.Date >= f && x.Date < t)
@@ -115,7 +132,7 @@ public class ReportsController(AppDbContext context) : BaseApiController
         return new EmployeeActivityDto
         {
             AbsentDays = absentDays,
-           
+
             Sessions = spans
                 .Where(x => x.S.LoginAt >= f && !leaveDaySet.Contains(LocalTime.ToLocal(x.S.LoginAt).Date))
                 .OrderByDescending(x => x.S.LoginAt)

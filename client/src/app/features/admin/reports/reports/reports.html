@@ -353,7 +353,41 @@
             called.
           </p>
           }
-
+          @if (heat(); as hp) {
+          <div class="card border border-base-300">
+            <div class="card-body p-4">
+              <div class="flex items-center justify-between">
+                <h3 class="text-xs font-semibold uppercase tracking-widest">Busiest times</h3>
+                <span class="text-xs opacity-60">Peak: {{ hp.peak }}</span>
+              </div>
+              <div class="overflow-x-auto">
+                <div class="min-w-max">
+                  <div class="flex gap-1 pl-10">
+                    @for (h of hp.hours; track h) {
+                    <div class="w-9 text-center text-[10px] opacity-60">{{ h }}</div>
+                    }
+                  </div>
+                  @for (r of hp.rows; track r.label) {
+                  <div class="flex items-center gap-1 mt-1">
+                    <div class="w-9 text-xs opacity-60">{{ r.label }}</div>
+                    @for (c of r.cells; track c.hour) {
+   <div class="w-9 h-9 rounded bg-base-200"
+  [attr.title]="r.label + ' ' + (c.hour < 10 ? '0' : '') + c.hour + ':00 - ' + c.tickets + ' tickets'">
+                      <div class="w-full h-full rounded bg-primary" [style.opacity]="c.opacity"></div>
+                    </div>
+                    }
+                  </div>
+                  }
+                </div>
+              </div>
+              <div class="flex items-center gap-2 text-[10px] opacity-60">
+                <span>Fewer</span>
+                <div class="w-24 h-2 rounded bg-gradient-to-r from-primary/15 to-primary"></div>
+                <span>More ({{ hp.max }})</span>
+              </div>
+            </div>
+          </div>
+          }
           @if (hours(); as h) {
           <div class="flex justify-end">
             <button type="button" class="btn btn-sm btn-ghost rounded-full border border-base-300 "

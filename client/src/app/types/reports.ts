@@ -60,3 +60,4 @@ export type LeaveBalance = {
     sickAllowance: number; sickUsed: number; sickRemaining: number;
 };
 export const LeaveTypeValue = { Vacation: 0, Sick: 1 } as const;
+export type HeatmapCell={weekday: number;hour:number;tickets:number};

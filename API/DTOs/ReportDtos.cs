@@ -100,3 +100,9 @@ public class QueueReportDto
     public List<HourBucketDto> ByHour { get; set; }=[];
     public List<WeekdayBucketDto> ByWeekday { get; set; }=[];
 }
+public class HeatmapCellDto
+{
+    public int Weekday { get; set; }
+    public int Hour { get; set; }
+    public int Tickets { get; set; }
+}

@@ -6,7 +6,7 @@ import { Component, computed, inject, OnDestroy, OnInit, signal } from '@angular
 import { Subscription } from 'rxjs';
 import { DisplayService } from '../../../../core/services/display-service';
 import { ReportsService } from '../../../../core/services/reports-service';
-import { AbsentDay, EmployeeActivity, EmployeeReportRow, HoursReport, QueueReport, SessionReport } from '../../../../types/reports';
+import { AbsentDay, EmployeeActivity, EmployeeReportRow, HeatmapCell, HoursReport, QueueReport, SessionReport } from '../../../../types/reports';
 import { DatePipe, DecimalPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HoursMinutesPipe } from '../../../../core/pipes/hours-minutes-pipe';
@@ -49,6 +49,7 @@ export class Reports implements OnInit, OnDestroy {
   protected sub = signal<'sessions' | 'tickets' | 'log'>('sessions');
   protected analyticsPage = signal(0);
   protected readonly analyticsPageSize = 8;
+  protected heatmap = signal<HeatmapCell[]>([]);
   protected pagedPoints = computed(() => {
     const pts = [...(this.hours()?.points ?? [])].reverse();
     const start = this.analyticsPage() * this.analyticsPageSize;
@@ -180,6 +181,7 @@ export class Reports implements OnInit, OnDestroy {
     this.loadEmployees();
     this.loadHours(false);
     this.loadQueue();
+    this.loadHeatmap()
     if (this.selected()) this.loadActivity(false);
   }
 
@@ -207,6 +209,8 @@ export class Reports implements OnInit, OnDestroy {
     this.loadEmployees();
     this.loadHours();
     this.loadQueue();
+    this.loadHeatmap()
+
     if (this.selected()) this.loadActivity()
   }
   select(row: EmployeeReportRow) {
@@ -447,4 +451,34 @@ export class Reports implements OnInit, OnDestroy {
       h.points.map((p) => [p.label, p.hours, p.sessions, p.tickets, p.avgServiceMinutes]),
     );
   }
+  loadHeatmap() {
+    this.reportsService.getHeatmap(this.from, this.to).subscribe({
+      next: (c) => this.heatmap.set(c),
+      error: () => this.error.set('Could not load heatmap'),
+    });
+  }
+
+  protected heat = computed(() => {
+    const cells = this.heatmap();
+    if (!cells.length) return null;
+    const first = Math.min(...cells.map((c) => c.hour));
+    const last = Math.max(...cells.map((c) => c.hour));
+    const max = Math.max(...cells.map((c) => c.tickets));
+    const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    const hours = Array.from({ length: last - first + 1 }, (_, i) => first + i);
+    const rows = days.map((label, weekday) => ({
+      label,
+      cells: hours.map((hour) => {
+        const tickets = cells.find((c) => c.weekday === weekday && c.hour === hour)?.tickets ?? 0;
+        return { hour, tickets, opacity: tickets ? 0.15 + (tickets / max) * 0.85 : 0 };
+      }),
+    }));
+    const peak = cells.reduce((a, b) => (b.tickets > a.tickets ? b : a));
+    return {
+      hours: hours.map((h) => String(h).padStart(2, '0')),
+      rows,
+      max,
+      peak: `${days[peak.weekday]} ${String(peak.hour).padStart(2, '0')}:00 (${peak.tickets} tickets)`,
+    };
+  });
 }

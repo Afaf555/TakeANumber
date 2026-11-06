@@ -1,7 +1,7 @@
 import { inject, Injectable } from "@angular/core";
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { environment } from "../../../environments/environment";
-import { EmployeeActivity, EmployeeReportRow, HoursReport, PtoRow, WorkforceReport } from "../../types/reports";
+import { EmployeeActivity, EmployeeReportRow, HeatmapCell, HoursReport, PtoRow, WorkforceReport } from "../../types/reports";
 import { QueueReport } from "../../types/reports";
 @Injectable({providedIn:'root'})
 export class ReportsService{
@@ -29,5 +29,8 @@ export class ReportsService{
   }
   getPto(year: number) {
     return this.http.get<PtoRow[]>(this.baseUrl + 'pto', { params: { year } });
+  }
+  getHeatmap(from:string,to:string){
+    return this.http.get<HeatmapCell[]>(this.baseUrl+'heatmap',{params:{from,to}});
   }
 }
