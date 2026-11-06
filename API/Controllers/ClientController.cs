@@ -25,6 +25,7 @@ public class ClientController(ITicketRepository ticketRepository,
     [HttpPost("tickets")]
     public async Task<ActionResult<TicketDto>> CreateTicket(CreateTicketsDto dto)
     {
+         if (User.IsInRole("Admin")) return Forbid();
         if (!await ticketRepository.ServiceExistsAsync(dto.ServiceId))
         {
             return BadRequest("Service does not exist");

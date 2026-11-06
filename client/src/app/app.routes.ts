@@ -6,13 +6,13 @@ import { ActiveCounters } from './features/display/active-counters/active-counte
 import { authGuard } from './core/guards/auth-guard';
 import { roleGuard } from './core/guards/role-guard';
 import { guestGuard } from './core/guards/guest-guard';
+import { clientOnlyGuard } from './core/guards/client-only-guard';
 
 export const routes: Routes = [
-  { path: '', redirectTo: 'take-ticket', pathMatch: 'full' },
   { path: 'login', component: Login, canActivate: [guestGuard] },
   { path: 'register', component: Register },
   { path: 'display', component: ActiveCounters },
-  { path: 'take-ticket', component: TakeTicket },
+  { path: 'take-ticket', component: TakeTicket, canActivate: [clientOnlyGuard] },
 
   {
     path: 'take-ticket',
