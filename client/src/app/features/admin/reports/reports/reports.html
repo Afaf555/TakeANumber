@@ -8,7 +8,6 @@
 
   <div class="grid lg:grid-cols-[17rem_1fr] gap-4 items-start">
 
-    <!-- ================= MAIN ================= -->
     <div class="space-y-4 min-w-0">
 
       @let hd = head();
@@ -48,7 +47,8 @@
 
           @if (tab() === 'employees') {
           <div class="flex justify-end">
-            <button type="button" class="btn btn-sm btn-ghost border border-base-300 rounded-full" (click)="exportEmployees()">Export
+            <button type="button" class="btn btn-sm btn-ghost border border-base-300 rounded-full"
+              (click)="exportEmployees()">Export
               CSV</button>
           </div>
           <div class="overflow-x-auto">
@@ -101,18 +101,26 @@
           @if (tab() === 'activity') {
           @if (selected()) {
           <div class="flex justify-end gap-2">
-            <button type="button" class="btn btn-sm btn-ghost rounded-full border border-base-300 " (click)="exportActivity()">Export
+            <button type="button" class="btn btn-sm btn-ghost rounded-full border border-base-300 "
+              (click)="exportActivity()">Export
               CSV</button>
             <button class="btn btn-sm btn-ghost rounded-full" (click)="tab.set('employees')">← Employees</button>
           </div>
 
           @if (activity(); as a) {
           <div class="grid md:grid-cols-3 gap-4">
-            <div class="card border border-base-300 md:col-span-2">
+            <div class="card border border-base-300 md:col-span-3">
               <div class="card-body p-4">
                 <div class="flex items-center justify-between">
                   <h3 class="text-xs font-semibold uppercase tracking-widest">Hours per day</h3>
                   <div class="flex items-center gap-2">
+                    <span class="flex items-center gap-1 text-xs"><span class="w-2 h-2 rounded-full bg-primary"></span>
+                      Worked</span>
+                    <span class="flex items-center gap-1 text-xs"><span
+                        class="w-2 h-2 rounded-full bg-secondary"></span> On break</span>
+                    <span class="flex items-center gap-1 text-xs"><span class="w-2 h-2 rounded-full bg-warning"></span>
+                      Leave day</span>
+
                     <span class="text-xs opacity-60">{{ chart().label }}</span>
                     <div class="join">
                       <button class="join-item btn btn-xs" [disabled]="!chart().canOlder"
@@ -123,11 +131,17 @@
                   </div>
                 </div>
 
-                <div class="flex gap-2 h-40 border-b border-base-300">
+                <div class="flex gap-2 h-72 border-b border-base-300">
                   @for (b of chart().bars; track b.day) {
-                  <div class="flex-1 h-full flex items-end" [class.tooltip]="!b.empty" [attr.data-tip]="b.hours | hm">
+                  <div class="flex-1 h-full flex items-end justify-center gap-1" [class.tooltip]="!b.empty"
+                    [attr.data-tip]="b.tip">
                     @if (!b.empty) {
-                    <div class="w-3/5 mx-auto rounded-t bg-primary" [style.height.%]="b.height"></div>
+                    @if (b.leave) {
+                    <div class="w-4/5 rounded-t bg-warning h-full"></div>
+                    } @else {
+                    <div class="w-2/5 rounded-t bg-primary" [style.height.%]="b.height"></div>
+                    <div class="w-2/5 rounded-t bg-secondary" [style.height.%]="b.breakHeight"></div>
+                    }
                     }
                   </div>
                   }
@@ -137,7 +151,12 @@
                   <div class="flex-1 text-center">
                     @if (!b.empty) {
                     <p class="text-xs">{{ b.label }}</p>
+                    @if (b.leave) {
+                    <p class="text-[10px] text-warning">Leave day</p>
+                    } @else {
                     <p class="text-[10px] opacity-60">{{ b.hours | hm }}</p>
+                    <p class="text-[10px] text-secondary">{{ b.breakHours | hm }}</p>
+                    }
                     }
                   </div>
                   }
@@ -337,7 +356,8 @@
 
           @if (hours(); as h) {
           <div class="flex justify-end">
-            <button type="button" class="btn btn-sm btn-ghost rounded-full border border-base-300 " (click)="exportAnalytics()">Export
+            <button type="button" class="btn btn-sm btn-ghost rounded-full border border-base-300 "
+              (click)="exportAnalytics()">Export
               CSV</button>
           </div>
           <div class="overflow-x-auto">

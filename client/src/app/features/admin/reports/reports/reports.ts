@@ -94,17 +94,23 @@ export class Reports implements OnInit, OnDestroy {
   protected head = computed(() => {
     const e = this.selected();
     if (this.tab() === 'activity' && e) {
-      return { initials: e.username.slice(0, 2).toUpperCase(), name: e.username,
-        sub: e.counterName || 'No counter', hours: e.hoursWorked };
+      return {
+        initials: e.username.slice(0, 2).toUpperCase(), name: e.username,
+        sub: e.counterName || 'No counter', hours: e.hoursWorked
+      };
     }
     if (this.tab() === 'analytics') {
       const emp = this.rows().find((r) => r.id === this.analyticsEmployeeId);
-      return { initials: emp ? emp.username.slice(0, 2).toUpperCase() : 'ALL',
+      return {
+        initials: emp ? emp.username.slice(0, 2).toUpperCase() : 'ALL',
         name: emp ? emp.username : 'All employees',
-        sub: `Grouped by ${this.groupBy}`, hours: this.hours()?.totalHours ?? 0 };
+        sub: `Grouped by ${this.groupBy}`, hours: this.hours()?.totalHours ?? 0
+      };
     }
-    return { initials: 'ALL', name: 'All employees',
-      sub: `${this.rows().length} employees`, hours: this.totals().hours };
+    return {
+      initials: 'ALL', name: 'All employees',
+      sub: `${this.rows().length} employees`, hours: this.totals().hours
+    };
   });
 
   protected overview = computed<{ label: string; value: string; hint?: string }[]>(() => {
@@ -128,12 +134,18 @@ export class Reports implements OnInit, OnDestroy {
       if (!h) return [];
       return [
         { label: 'Total hours', value: hm(h.totalHours), hint: 'Logged in, minus breaks' },
-        { label: `Avg / ${this.groupBy}`, value: hm(h.avgHoursPerPeriod),
-          hint: `Total ÷ ${h.points.length} ${this.groupBy}(s), empty ones included` },
-        { label: 'Avg / worked day', value: hm(h.avgHoursPerWorkedDay),
-          hint: `Total ÷ ${h.workedDays} days with a session` },
-        { label: 'Avg session', value: hm(h.avgSessionHours),
-          hint: `Total ÷ ${this.totalSessions()} sessions` },
+        {
+          label: `Avg / ${this.groupBy}`, value: hm(h.avgHoursPerPeriod),
+          hint: `Total ÷ ${h.points.length} ${this.groupBy}(s), empty ones included`
+        },
+        {
+          label: 'Avg / worked day', value: hm(h.avgHoursPerWorkedDay),
+          hint: `Total ÷ ${h.workedDays} days with a session`
+        },
+        {
+          label: 'Avg session', value: hm(h.avgSessionHours),
+          hint: `Total ÷ ${this.totalSessions()} sessions`
+        },
         { label: 'Tickets served', value: String(h.totalTickets), hint: 'Finished only, no-shows excluded' },
         { label: 'Avg service time', value: min(h.avgServiceMinutes), hint: 'Call to finish' },
         ...(q ? [
@@ -145,7 +157,7 @@ export class Reports implements OnInit, OnDestroy {
     }
     const t = this.totals();
     return [
-      { label: 'Total hours',value: hm(t.hours), hint: 'Logged in, minus breaks' },
+      { label: 'Total hours', value: hm(t.hours), hint: 'Logged in, minus breaks' },
       { label: 'Breaks', value: hm(t.breaks) },
       { label: 'Sessions', value: String(t.sessions) },
       { label: 'Served', value: String(t.served), hint: 'Finished tickets' },
@@ -208,8 +220,8 @@ export class Reports implements OnInit, OnDestroy {
     this.reportsService.getEmployees(this.from, this.to).subscribe({
       next: (rows) => {
         this.rows.set(rows);
-        const s=this.selected();
-        if(s) this.selected.set(rows.find((r)=>r.id===s.id)??s);
+        const s = this.selected();
+        if (s) this.selected.set(rows.find((r) => r.id === s.id) ?? s);
         this.error.set('');
       },
       error: () => this.error.set('Could not load employees report'),
@@ -263,32 +275,46 @@ export class Reports implements OnInit, OnDestroy {
     return all.map((x) => ({ ...x, height: (x.tickets / max) * 100 }));
   });
 
-  protected chartPage=signal(0);
-  private readonly chartDays=7;
-  private chartRange=signal({from:this.from,to:this.to});
+  protected chartPage = signal(0);
+  private readonly chartDays = 7;
+  private chartRange = signal({ from: this.from, to: this.to });
 
-  protected chart=computed(()=>{
-    const byDay=new Map<string,number>();
-    for(const s of this.activity()?.sessions??[]){
-      const day=localIso(new Date(s.loginAt));
-      byDay.set(day,(byDay.get(day)??0)+s.durationHours);
+  protected chart = computed(() => {
+    const byDay = new Map<string, number>();
+    const breakByDay = new Map<string, number>();
+    for (const s of this.activity()?.sessions ?? []) {
+      const day = localIso(new Date(s.loginAt));
+      byDay.set(day, (byDay.get(day) ?? 0) + s.durationHours);
+      breakByDay.set(day, (breakByDay.get(day) ?? 0) + s.breakMinutes / 60);
     }
-    const all: {day:string;hours:number;label:string}[]=[];
-    const {from,to}=this.chartRange();
-    const last=new Date(to);
-    for(const d=new Date(from); d<=last;d.setUTCDate(d.getUTCDate()+1)){
-      const day=iso(d);
-      all.push({day,hours:byDay.get(day)??0,label:`${day.slice(8,10)}.${day.slice(5,7)}`})
+    const leaveByDay = new Map<string, string>();
+    for (const d of this.activity()?.absentDays ?? []) leaveByDay.set(d.date.slice(0, 10), d.reason);
+    const all: { day: string; hours: number; breakHours: number; leave: boolean; reason: string; label: string }[] = [];
+
+    const { from, to } = this.chartRange();
+    const last = new Date(to);
+    for (const d = new Date(from); d <= last; d.setUTCDate(d.getUTCDate() + 1)) {
+      const day = iso(d);
+      all.push({ day, hours: byDay.get(day) ?? 0, breakHours: breakByDay.get(day) ?? 0, leave: leaveByDay.has(day), reason: leaveByDay.get(day) ?? '', label: `${day.slice(8, 10)}.${day.slice(5, 7)}` })
     }
-    const max=Math.max(1,...all.map((b)=>b.hours));
-    const end=all.length-this.chartPage()*this.chartDays;
-  const start = Math.max(0, end - this.chartDays);
+    const max = Math.max(1, ...all.map((b) => Math.max(b.hours, b.breakHours)));
+    const end = all.length - this.chartPage() * this.chartDays;
+    const start = Math.max(0, end - this.chartDays);
     const real = all
       .slice(start, end)
-      .map((b) => ({ ...b, height: (b.hours / max) * 100, empty: false }));
+      .map((b) => ({
+        ...b,
+        height: (b.hours / max) * 100,
+        breakHeight: (b.breakHours / max) * 100,
+        tip: b.leave
+          ? `Leave day - all day (${b.reason})`
+          : `Worked ${this.hmPipe.transform(b.hours)} · Break ${this.hmPipe.transform(b.breakHours)}`,
+
+        empty: false,
+      }));
 
     const pad = Array.from({ length: this.chartDays - real.length }, (_, i) => ({
-      day: 'pad' + i, hours: 0, label: '', height: 0, empty: true,
+      day: 'pad' + i, hours: 0, breakHours: 0, leave: false, reason: '', label: '', height: 0, breakHeight: 0, tip: '', empty: true,
     }));
 
     return {
@@ -325,7 +351,7 @@ export class Reports implements OnInit, OnDestroy {
     ];
     return rows.sort((x, y) => y.time - x.time);
   });
-  
+
   protected pagedSessions = computed(() => this.slicePage(this.sessionRows()));
   protected pagedTickets = computed(() => this.slicePage(this.activity()?.tickets ?? []));
   protected pagedLog = computed(() => this.slicePage(this.activity()?.log ?? []));
@@ -343,7 +369,7 @@ export class Reports implements OnInit, OnDestroy {
     this.sub.set(s);
     this.page.set(0);
   }
-   
+
   protected activePreset(): string | null {
     if (this.lastClick !== 'range') return null;
     const today = todayIso();
@@ -359,17 +385,17 @@ export class Reports implements OnInit, OnDestroy {
   protected presetClass(preset: string) {
     return this.activePreset() === preset ? 'btn-primary' : 'bg-base-100';
   }
-  setToday(){
-    this.lastClick='range';
-    this.from=todayIso();
-    this.to=todayIso()
+  setToday() {
+    this.lastClick = 'range';
+    this.from = todayIso();
+    this.to = todayIso()
     this.apply();
   }
-  setWeek(){
-    this.lastClick='range';
-    const back=(new Date().getDay()+6)%7;
-    this.from=daysAgo(back);
-    this.to=todayIso();
+  setWeek() {
+    this.lastClick = 'range';
+    const back = (new Date().getDay() + 6) % 7;
+    this.from = daysAgo(back);
+    this.to = todayIso();
     this.apply();
   }
 
@@ -395,7 +421,7 @@ export class Reports implements OnInit, OnDestroy {
         downloadCsv(file('sessions'), ['Login', 'Logout', 'Hours', 'Break min', 'Counter'],
           this.sessionRows().map((r) => r.session
             ? [fmtDateTime(r.session.loginAt), r.session.isOpen ? 'open' : fmtDateTime(r.session.logoutAt),
-               r.session.durationHours, r.session.breakMinutes, r.session.counterName]
+            r.session.durationHours, r.session.breakMinutes, r.session.counterName]
             : [fmtDate(r.absent!.date), `Leave day, no session (${r.absent!.reason})`, '', '', '']));
         break;
       case 'tickets':
