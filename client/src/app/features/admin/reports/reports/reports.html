@@ -30,6 +30,21 @@
           <div class="card-body p-4 items-center justify-center text-center gap-0">
             <p class="text-xs uppercase font-semibold opacity-70">Hours worked</p>
             <p class="text-3xl font-semibold text-black">{{ hd.hours | hm }}</p>
+            @if (tab() === 'activity' && selected() && ticketStats().total > 0) {
+            @let ts = ticketStats();
+            <div class="w-full mt-3">
+              <div class="flex h-2 w-full overflow-hidden rounded-full bg-base-300">
+                <div class="bg-success" [style.width.%]="(ts.served / ts.total) * 100"></div>
+                <div class="bg-error" [style.width.%]="(ts.noShow / ts.total) * 100"></div>
+              </div>
+              <div class="flex justify-between text-[10px] mt-1">
+                <span class="flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-success"></span> Served
+                  {{ ts.served }}</span>
+                <span class="flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-error"></span> No-show {{
+                  ts.noShow }}</span>
+              </div>
+            </div>
+            }
           </div>
         </div>
       </div>
@@ -160,25 +175,6 @@
                     }
                   </div>
                   }
-                </div>
-              </div>
-            </div>
-
-            <div class="card border border-base-300">
-              <div class="card-body p-4 items-center">
-                <h3 class="text-xs font-semibold uppercase tracking-widest self-start">Tickets</h3>
-                <div class="w-32 h-32 rounded-full grid place-items-center" [style.background]="ticketStats().donut">
-                  <div class="w-20 h-20 rounded-full bg-base-100 grid place-items-center text-xl font-semibold">
-                    {{ ticketStats().total }}
-                  </div>
-                </div>
-                <div class="flex gap-4 text-xs">
-                  <span class="flex items-center gap-1">
-                    <span class="w-2 h-2 rounded-full bg-success"></span> Served {{ ticketStats().served }}
-                  </span>
-                  <span class="flex items-center gap-1">
-                    <span class="w-2 h-2 rounded-full bg-error"></span> No-show {{ ticketStats().noShow }}
-                  </span>
                 </div>
               </div>
             </div>
@@ -371,8 +367,8 @@
                   <div class="flex items-center gap-1 mt-1">
                     <div class="w-9 text-xs opacity-60">{{ r.label }}</div>
                     @for (c of r.cells; track c.hour) {
-   <div class="w-9 h-9 rounded bg-base-200"
-  [attr.title]="r.label + ' ' + (c.hour < 10 ? '0' : '') + c.hour + ':00 - ' + c.tickets + ' tickets'">
+                    <div class="w-9 h-9 rounded bg-base-200"
+                      [attr.title]="r.label + ' ' + (c.hour < 10 ? '0' : '') + c.hour + ':00 - ' + c.tickets + ' tickets'">
                       <div class="w-full h-full rounded bg-primary" [style.opacity]="c.opacity"></div>
                     </div>
                     }
@@ -382,7 +378,7 @@
               </div>
               <div class="flex items-center gap-2 text-[10px] opacity-60">
                 <span>Fewer</span>
-                <div class="w-24 h-2 rounded bg-gradient-to-r from-primary/15 to-primary"></div>
+                <div class="w-24 h-2 rounded bg-linear-to-r from-primary/15 to-primary"></div>
                 <span>More ({{ hp.max }})</span>
               </div>
             </div>
