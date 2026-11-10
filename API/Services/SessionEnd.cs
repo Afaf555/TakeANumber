@@ -12,7 +12,8 @@ public static class SessionEnd
  
     public static async Task<DateTime> ForOpenSessionAsync(AppDbContext context, EmployeeSession s, DateTime now)
     {
-        if (now < LocalTime.CloseOfDayUtc(s.LoginAt)) return now;
+        var settings = await context.GetWorkSettingsAsync();
+        if (now < LocalTime.CloseOfDayUtc(s.LoginAt, settings.CloseTime)) return now;
         if (s.CounterId == null) return s.LoginAt;
 
    

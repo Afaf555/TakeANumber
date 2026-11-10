@@ -73,5 +73,11 @@ export const routes: Routes = [
   canActivate: [authGuard, roleGuard],
   data: { roles: ['Admin'] },
 },
+{
+  path: 'settings',
+  loadComponent: () => import('./features/admin/settings/settings').then((m) => m.Settings),
+  canActivate: [authGuard, roleGuard],
+  data: { roles: ['Admin'] },
+},
 { path: '**', redirectTo: 'take-ticket', pathMatch: 'full' },
 ];

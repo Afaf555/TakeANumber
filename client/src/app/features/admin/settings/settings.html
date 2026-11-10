@@ -1,0 +1,78 @@
+<div class="max-w-2xl mx-auto space-y-4">
+  <app-alert-modal [message]="error()" type="error" (closed)="error.set('')" />
+  <app-alert-modal [message]="message()" type="success" (closed)="message.set('')" />
+
+  <div class="card bg-base-100 shadow-md">
+    <div class="card-body">
+      <h2 class="card-title text-sm uppercase tracking-widest">Working time</h2>
+
+      <div class="grid sm:grid-cols-2 gap-4">
+        <label class="text-sm flex flex-col gap-1">Opening time
+          <input type="time" class="input input-sm rounded-full" [ngModel]="form().openTime"
+            (ngModelChange)="set('openTime', $event)" />
+        </label>
+        <label class="text-sm flex flex-col gap-1">Closing time
+          <input type="time" class="input input-sm rounded-full" [ngModel]="form().closeTime"
+            (ngModelChange)="set('closeTime', $event)" />
+        </label>
+        <label class="text-sm flex flex-col gap-1">Late arrival grace (minutes)
+          <input type="number" min="0" max="120" class="input input-sm rounded-full"
+            [ngModel]="form().lateGraceMinutes" (ngModelChange)="set('lateGraceMinutes', $event)" />
+        </label>
+        <label class="text-sm flex flex-col gap-1">Early departure grace (minutes)
+          <input type="number" min="0" max="120" class="input input-sm rounded-full"
+            [ngModel]="form().earlyGraceMinutes" (ngModelChange)="set('earlyGraceMinutes', $event)" />
+        </label>
+        <label class="text-sm flex flex-col gap-1">Standard working day (hours)
+          <input type="number" min="1" max="24" step="0.5" class="input input-sm rounded-full"
+            [ngModel]="form().standardDayHours" (ngModelChange)="set('standardDayHours', $event)" />
+        </label>
+      </div>
+
+      <ul class="text-xs opacity-70 list-disc pl-5 space-y-1">
+        <li>Late arrival: first login after {{ lateAfter() }}</li>
+        <li>Early departure: manual logout before {{ earlyBefore() }}</li>
+        <li>Overtime: above {{ form().standardDayHours }}h per working day</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="card bg-base-100 shadow-md">
+    <div class="card-body">
+      <h2 class="card-title text-sm uppercase tracking-widest">Queue alerts</h2>
+
+      <div class="grid sm:grid-cols-2 gap-4">
+        <label class="text-sm flex flex-col gap-1">Waiting people (more than)
+          <input type="number" min="0" max="500" class="input input-sm rounded-full"
+            [ngModel]="form().queueAlertWaiting" (ngModelChange)="set('queueAlertWaiting', $event)" />
+        </label>
+        <label class="text-sm flex flex-col gap-1">Longest wait in minutes (more than)
+          <input type="number" min="0" max="240" class="input input-sm rounded-full"
+            [ngModel]="form().queueAlertMinutes" (ngModelChange)="set('queueAlertMinutes', $event)" />
+        </label>
+      </div>
+    </div>
+  </div>
+
+  <div class="card bg-base-100 shadow-md">
+    <div class="card-body">
+      <h2 class="card-title text-sm uppercase tracking-widest">Leave allowance</h2>
+      <p class="text-xs">Days per year for every employee.</p>
+
+      <div class="grid sm:grid-cols-2 gap-4">
+        <label class="text-sm flex flex-col gap-1">Vacation days
+          <input type="number" min="0" max="60" class="input input-sm rounded-full"
+            [ngModel]="form().annualLeaveDays" (ngModelChange)="set('annualLeaveDays', $event)" />
+        </label>
+        <label class="text-sm flex flex-col gap-1">Sick days
+          <input type="number" min="0" max="60" class="input input-sm rounded-full"
+            [ngModel]="form().annualSickDays" (ngModelChange)="set('annualSickDays', $event)" />
+        </label>
+      </div>
+    </div>
+  </div>
+
+  <div class="flex justify-end">
+    <button class="btn btn-sm btn-primary rounded-full" (click)="save()">Save</button>
+  </div>
+</div>

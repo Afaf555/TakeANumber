@@ -11,6 +11,8 @@ import { LeaveService } from '../../../../core/services/leave-service';
 import { ReportsService } from '../../../../core/services/reports-service';
 import { HoursMinutesPipe } from '../../../../core/pipes/hours-minutes-pipe';
 import { Leave, LeaveTypeValue, PtoRow, WorkforceReport } from '../../../../types/reports';
+import { SettingsService } from '../../../../core/services/settings-service';
+import { DEFAULT_SETTINGS, shiftTime, WorkSettings } from '../../../../types/settings';
 
 const iso = localIso;
 const daysAgo = (n: number) => {
@@ -29,7 +31,12 @@ export class Workforce implements OnInit, OnDestroy {
   private reportsService = inject(ReportsService);
   private leaveService = inject(LeaveService);
   private displayService = inject(DisplayService);
+  private settingsService = inject(SettingsService);
   private updateSub?: Subscription;
+
+  protected rules = signal<WorkSettings>({ ...DEFAULT_SETTINGS });
+  protected lateAfter = computed(() => shiftTime(this.rules().openTime, this.rules().lateGraceMinutes));
+  protected earlyBefore = computed(() => shiftTime(this.rules().closeTime, -this.rules().earlyGraceMinutes));
 
   protected tab = signal<'attendance' | 'pto'>('attendance');
   protected from = daysAgo(30);
@@ -60,6 +67,7 @@ export class Workforce implements OnInit, OnDestroy {
   private appliedTo = '';
 
   ngOnInit(): void {
+    this.settingsService.get().subscribe({ next: (s) => this.rules.set(s) });
     this.loadAll();
     this.updateSub = this.displayService.dataChanged$.subscribe(() => this.loadAll());
   }

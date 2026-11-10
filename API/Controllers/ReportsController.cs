@@ -35,18 +35,18 @@ public class ReportsController(AppDbContext context) : BaseApiController
     [HttpGet("heatmap")]
     public async Task<ActionResult<List<HeatmapCellDto>>> GetHeatmap([FromQuery] DateTime from, [FromQuery] DateTime to)
     {
-        if(to.Date<from.Date) return BadRequest("End date is before start date");
-        var (f,t)=Range (from,to);
-        var created=await context.Tickets
+        if (to.Date < from.Date) return BadRequest("End date is before start date");
+        var (f, t) = Range(from, to);
+        var created = await context.Tickets
             .AsNoTracking()
-            .Where(x=>x.CreatedAt>=f && x.CreatedAt<t)
-            .Select(x=>x.CreatedAt)
+            .Where(x => x.CreatedAt >= f && x.CreatedAt < t)
+            .Select(x => x.CreatedAt)
             .ToListAsync();
-        
+
         return created
         .Select(LocalTime.ToLocal)
-        .GroupBy(d=>new { Weekday=((int)d.DayOfWeek+6)%7,d.Hour})
-        .Select(g=>new HeatmapCellDto {Weekday=g.Key.Weekday,Hour=g.Key.Hour,Tickets=g.Count()})
+        .GroupBy(d => new { Weekday = ((int)d.DayOfWeek + 6) % 7, d.Hour })
+        .Select(g => new HeatmapCellDto { Weekday = g.Key.Weekday, Hour = g.Key.Hour, Tickets = g.Count() })
         .ToList();
     }
     [HttpGet("employees")]
@@ -258,11 +258,6 @@ public class ReportsController(AppDbContext context) : BaseApiController
 
         return result.OrderByDescending(x => x.Date).ToList();
     }
-    private static readonly TimeSpan OpenTime = new(8, 0, 0);
-    private static readonly TimeSpan LateGrace = TimeSpan.FromMinutes(10);
-    private static readonly TimeSpan EarlyGrace = TimeSpan.FromMinutes(10);
-    private const double StandardDayHours = 8;
-
     private static IEnumerable<DateTime> EachDay(DateTime from, DateTime to)
     {
         for (var d = from.Date; d <= to.Date; d = d.AddDays(1)) yield return d;
@@ -275,6 +270,9 @@ public class ReportsController(AppDbContext context) : BaseApiController
         if (to.Date < from.Date) return BadRequest("End date is before start date");
         var (f, t) = Range(from, to);
         var todayLocal = LocalTime.ToLocal(DateTime.UtcNow).Date;
+        var cfg = await context.GetWorkSettingsAsync();
+        var lateGrace = TimeSpan.FromMinutes(cfg.LateGraceMinutes);
+        var earlyGrace = TimeSpan.FromMinutes(cfg.EarlyGraceMinutes);
 
         var employees = await context.Users.AsNoTracking()
             .Where(u => u.Role == Role.Employee)
@@ -340,20 +338,20 @@ public class ReportsController(AppDbContext context) : BaseApiController
             foreach (var (day, list) in byDay.Where(kv => !IsNonWorking(kv.Key)))
             {
                 var login = LocalTime.ToLocal(list[0].S.LoginAt).TimeOfDay;
-                if (login > OpenTime + LateGrace)
+                if (login > cfg.OpenTime + lateGrace)
                 {
                     late++;
-                    lateMinutes += (login - OpenTime).TotalMinutes;
+                    lateMinutes += (login - cfg.OpenTime).TotalMinutes;
                 }
 
                 var last = list[^1].S;
                 if (day < todayLocal && last.LogoutAt != null && !IsAutoLogout(last))
                 {
                     var logout = LocalTime.ToLocal(last.LogoutAt.Value);
-                    if (logout.Date == day && logout.TimeOfDay < LocalTime.CloseTime - EarlyGrace) early++;
+                    if (logout.Date == day && logout.TimeOfDay < cfg.CloseTime - earlyGrace) early++;
                 }
 
-                overtime += Math.Max(0, list.Sum(x => x.Hours) - StandardDayHours);
+                overtime += Math.Max(0, list.Sum(x => x.Hours) - cfg.StandardDayHours);
             }
 
             return new EmployeeWorkforceRowDto
@@ -418,9 +416,10 @@ public class ReportsController(AppDbContext context) : BaseApiController
             !holidays.Contains(d) && d.DayOfWeek is not (DayOfWeek.Saturday or DayOfWeek.Sunday);
 
         var employees = await context.Users.AsNoTracking()
-            .Where(u => u.Role == Role.Employee)
-            .Select(u => new { u.Id, u.Username, u.AnnualLeaveDays, u.AnnualSickDays })
-            .ToListAsync();
+    .Where(u => u.Role == Role.Employee)
+    .Select(u => new { u.Id, u.Username })
+    .ToListAsync();
+        var cfg = await context.GetWorkSettingsAsync();
         var leaves = await context.Leaves.AsNoTracking()
             .Where(l => l.EndDate >= start && l.StartDate < end)
             .ToListAsync();
@@ -440,14 +439,14 @@ public class ReportsController(AppDbContext context) : BaseApiController
             {
                 Id = e.Id,
                 Username = e.Username,
-                VacationAllowance = e.AnnualLeaveDays,
+                VacationAllowance = cfg.AnnualLeaveDays,
 
                 VacationUsed = used,
                 VacationScheduled = scheduled,
-                VacationRemaining = e.AnnualLeaveDays - used - scheduled,
-                SickAllowance = e.AnnualSickDays,
+                VacationRemaining = cfg.AnnualLeaveDays - used - scheduled,
+                SickAllowance = cfg.AnnualSickDays,
                 SickUsed = sickUsed,
-                SickRemaining = e.AnnualSickDays - sickUsed
+                SickRemaining = cfg.AnnualSickDays - sickUsed
             };
         }).OrderBy(r => r.Username).ToList();
     }

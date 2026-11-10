@@ -28,4 +28,6 @@ public static class LogActions
     public const string LeaveApproved="LeaveApproved";
     public const string LeaveRejected="LeaveRejected";
     public const string LeaveCancelled="LeaveCancelled";
+    public const string WorkSettingsUpdated="WorkSettingsUpdated";
+    
     }

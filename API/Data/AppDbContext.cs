@@ -15,12 +15,19 @@ public class AppDbContext(DbContextOptions options) : DbContext(options)
     public DbSet<EmployeeSession> EmployeeSessions { get; set; }
     public DbSet<ActivityLog> ActivityLogs { get; set; }
     public DbSet<NonWorkingDay> NonWorkingDays { get; set; }
-    public DbSet<Leave> Leaves {get; set;}
-   // public DbSet<SessionBreak> SessionBreaks { get; set; }
+    public DbSet<Leave> Leaves { get; set; }
+    public DbSet<Setting> Settings { get; set; }
+    // public DbSet<SessionBreak> SessionBreaks { get; set; }
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
 
+        modelBuilder.Entity<Setting>(e =>
+  {
+      e.HasKey(x => x.Key);
+      e.Property(x => x.Key).HasMaxLength(100);
+      e.Property(x => x.Value).HasMaxLength(1000);
+  });
         modelBuilder.Entity<CounterService>()
             .HasKey(x => new { x.CounterId, x.ServiceId });
 
@@ -80,7 +87,7 @@ public class AppDbContext(DbContextOptions options) : DbContext(options)
             e.Property(x => x.Details).HasMaxLength(500);
             e.HasIndex(x => x.CreatedAt);
             e.HasIndex(x => x.Action);
-            e.HasIndex(x=> new { x.ActorId,x.CreatedAt});
+            e.HasIndex(x => new { x.ActorId, x.CreatedAt });
         });
         modelBuilder.Entity<Service>(s =>
         {
@@ -91,13 +98,14 @@ public class AppDbContext(DbContextOptions options) : DbContext(options)
         {
             e.Property(x => x.CounterName).HasMaxLength(100);
             e.Property(x => x.Services).HasMaxLength(500);
-            e.HasIndex(x=>new {x.UserId,x.LoginAt});
-            e.HasIndex(x=>new {x.CounterId,x.LoginAt});
+            e.HasIndex(x => new { x.UserId, x.LoginAt });
+            e.HasIndex(x => new { x.CounterId, x.LoginAt });
         });
-        modelBuilder.Entity<Ticket>(e=>{
+        modelBuilder.Entity<Ticket>(e =>
+        {
 
-            e.HasIndex(x=>new{x.CounterId,x.StartedAt});
-            e.HasIndex(x=>new {x.ServiceId,x.CreatedAt});
+            e.HasIndex(x => new { x.CounterId, x.StartedAt });
+            e.HasIndex(x => new { x.ServiceId, x.CreatedAt });
 
         });
         modelBuilder.Entity<NonWorkingDay>().Property(x => x.Date).HasColumnType("date");
@@ -105,14 +113,14 @@ public class AppDbContext(DbContextOptions options) : DbContext(options)
 
         modelBuilder.Entity<Leave>(e =>
         {
-           e.Property(x=>x.StartDate).HasColumnType("date");
-           e.Property(x=>x.EndDate).HasColumnType("date");
-           e.Property(x=>x.Type).HasConversion<string>(); 
-           e.HasIndex(x=>new {x.UserId,x.StartDate});
-           e.HasOne(x=>x.User)
-           .WithMany()
-           .HasForeignKey(x=>x.UserId)
-           .OnDelete(DeleteBehavior.Cascade);
+            e.Property(x => x.StartDate).HasColumnType("date");
+            e.Property(x => x.EndDate).HasColumnType("date");
+            e.Property(x => x.Type).HasConversion<string>();
+            e.HasIndex(x => new { x.UserId, x.StartDate });
+            e.HasOne(x => x.User)
+            .WithMany()
+            .HasForeignKey(x => x.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
         });
         var dateTimeConverter = new ValueConverter<DateTime, DateTime>
         (

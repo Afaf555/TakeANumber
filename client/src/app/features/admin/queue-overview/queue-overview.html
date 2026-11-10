@@ -16,7 +16,11 @@
   @if (error()) {
     <p class="text-error text-sm">{{ error() }}</p>
   }
-
+  @for (a of alerts(); track a) {
+    <div role="alert" class="alert alert-warning text-sm">
+      <span>⚠ {{ a }}</span>
+    </div>
+  }
   <div class="card bg-base-100 shadow-md">
     <div class="card-body overflow-x-auto">
       <table class="table">

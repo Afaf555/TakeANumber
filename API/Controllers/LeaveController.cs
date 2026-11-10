@@ -41,7 +41,7 @@ public class LeaveController(AppDbContext context, ActivityLogger logger) : Base
                                      && l.Status != LeaveStatus.Rejected
                                      && l.StartDate <= end && l.EndDate >= start);
 
-   
+
     private async Task<HashSet<DateTime>> HolidaysAsync(DateTime from, DateTime to) =>
         (await context.NonWorkingDays.AsNoTracking()
             .Where(x => x.Date >= from && x.Date <= to)
@@ -56,7 +56,7 @@ public class LeaveController(AppDbContext context, ActivityLogger logger) : Base
         return n;
     }
 
-   
+
     private async Task<int> UsedDaysAsync(int userId, LeaveType type, int year, HashSet<DateTime> holidays)
     {
         var yStart = new DateTime(year, 1, 1);
@@ -85,7 +85,7 @@ public class LeaveController(AppDbContext context, ActivityLogger logger) : Base
         if (year != null) query = query.Where(l => l.StartDate.Year <= year && l.EndDate.Year >= year);
 
         return await query
-           
+
             .OrderBy(l => l.Status == LeaveStatus.Pending ? 0 : 1)
             .ThenByDescending(l => l.StartDate)
             .Select(l => new LeaveDto
@@ -115,7 +115,7 @@ public class LeaveController(AppDbContext context, ActivityLogger logger) : Base
         var start = dto.StartDate.Date;
         var end = dto.EndDate.Date;
         if (end < start) return BadRequest("End date is before start date");
-        if(start<today) return BadRequest("Date can't be before today");
+        if (start < today) return BadRequest("Date can't be before today");
 
         if (await OverlapsAsync(employee.Id, start, end))
             return BadRequest("Leave overlaps with an existing one");
@@ -180,7 +180,7 @@ public class LeaveController(AppDbContext context, ActivityLogger logger) : Base
         return NoContent();
     }
 
-   
+
 
     [Authorize(Roles = "Employee")]
     [HttpGet("mine")]
@@ -215,7 +215,7 @@ public class LeaveController(AppDbContext context, ActivityLogger logger) : Base
         var employee = await context.Users.AsNoTracking()
             .SingleOrDefaultAsync(u => u.Id == userId && u.Role == Role.Employee);
         if (employee == null) return BadRequest("Employee does not exist");
-
+        var cfg = await context.GetWorkSettingsAsync();
         var holidays = await HolidaysAsync(new DateTime(y, 1, 1), new DateTime(y, 12, 31));
         var vacationUsed = await UsedDaysAsync(userId, LeaveType.Vacation, y, holidays);
         var sickUsed = await UsedDaysAsync(userId, LeaveType.Sick, y, holidays);
@@ -223,12 +223,12 @@ public class LeaveController(AppDbContext context, ActivityLogger logger) : Base
         return new LeaveBalanceDto
         {
             Year = y,
-            VacationAllowance = employee.AnnualLeaveDays,
+            VacationAllowance = cfg.AnnualLeaveDays,
             VacationUsed = vacationUsed,
-            VacationRemaining = employee.AnnualLeaveDays - vacationUsed,
-            SickAllowance = employee.AnnualSickDays,
+            VacationRemaining = cfg.AnnualLeaveDays - vacationUsed,
+            SickAllowance = cfg.AnnualSickDays,
             SickUsed = sickUsed,
-            SickRemaining = employee.AnnualSickDays - sickUsed
+            SickRemaining = cfg.AnnualSickDays - sickUsed
         };
     }
 
@@ -246,16 +246,16 @@ public class LeaveController(AppDbContext context, ActivityLogger logger) : Base
         var start = dto.StartDate.Date;
         var end = dto.EndDate.Date;
         if (end < start) return BadRequest("End date is before start date");
-        if(start<today) return BadRequest("Can't make a request for previous days");
-        
+        if (start < today) return BadRequest("Can't make a request for previous days");
+
         if (dto.Type == LeaveType.Vacation && start <= today)
             return BadRequest("Vacation must be requested at least one day in advance");
 
         if (await OverlapsAsync(employee.Id, start, end))
             return BadRequest("You already have a leave request for these dates");
 
-       
-        var allowance = dto.Type == LeaveType.Vacation ? employee.AnnualLeaveDays : employee.AnnualSickDays;
+        var cfg = await context.GetWorkSettingsAsync();
+        var allowance = dto.Type == LeaveType.Vacation ? cfg.AnnualLeaveDays : cfg.AnnualSickDays;
         var label = dto.Type == LeaveType.Vacation ? "vacation" : "sick";
         var totalRequested = 0;
         for (var year = start.Year; year <= end.Year; year++)

@@ -5,7 +5,6 @@ public static class LocalTime
     private static readonly TimeZoneInfo Zone = FindZone();
 
 
-    public static readonly TimeSpan CloseTime = new(17, 0, 0);
 
     private static TimeZoneInfo FindZone()
     {
@@ -28,7 +27,7 @@ public static class LocalTime
     public static DateTime TodayStartUtc() => LocalDayStartUtc(ToLocal(DateTime.UtcNow));
 
   
-    public static DateTime CloseOfDayUtc(DateTime utc) => ToUtc(ToLocal(utc).Date + CloseTime);
+    public static DateTime CloseOfDayUtc(DateTime utc, TimeSpan closeTime) => ToUtc(ToLocal(utc).Date + closeTime);
 
    
     public static DateTime NextMidnightUtc(DateTime utc) => LocalDayStartUtc(ToLocal(utc).AddDays(1));

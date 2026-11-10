@@ -14,8 +14,7 @@ public class User
     public Counter Counter { get; set; } = null!;
     public List<Ticket> Tickets { get; set; } = [];
     public bool IsOnBreak { get; set; }
-    public int AnnualLeaveDays { get; set; } = 20;
-    public int AnnualSickDays { get; set; } = 10;
+ 
 
 
 }

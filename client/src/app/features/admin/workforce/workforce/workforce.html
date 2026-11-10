@@ -52,21 +52,21 @@
           <div class="card-body p-4 gap-0">
             <p class="text-xs uppercase opacity-60">Late arrivals</p>
             <p class="text-2xl font-semibold">{{ r.totalLateArrivals }}</p>
-            <p class="text-xs opacity-60">First login after 08:10</p>
+            <p class="text-xs opacity-60">First login after {{ lateAfter() }}</p>
           </div>
         </div>
         <div class="card border border-base-300">
           <div class="card-body p-4 gap-0">
             <p class="text-xs uppercase opacity-60">Early departures</p>
             <p class="text-2xl font-semibold">{{ r.totalEarlyDepartures }}</p>
-            <p class="text-xs opacity-60">Manual logout before 16:50</p>
+            <p class="text-xs opacity-60">Manual logout before {{ earlyBefore() }}</p>
           </div>
         </div>
         <div class="card border border-base-300">
           <div class="card-body p-4 gap-0">
             <p class="text-xs uppercase opacity-60">Overtime</p>
             <p class="text-2xl font-semibold">{{ r.totalOvertimeHours | hm }}</p>
-            <p class="text-xs opacity-60">Above 8h per working day</p>
+            <p class="text-xs opacity-60">Above {{ rules().standardDayHours }}h per working day</p>
           </div>
         </div>
       </div>

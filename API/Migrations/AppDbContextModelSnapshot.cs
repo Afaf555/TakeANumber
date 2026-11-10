@@ -228,6 +228,22 @@ namespace API.Migrations
                     b.ToTable("Services");
                 });
 
+            modelBuilder.Entity("API.Entities.Setting", b =>
+                {
+                    b.Property<string>("Key")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("Value")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.HasKey("Key");
+
+                    b.ToTable("Settings");
+                });
+
             modelBuilder.Entity("API.Entities.Ticket", b =>
                 {
                     b.Property<int>("Id")
@@ -279,12 +295,6 @@ namespace API.Migrations
                         .HasColumnType("int");
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("AnnualLeaveDays")
-                        .HasColumnType("int");
-
-                    b.Property<int>("AnnualSickDays")
-                        .HasColumnType("int");
 
                     b.Property<int?>("CounterId")
                         .HasColumnType("int");
