@@ -20,10 +20,17 @@
     <li><a routerLink="/manage-counters" routerLinkActive="menu-active">Counters</a></li>
     <li><a routerLink="/manage-employees" routerLinkActive="menu-active">Employees</a></li>
     <li><a routerLink="/queue-overview" routerLinkActive="menu-active">Queue</a></li>
-    <li><a routerLink="/reports" routerLinkActive="menu-active">Reports</a></li>
-    <li><a routerLink="/workforce" routerLinkActive="menu-active">Workforce</a></li>
-    <li><a routerLink="/calendar" routerLinkActive="menu-active">Calendar</a></li>
-    <li><a routerLink="/settings" routerLinkActive="menu-active">Settings</a></li>
+      <li routerLinkActive="[&>details>summary]:bg-base-200">
+      <details #adminMenu>
+        <summary>More</summary>
+        <ul class="bg-base-100 rounded-box shadow-md z-10 w-44 p-2" (click)="closeAdminMenu()">
+          <li><a routerLink="/reports" routerLinkActive="menu-active">Reports</a></li>
+          <li><a routerLink="/workforce" routerLinkActive="menu-active">Workforce</a></li>
+          <li><a routerLink="/calendar" routerLinkActive="menu-active">Calendar</a></li>
+          <li><a routerLink="/settings" routerLinkActive="menu-active">Settings</a></li>
+        </ul>
+      </details>
+    </li>
     }
     <li class="text-sm px-3">{{ user.username }}</li>
     <li><button class="btn btn-sm rounded-full" (click)="logout()">Logout</button></li>

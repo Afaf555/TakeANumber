@@ -11,4 +11,5 @@ public class WorkSettingsDto
     public int QueueAlertMinutes { get; set; }
     public int AnnualLeaveDays { get; set; }
     public int AnnualSickDays { get; set; }
+    public int IdleThresholdSeconds { get; set; }
 }

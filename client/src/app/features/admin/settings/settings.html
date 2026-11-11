@@ -3,7 +3,14 @@
   <app-alert-modal [message]="message()" type="success" (closed)="message.set('')" />
 
   <div class="card bg-base-100 shadow-md">
+    
     <div class="card-body">
+            <div class="grid sm:grid-cols-2 gap-4">
+        <label class="text-sm flex flex-col gap-1">Max pause between tickets (seconds)
+          <input type="number" min="0" max="3600" class="input input-sm rounded-full"
+            [ngModel]="form().idleThresholdSeconds" (ngModelChange)="set('idleThresholdSeconds', $event)" />
+        </label>
+      </div>
       <h2 class="card-title text-sm uppercase tracking-widest">Working time</h2>
 
       <div class="grid sm:grid-cols-2 gap-4">
@@ -29,11 +36,7 @@
         </label>
       </div>
 
-      <ul class="text-xs opacity-70 list-disc pl-5 space-y-1">
-        <li>Late arrival: first login after {{ lateAfter() }}</li>
-        <li>Early departure: manual logout before {{ earlyBefore() }}</li>
-        <li>Overtime: above {{ form().standardDayHours }}h per working day</li>
-      </ul>
+
     </div>
   </div>
 

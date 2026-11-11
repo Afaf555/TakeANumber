@@ -8,6 +8,7 @@ export type WorkSettings = {
   queueAlertMinutes: number;
   annualLeaveDays: number;
   annualSickDays: number;
+  idleThresholdSeconds: number;
 };
 
 export const DEFAULT_SETTINGS: WorkSettings = {
@@ -20,6 +21,7 @@ export const DEFAULT_SETTINGS: WorkSettings = {
   queueAlertMinutes: 15,
   annualLeaveDays: 20,
   annualSickDays: 10,
+  idleThresholdSeconds: 60,
 };
 
 export const shiftTime = (time: string, minutes: number): string => {

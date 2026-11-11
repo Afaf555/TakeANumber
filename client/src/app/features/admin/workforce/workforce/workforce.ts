@@ -10,7 +10,7 @@ import { DisplayService } from '../../../../core/services/display-service';
 import { LeaveService } from '../../../../core/services/leave-service';
 import { ReportsService } from '../../../../core/services/reports-service';
 import { HoursMinutesPipe } from '../../../../core/pipes/hours-minutes-pipe';
-import { Leave, LeaveTypeValue, PtoRow, WorkforceReport } from '../../../../types/reports';
+import { EmployeePhases, Leave, LeaveTypeValue, PtoRow, WorkforceReport } from '../../../../types/reports';
 import { SettingsService } from '../../../../core/services/settings-service';
 import { DEFAULT_SETTINGS, shiftTime, WorkSettings } from '../../../../types/settings';
 
@@ -38,7 +38,6 @@ export class Workforce implements OnInit, OnDestroy {
   protected lateAfter = computed(() => shiftTime(this.rules().openTime, this.rules().lateGraceMinutes));
   protected earlyBefore = computed(() => shiftTime(this.rules().closeTime, -this.rules().earlyGraceMinutes));
 
-  protected tab = signal<'attendance' | 'pto'>('attendance');
   protected from = daysAgo(30);
   protected to = iso(new Date());
   protected year = new Date().getFullYear();
@@ -65,7 +64,8 @@ export class Workforce implements OnInit, OnDestroy {
   private lastClick: 'range' | 'apply' = 'range';
   private appliedFrom = '';
   private appliedTo = '';
-
+  protected tab = signal<'attendance' | 'phases' | 'pto'>('attendance');
+  protected phases = signal<EmployeePhases[]>([]);
   ngOnInit(): void {
     this.settingsService.get().subscribe({ next: (s) => this.rules.set(s) });
     this.loadAll();
@@ -106,6 +106,14 @@ export class Workforce implements OnInit, OnDestroy {
     this.to = iso(new Date());
     this.loadReport();
   }
+    protected phaseTotal(p: EmployeePhases) {
+    return p.servingMinutes + p.idleMinutes + p.neglectMinutes + p.breakMinutes;
+  }
+
+  protected phasePct(value: number, p: EmployeePhases) {
+    const total = this.phaseTotal(p);
+    return total ? (value / total) * 100 : 0;
+  }
   loadReport() {
     const err = rangeError(this.from, this.to);
     if (err) {
@@ -118,6 +126,10 @@ export class Workforce implements OnInit, OnDestroy {
         this.error.set('');
       },
       error: () => this.error.set('Could not load workforce report'),
+    });
+        this.reportsService.getPhases(this.from, this.to).subscribe({
+      next: (rows) => this.phases.set(rows),
+      error: () => this.error.set('Could not load phases'),
     });
   }
 

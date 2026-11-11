@@ -61,3 +61,8 @@ export type LeaveBalance = {
 };
 export const LeaveTypeValue = { Vacation: 0, Sick: 1 } as const;
 export type HeatmapCell={weekday: number;hour:number;tickets:number};
+export type EmployeePhases = {
+    date: string; employeeId: number; username: string;
+    servingMinutes: number; idleMinutes: number; neglectMinutes: number;
+    breakMinutes: number; afterHoursMinutes: number;
+};

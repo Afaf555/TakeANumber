@@ -49,6 +49,61 @@ public class ReportsController(AppDbContext context) : BaseApiController
         .Select(g => new HeatmapCellDto { Weekday = g.Key.Weekday, Hour = g.Key.Hour, Tickets = g.Count() })
         .ToList();
     }
+        [HttpGet("phases")]
+    public async Task<ActionResult<List<EmployeePhasesDto>>> GetPhases(
+        [FromQuery] DateTime from, [FromQuery] DateTime to, [FromQuery] int? employeeId)
+    {
+        if (to.Date < from.Date) return BadRequest("End date is before start date");
+        var (f, t) = Range(from, to);
+        var cfg = await context.GetWorkSettingsAsync();
+        var threshold = TimeSpan.FromSeconds(cfg.IdleThresholdSeconds);
+
+        var spans = (await LoadSpansAsync(f, t, employeeId)).Where(x => x.S.LoginAt >= f).ToList();
+        var tickets = await LoadTicketsAsync(f, t);
+
+        var userIds = spans.Select(x => x.S.UserId).Distinct().ToList();
+        var users = await context.Users.AsNoTracking()
+            .Where(u => userIds.Contains(u.Id))
+            .ToDictionaryAsync(u => u.Id, u => u.Username);
+        var breakRows = await context.EmployeeSessions.AsNoTracking()
+            .Where(b => b.BreakStartedAt != null && userIds.Contains(b.UserId))
+            .ToListAsync();
+
+        var rows = new Dictionary<(DateTime Day, int UserId), PhaseResult>();
+        foreach (var span in spans)
+        {
+            var s = span.S;
+            var breaks = breakRows
+                .Where(b => b.UserId == s.UserId && b.LoginAt == s.LoginAt)
+                .Select(b => (b.BreakStartedAt!.Value, b.BreakEndedAt ?? span.End));
+            var mine = tickets
+                .Where(x => x.CounterId == s.CounterId && x.StartedAt >= s.LoginAt && x.StartedAt <= span.End)
+                .Select(x => new TicketSlice(x.CreatedAt, x.StartedAt!.Value, x.FinishedAt));
+
+            var day = LocalTime.ToLocal(s.LoginAt).Date;
+            var result = PhaseCalculator.Compute(s.LoginAt, span.End, breaks, mine, threshold,
+                LocalTime.CloseOfDayUtc(s.LoginAt, cfg.CloseTime), LocalTime.LocalDayStartUtc(day.AddDays(1)));
+
+            var key = (day, s.UserId);
+            rows[key] = rows.TryGetValue(key, out var old) ? old.Plus(result) : result;
+        }
+
+        return rows
+            .Select(kv => new EmployeePhasesDto
+            {
+                Date = kv.Key.Day,
+                EmployeeId = kv.Key.UserId,
+                Username = users.TryGetValue(kv.Key.UserId, out var name) ? name : "(deleted)",
+                ServingMinutes = Math.Round(kv.Value.Serving, 1),
+                IdleMinutes = Math.Round(kv.Value.Idle, 1),
+                NeglectMinutes = Math.Round(kv.Value.Neglect, 1),
+                BreakMinutes = Math.Round(kv.Value.Break, 1),
+                AfterHoursMinutes = Math.Round(kv.Value.AfterHours, 1)
+            })
+            .OrderByDescending(x => x.Date)
+            .ThenBy(x => x.Username)
+            .ToList();
+    }
     [HttpGet("employees")]
     public async Task<ActionResult<List<EmployeeReportRowDto>>> GetEmployees(
         [FromQuery] DateTime from, [FromQuery] DateTime to)

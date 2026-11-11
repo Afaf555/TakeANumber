@@ -24,6 +24,8 @@ public class SettingsController(AppDbContext context, ActivityLogger logger) : B
         if (open >= close) return BadRequest("Opening time must be before closing time");
         if (dto.LateGraceMinutes is < 0 or > 120 || dto.EarlyGraceMinutes is < 0 or > 120)
             return BadRequest("Grace must be between 0 and 120 minutes");
+        if (dto.IdleThresholdSeconds is < 0 or > 3600)
+            return BadRequest("Idle limit must be between 0 and 3600 seconds");
         if (dto.StandardDayHours is <= 0 or > 24)
             return BadRequest("Standard day must be between 0 and 24 hours");
         if (dto.QueueAlertWaiting is < 0 or > 500)
@@ -42,7 +44,8 @@ public class SettingsController(AppDbContext context, ActivityLogger logger) : B
             QueueAlertWaiting = dto.QueueAlertWaiting,
             QueueAlertMinutes = dto.QueueAlertMinutes,
             AnnualLeaveDays = dto.AnnualLeaveDays,
-            AnnualSickDays = dto.AnnualSickDays
+            AnnualSickDays = dto.AnnualSickDays,
+            IdleThresholdSeconds = dto.IdleThresholdSeconds
         };
 
         var text = settings.Serialize();
@@ -71,6 +74,7 @@ public class SettingsController(AppDbContext context, ActivityLogger logger) : B
         QueueAlertWaiting = s.QueueAlertWaiting,
         QueueAlertMinutes = s.QueueAlertMinutes,
         AnnualLeaveDays = s.AnnualLeaveDays,
-        AnnualSickDays = s.AnnualSickDays
+        AnnualSickDays = s.AnnualSickDays,
+        IdleThresholdSeconds = s.IdleThresholdSeconds
     };
 }

@@ -15,6 +15,7 @@ public static class SettingKeys
     public const string QueueAlertMinutes = "QueueAlertMinutes";
     public const string AnnualLeaveDays = "AnnualLeaveDays";
     public const string AnnualSickDays = "AnnualSickDays";
+    public const string IdleThresholdSeconds = "IdleThresholdSeconds";
 }
 
 
@@ -25,12 +26,14 @@ public class WorkSettings
     public int LateGraceMinutes { get; set; } = 10;
     public int EarlyGraceMinutes { get; set; } = 10;
     public double StandardDayHours { get; set; } = 8;
-    public int QueueAlertWaiting { get; set; } = 10;   
-    public int QueueAlertMinutes { get; set; } = 15;   
+    public int QueueAlertWaiting { get; set; } = 10;
+    public int QueueAlertMinutes { get; set; } = 15;
     public int AnnualLeaveDays { get; set; } = 20;
     public int AnnualSickDays { get; set; } = 10;
+    public int IdleThresholdSeconds { get; set; } = 60;   // longer gap between tickets = phase 3 (neglect)
 
-  
+
+
     public static WorkSettings From(IReadOnlyDictionary<string, string> map)
     {
         var d = new WorkSettings();
@@ -44,11 +47,12 @@ public class WorkSettings
             QueueAlertWaiting = Int(map, SettingKeys.QueueAlertWaiting, d.QueueAlertWaiting),
             QueueAlertMinutes = Int(map, SettingKeys.QueueAlertMinutes, d.QueueAlertMinutes),
             AnnualLeaveDays = Int(map, SettingKeys.AnnualLeaveDays, d.AnnualLeaveDays),
-            AnnualSickDays = Int(map, SettingKeys.AnnualSickDays, d.AnnualSickDays)
+            AnnualSickDays = Int(map, SettingKeys.AnnualSickDays, d.AnnualSickDays),
+            IdleThresholdSeconds = Int(map, SettingKeys.IdleThresholdSeconds, d.IdleThresholdSeconds)
         };
     }
 
-  
+
     public string Serialize()
     {
         var inv = CultureInfo.InvariantCulture;
@@ -62,8 +66,9 @@ public class WorkSettings
             (SettingKeys.QueueAlertWaiting, QueueAlertWaiting.ToString(inv)),
             (SettingKeys.QueueAlertMinutes, QueueAlertMinutes.ToString(inv)),
             (SettingKeys.AnnualLeaveDays, AnnualLeaveDays.ToString(inv)),
-            (SettingKeys.AnnualSickDays, AnnualSickDays.ToString(inv))
-        };
+            (SettingKeys.AnnualSickDays, AnnualSickDays.ToString(inv)),
+            (SettingKeys.IdleThresholdSeconds, IdleThresholdSeconds.ToString(inv))
+                    };
         return string.Join(", ", pairs.Select(p => $"{p.Item1}={p.Item2}"));
     }
 

@@ -10,6 +10,7 @@
     <div role="tablist" class="tabs tabs-border px-4 pt-2">
       <a role="tab" class="tab" [class.tab-active]="tab() === 'attendance'"
         (click)="tab.set('attendance')">Attendance</a>
+      <a role="tab" class="tab" [class.tab-active]="tab() === 'phases'" (click)="tab.set('phases')">Phases</a>
       <a role="tab" class="tab" [class.tab-active]="tab() === 'pto'" (click)="tab.set('pto')">Paid leave
         @if (pending().length) {
         <span class="badge badge-sm badge-warning ml-2">{{ pending().length }}</span>
@@ -29,14 +30,16 @@
           <span class="text-xs uppercase opacity-60">To</span>
           <app-date-picker [(value)]="to" [min]="from" />
         </div>
-       <button class="btn btn-primary btn-sm rounded-full" [class.btn-outline]="!applyActive()"
-  [attr.aria-pressed]="applyActive()" (click)="apply()">Apply</button>
-<button class="btn btn-sm rounded-full" [class.btn-primary]="rangeActive(7)" [class.btn-ghost]="!rangeActive(7)"
-  [attr.aria-pressed]="rangeActive(7)" (click)="setRange(7)">7 days</button>
-<button class="btn btn-sm rounded-full" [class.btn-primary]="rangeActive(30)" [class.btn-ghost]="!rangeActive(30)"
-  [attr.aria-pressed]="rangeActive(30)" (click)="setRange(30)">30 days</button>
-<button class="btn btn-sm rounded-full" [class.btn-primary]="rangeActive(90)" [class.btn-ghost]="!rangeActive(90)"
-  [attr.aria-pressed]="rangeActive(90)" (click)="setRange(90)">90 days</button>
+        <button class="btn btn-primary btn-sm rounded-full" [class.btn-outline]="!applyActive()"
+          [attr.aria-pressed]="applyActive()" (click)="apply()">Apply</button>
+        <button class="btn btn-sm rounded-full" [class.btn-primary]="rangeActive(7)" [class.btn-ghost]="!rangeActive(7)"
+          [attr.aria-pressed]="rangeActive(7)" (click)="setRange(7)">7 days</button>
+        <button class="btn btn-sm rounded-full" [class.btn-primary]="rangeActive(30)"
+          [class.btn-ghost]="!rangeActive(30)" [attr.aria-pressed]="rangeActive(30)" (click)="setRange(30)">30
+          days</button>
+        <button class="btn btn-sm rounded-full" [class.btn-primary]="rangeActive(90)"
+          [class.btn-ghost]="!rangeActive(90)" [attr.aria-pressed]="rangeActive(90)" (click)="setRange(90)">90
+          days</button>
       </div>
 
       @if (report(); as r) {
@@ -72,7 +75,8 @@
       </div>
 
       <div class="flex justify-end">
-        <button type="button" class="btn btn-sm btn-ghost rounded-full border border-base-300" (click)="exportAttendance()">Export CSV</button>
+        <button type="button" class="btn btn-sm btn-ghost rounded-full border border-base-300"
+          (click)="exportAttendance()">Export CSV</button>
       </div>
 
       <div class="overflow-x-auto">
@@ -141,7 +145,71 @@
       </div>
       }
       }
+      @if (tab() === 'phases') {
+      <div class="flex flex-wrap items-end gap-2">
+        <div class="flex flex-col gap-1">
+          <span class="text-xs uppercase opacity-60">From</span>
+          <app-date-picker [(value)]="from" [max]="to" />
+        </div>
+        <div class="flex flex-col gap-1">
+          <span class="text-xs uppercase opacity-60">To</span>
+          <app-date-picker [(value)]="to" [min]="from" />
+        </div>
+        <button class="btn btn-primary btn-sm rounded-full" [class.btn-outline]="!applyActive()"
+          [attr.aria-pressed]="applyActive()" (click)="apply()">Apply</button>
+        <button class="btn btn-sm rounded-full" [class.btn-primary]="rangeActive(7)" [class.btn-ghost]="!rangeActive(7)"
+          [attr.aria-pressed]="rangeActive(7)" (click)="setRange(7)">7 days</button>
+        <button class="btn btn-sm rounded-full" [class.btn-primary]="rangeActive(30)" [class.btn-ghost]="!rangeActive(30)"
+          [attr.aria-pressed]="rangeActive(30)" (click)="setRange(30)">30 days</button>
+      </div>
 
+      <div class="flex flex-wrap gap-4 text-xs">
+        <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-success"></span> 1 Serving</span>
+        <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-info"></span> 2 Idle (up to {{ rules().idleThresholdSeconds }}s between tickets)</span>
+        <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-error"></span> 3 Neglect (waiting ticket not called)</span>
+        <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-warning"></span> 4 On break</span>
+      </div>
+
+      <div class="overflow-x-auto">
+        <table class="table table-sm">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Employee</th>
+              <th class="w-48">Day</th>
+              <th>Serving</th>
+              <th>Idle</th>
+              <th>Neglect</th>
+              <th>Break</th>
+              <th>After hours</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (p of phases(); track p.date + '-' + p.employeeId) {
+            <tr>
+              <td>{{ p.date | date: 'dd.MM.yyyy' }}</td>
+              <td>{{ p.username }}</td>
+              <td>
+                <div class="flex h-2 w-full overflow-hidden rounded-full bg-base-300">
+                  <div class="bg-success" [style.width.%]="phasePct(p.servingMinutes, p)"></div>
+                  <div class="bg-info" [style.width.%]="phasePct(p.idleMinutes, p)"></div>
+                  <div class="bg-error" [style.width.%]="phasePct(p.neglectMinutes, p)"></div>
+                  <div class="bg-warning" [style.width.%]="phasePct(p.breakMinutes, p)"></div>
+                </div>
+              </td>
+              <td>{{ p.servingMinutes / 60 | hm }}</td>
+              <td>{{ p.idleMinutes / 60 | hm }}</td>
+              <td [class.text-error]="p.neglectMinutes > 0">{{ p.neglectMinutes / 60 | hm }}</td>
+              <td>{{ p.breakMinutes / 60 | hm }}</td>
+              <td>{{ p.afterHoursMinutes / 60 | hm }}</td>
+            </tr>
+            } @empty {
+            <tr><td colspan="8" class="opacity-60">No sessions in this period</td></tr>
+            }
+          </tbody>
+        </table>
+      </div>
+      }
       @if (tab() === 'pto') {
       @if (pending().length) {
       <div class="card border border-warning">
@@ -173,7 +241,8 @@
       </div>
 
       <div class="flex justify-end">
-        <button type="button" class="btn btn-sm btn-ghost rounded-full border border-base-300" (click)="exportPto()">Export CSV</button>
+        <button type="button" class="btn btn-sm btn-ghost rounded-full border border-base-300"
+          (click)="exportPto()">Export CSV</button>
       </div>
 
       <div class="overflow-x-auto">
