@@ -1,0 +1,143 @@
+<div class="flex flex-col gap-6">
+  <header class="flex flex-wrap items-end justify-between gap-4">
+    <div class="flex flex-col gap-1">
+      <span class="text-sm text-base-content/60">{{ now() | date: 'EEEE, d MMMM' }}</span>
+      <h1 class="text-2xl sm:text-3xl font-bold tracking-tight">{{ greeting() }}, {{ accountService.currentUser()?.username }}</h1>
+    </div>
+    <div class="flex flex-wrap items-center gap-2">
+      <span class="flex items-center gap-2 text-sm font-medium text-success bg-success/10 px-3.5 py-2 rounded-full">
+        <span class="w-2 h-2 rounded-full bg-success animate-pulse"></span>Live
+      </span>
+      <a routerLink="/display" class="btn btn-primary rounded-full">Open display</a>
+    </div>
+  </header>
+
+  @if (error()) {
+  <p class="text-error text-sm">{{ error() }}</p>
+  }
+
+  @for (a of alerts(); track a) {
+  <div role="alert" class="flex items-center gap-3 rounded-2xl border border-warning/50 bg-warning/10 px-4 py-3.5 text-sm text-amber-900">
+    <app-icon name="alert" [size]="20" />
+    <span class="flex-1 font-medium">{{ a }}</span>
+    <a routerLink="/queue-overview" class="font-semibold underline-offset-4 hover:underline">View queue</a>
+  </div>
+  }
+
+  <!-- stat cards -->
+  <section aria-label="Today at a glance" class="grid gap-4 grid-cols-2 xl:grid-cols-4">
+    <div class="rounded-2xl border border-base-300 bg-base-100 p-5 flex flex-col gap-1.5">
+      <span class="text-sm text-base-content/60">Waiting now</span>
+      <span class="text-3xl font-bold tracking-tight tabular-nums">{{ waiting() }}</span>
+      <span class="text-xs text-base-content/60">{{ newLast15() }} new in the last 15 min</span>
+    </div>
+    <div class="rounded-2xl border border-base-300 bg-base-100 p-5 flex flex-col gap-1.5">
+      <span class="text-sm text-base-content/60">Longest wait</span>
+      @if (oldest(); as o) {
+      <span class="text-3xl font-bold tracking-tight tabular-nums"
+        [class.text-error]="rules().queueAlertMinutes > 0 && o.minutes >= rules().queueAlertMinutes">
+        {{ o.minutes }}<span class="text-base font-semibold"> min</span></span>
+      <span class="text-xs text-base-content/60">{{ o.ticket.code }} · {{ o.ticket.serviceName }}</span>
+      } @else {
+      <span class="text-3xl font-bold tracking-tight text-base-content/30">—</span>
+      <span class="text-xs text-base-content/60">nobody is waiting</span>
+      }
+    </div>
+    <div class="rounded-2xl border border-base-300 bg-base-100 p-5 flex flex-col gap-1.5">
+      <span class="text-sm text-base-content/60">Served today</span>
+      <span class="text-3xl font-bold tracking-tight tabular-nums">{{ served() }}</span>
+      <span class="text-xs text-base-content/60">{{ noShows() }} no-show</span>
+    </div>
+    <div class="rounded-2xl border border-base-300 bg-base-100 p-5 flex flex-col gap-1.5">
+      <span class="text-sm text-base-content/60">Counters</span>
+      <span class="text-3xl font-bold tracking-tight tabular-nums">{{ openCounters() }}<span
+          class="text-base font-semibold text-base-content/50"> / {{ counterCards().length }} open</span></span>
+      <span class="text-xs text-base-content/60">{{ onBreak() }} on break</span>
+    </div>
+  </section>
+
+  <div class="grid gap-4 lg:grid-cols-5">
+    <!-- counters -->
+    <section aria-label="Counters" class="lg:col-span-3 rounded-2xl border border-base-300 bg-base-100 p-5 flex flex-col gap-4">
+      <div class="flex items-center justify-between">
+        <h2 class="font-semibold">Counters</h2>
+        <a routerLink="/manage-counters" class="text-sm font-medium text-primary hover:underline">Manage</a>
+      </div>
+      <div class="grid gap-3 grid-cols-[repeat(auto-fill,minmax(160px,1fr))]">
+        @for (c of counterCards(); track c.id) {
+        <div class="rounded-2xl border p-4 flex flex-col gap-2"
+          [class.border-base-300]="c.state !== 'On break'"
+          [class.border-warning/50]="c.state === 'On break'" [class.bg-warning/5]="c.state === 'On break'"
+          [class.border-dashed]="c.state === 'Closed'">
+          <div class="flex justify-between gap-2 text-sm">
+            <span class="font-semibold truncate">{{ c.name }}</span>
+            <span class="font-medium shrink-0" [class.text-success]="c.state === 'Serving'"
+              [class.text-amber-700]="c.state === 'On break'"
+              [class.text-base-content/50]="c.state !== 'Serving' && c.state !== 'On break'">{{ c.state }}</span>
+          </div>
+          @if (c.state === 'Serving') {
+          <span class="text-2xl font-bold tracking-tight text-primary">{{ c.code }}</span>
+          } @else if (c.state === 'On break') {
+          <span class="text-2xl font-bold tracking-tight text-amber-700">Break</span>
+          } @else {
+          <span class="text-2xl font-bold text-base-content/25">—</span>
+          }
+          <span class="text-xs text-base-content/60 truncate">{{ c.employee ?? 'no employee' }}</span>
+        </div>
+        } @empty {
+        <p class="text-sm text-base-content/60">No counters yet</p>
+        }
+      </div>
+    </section>
+
+    <!-- queues by service -->
+    <section aria-label="Queues by service" class="lg:col-span-2 rounded-2xl border border-base-300 bg-base-100 p-5 flex flex-col gap-4">
+      <div class="flex items-center justify-between">
+        <h2 class="font-semibold">Queues by service</h2>
+        <span class="text-xs text-base-content/60">waiting · longest</span>
+      </div>
+      <div class="flex flex-col gap-4">
+        @for (q of queues(); track q.serviceId) {
+        <div class="flex flex-col gap-1.5">
+          <div class="flex justify-between gap-2 text-sm">
+            <span class="font-medium truncate">{{ q.serviceName }}</span>
+            <span class="font-semibold tabular-nums shrink-0" [class.text-error]="q.level === 'high'"
+              [class.text-amber-700]="q.level === 'mid'" [class.text-success]="q.level === 'low'"
+              [class.text-base-content/50]="q.level === 'none'">
+              {{ q.waiting }}@if (q.waiting) { · {{ q.minutes }} min }</span>
+          </div>
+          <div class="h-2 rounded-full bg-base-200 overflow-hidden">
+            <div class="h-full rounded-full transition-all" [style.width.%]="q.width" [class.bg-error]="q.level === 'high'"
+              [class.bg-warning]="q.level === 'mid'" [class.bg-success]="q.level === 'low'"></div>
+          </div>
+        </div>
+        } @empty {
+        <p class="text-sm text-base-content/60">No services yet</p>
+        }
+      </div>
+    </section>
+  </div>
+
+  <!-- tickets per hour -->
+  <section aria-label="Tickets per hour today" class="rounded-2xl border border-base-300 bg-base-100 p-5 flex flex-col gap-4">
+    <div class="flex items-center justify-between">
+      <h2 class="font-semibold">Today, hour by hour</h2>
+      <span class="text-xs text-base-content/60">tickets taken</span>
+    </div>
+    <div class="flex items-end gap-2 sm:gap-3 h-36">
+      @for (h of hours(); track h.label) {
+      <div class="flex-1 h-full flex flex-col justify-end items-center gap-1.5" [attr.title]="h.label + ':00 · ' + h.count + ' tickets'">
+        @if (h.count) {
+        <span class="text-[11px] font-medium tabular-nums text-base-content/60">{{ h.count }}</span>
+        }
+        <div class="w-full rounded-lg" [style.height.%]="h.future ? 6 : (h.height || 3)"
+          [class.bg-primary]="h.current" [class.bg-primary/40]="!h.current && !h.future && h.count"
+          [class.bg-base-200]="!h.count || h.future" [class.border]="h.future" [class.border-dashed]="h.future"
+          [class.border-base-300]="h.future"></div>
+        <span class="text-[11px] tabular-nums" [class.font-semibold]="h.current"
+          [class.text-base-content/50]="!h.current">{{ h.label }}</span>
+      </div>
+      }
+    </div>
+  </section>
+</div>

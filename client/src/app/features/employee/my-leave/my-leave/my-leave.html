@@ -1,98 +1,90 @@
-<div class="max-w-2xl mx-auto space-y-4">
-  <div>
-    <h1 class="text-2xl font-semibold">My leave</h1>
-    <p class="text-sm opacity-60">Request time off. An admin has to allow it.</p>
-  </div>
+<div class="max-w-4xl mx-auto flex flex-col gap-6">
+  <app-page-header title="My leave" subtitle="Request time off. An admin has to allow it." />
+
+  <app-alert-modal [message]="error()" type="error" (closed)="error.set('')" />
+  <app-alert-modal [message]="success()" type="success" (closed)="success.set('')" />
 
   @if (balance(); as b) {
-  <div class="grid grid-cols-2 gap-3">
-    <div class="card bg-base-100 shadow-md">
-      <div class="card-body p-4 gap-0">
-        <p class="text-xs uppercase opacity-60">Vacation left ({{ b.year }})</p>
-        <p class="text-2xl font-semibold" [class.text-error]="b.vacationRemaining <= 0">
-          {{ b.vacationRemaining }} <span class="text-sm font-normal opacity-60">/ {{ b.vacationAllowance }} days</span>
-        </p>
+  <section aria-label="Days left" class="grid gap-4 sm:grid-cols-2">
+    <div class="rounded-2xl border border-base-300 bg-base-100 p-5 flex flex-col gap-1.5">
+      <span class="text-sm text-base-content/60">Vacation left · {{ b.year }}</span>
+      <span class="text-3xl font-bold tracking-tight tabular-nums" [class.text-error]="b.vacationRemaining <= 0">
+        {{ b.vacationRemaining }}<span class="text-base font-semibold text-base-content/50"> / {{ b.vacationAllowance }} days</span></span>
+      <div class="h-2 rounded-full bg-base-200 overflow-hidden">
+        <div class="h-full rounded-full bg-primary" [style.width.%]="b.vacationAllowance ? (b.vacationRemaining / b.vacationAllowance) * 100 : 0"></div>
       </div>
     </div>
-    <div class="card bg-base-100 shadow-md">
-      <div class="card-body p-4 gap-0">
-        <p class="text-xs uppercase opacity-60">Sick leave left ({{ b.year }})</p>
-        <p class="text-2xl font-semibold" [class.text-error]="b.sickRemaining <= 0">
-          {{ b.sickRemaining }} <span class="text-sm font-normal opacity-60">/ {{ b.sickAllowance }} days</span>
-        </p>
+    <div class="rounded-2xl border border-base-300 bg-base-100 p-5 flex flex-col gap-1.5">
+      <span class="text-sm text-base-content/60">Sick leave left · {{ b.year }}</span>
+      <span class="text-3xl font-bold tracking-tight tabular-nums" [class.text-error]="b.sickRemaining <= 0">
+        {{ b.sickRemaining }}<span class="text-base font-semibold text-base-content/50"> / {{ b.sickAllowance }} days</span></span>
+      <div class="h-2 rounded-full bg-base-200 overflow-hidden">
+        <div class="h-full rounded-full bg-primary" [style.width.%]="b.sickAllowance ? (b.sickRemaining / b.sickAllowance) * 100 : 0"></div>
       </div>
     </div>
-  </div>
-  <p class="text-xs opacity-60 -mt-2">Working days only (no weekends or holidays). Pending requests are already counted.</p>
+  </section>
+  <p class="text-xs text-base-content/60 -mt-3">Working days only (no weekends or holidays). Pending requests are already counted.</p>
   }
 
-  <div class="card bg-base-100 shadow-md">
-    <form class="card-body gap-4" (ngSubmit)="submit()">
-      <h3 class="text-xs font-semibold uppercase tracking-widest">New request</h3>
-
-      <div class="grid gap-3 sm:grid-cols-3">
-        <div class="flex flex-col gap-1 min-w-0">
-          <label class="text-xs uppercase opacity-60" for="type">Reason</label>
-          <select id="type" class="select select-sm w-full rounded-full" name="type" [(ngModel)]="type" (ngModelChange)="onTypeChange()">
-            @for (r of reasons; track r.value) {
-            <option [ngValue]="r.value">{{ r.label }}</option>
-            }
-          </select>
-        </div>
-        <div class="flex flex-col gap-1 min-w-0">
-          <label class="text-xs uppercase opacity-60" for="start">From</label>
-          <app-date-picker class="w-full" [(value)]="start" [min]="minStart()" inputId="start" />
-        </div>
-        <div class="flex flex-col gap-1 min-w-0">
-          <label class="text-xs uppercase opacity-60" for="end">To</label>
-          <app-date-picker class="w-full" [(value)]="end" [min]="start" inputId="end" />
-        </div>
+  <form class="rounded-2xl border border-base-300 bg-base-100 p-5 flex flex-col gap-4" (ngSubmit)="submit()">
+    <h2 class="font-semibold">New request</h2>
+    <div class="grid gap-4 sm:grid-cols-3">
+      <div class="flex flex-col gap-1.5 min-w-0">
+        <label class="text-sm font-medium" for="type">Reason</label>
+        <select id="type" class="select w-full rounded-full" name="type" [(ngModel)]="type" (ngModelChange)="onTypeChange()">
+          @for (r of reasons; track r.value) {
+          <option [ngValue]="r.value">{{ r.label }}</option>
+          }
+        </select>
       </div>
-
-      <div class="flex flex-col gap-1 min-w-0">
-        <label class="text-xs uppercase opacity-60" for="note">Note (optional)</label>
-        <input id="note" type="text" class="input input-sm w-full rounded-full" name="note" maxlength="200"
-          placeholder="e.g. family trip, doctor appointment" [(ngModel)]="note" />
+      <div class="flex flex-col gap-1.5 min-w-0">
+        <label class="text-sm font-medium" for="start">From</label>
+        <app-date-picker class="w-full" [(value)]="start" [min]="minStart()" inputId="start" />
       </div>
-
-      <div class="flex flex-wrap items-center gap-3">
-        <button class="btn btn-sm btn-primary rounded-full" type="submit">Send request</button>
-        <app-alert-modal [message]="error()" type="error" (closed)="error.set('')" />
-        <app-alert-modal [message]="success()" type="success" (closed)="success.set('')" />
+      <div class="flex flex-col gap-1.5 min-w-0">
+        <label class="text-sm font-medium" for="end">To</label>
+        <app-date-picker class="w-full" [(value)]="end" [min]="start" inputId="end" />
       </div>
-    </form>
-  </div>
+    </div>
+    <div class="flex flex-col gap-1.5 min-w-0">
+      <label class="text-sm font-medium" for="note">Note <span class="font-normal text-base-content/50">(optional)</span></label>
+      <input id="note" type="text" class="input w-full rounded-full" name="note" maxlength="200"
+        placeholder="e.g. family trip, doctor appointment" [(ngModel)]="note" />
+    </div>
+    <div>
+      <button class="btn btn-primary rounded-full" type="submit">Send request</button>
+    </div>
+  </form>
 
-  <div class="card bg-base-100 shadow-md">
-    <div class="card-body p-4 overflow-x-auto">
-      <table class="table table-sm">
-        <thead class="bg-base-200/60 text-xs uppercase">
+  <section class="rounded-2xl border border-base-300 bg-base-100 p-5 flex flex-col gap-3">
+    <h2 class="font-semibold">My requests</h2>
+    <div class="overflow-x-auto">
+      <table class="table">
+        <thead class="text-xs uppercase text-base-content/60">
           <tr><th>Reason</th><th>From</th><th>To</th><th>Note</th><th>Status</th><th></th></tr>
         </thead>
         <tbody>
           @for (l of leaves(); track l.id) {
           <tr>
-            <td>{{ l.type }}</td>
-            <td>{{ l.startDate | date: 'dd.MM.yyyy' }}</td>
-            <td>{{ l.endDate | date: 'dd.MM.yyyy' }}</td>
-            <td class="max-w-40 truncate">{{ l.note }}</td>
+            <td class="font-medium">{{ l.type }}</td>
+            <td class="tabular-nums">{{ l.startDate | date: 'dd.MM.yyyy' }}</td>
+            <td class="tabular-nums">{{ l.endDate | date: 'dd.MM.yyyy' }}</td>
+            <td class="max-w-40 truncate text-base-content/70">{{ l.note }}</td>
             <td>
-              <span class="badge badge-sm"
-                [class.badge-success]="l.status === 'Approved'"
-                [class.badge-warning]="l.status === 'Pending'"
-                [class.badge-error]="l.status === 'Rejected'">{{ l.status }}</span>
+              <span class="badge badge-sm badge-soft" [class.badge-success]="l.status === 'Approved'"
+                [class.badge-warning]="l.status === 'Pending'" [class.badge-error]="l.status === 'Rejected'">{{ l.status }}</span>
             </td>
             <td class="text-right">
               @if (l.status === 'Pending') {
-              <button class="btn btn-xs btn-outline btn-error rounded-full" (click)="cancel(l.id)">Cancel</button>
+              <button class="btn btn-sm btn-ghost rounded-full text-error" (click)="cancel(l.id)">Cancel</button>
               }
             </td>
           </tr>
           } @empty {
-          <tr><td colspan="6" class="text-sm">No requests this year</td></tr>
+          <tr><td colspan="6" class="py-10 text-center text-sm text-base-content/60">No requests this year</td></tr>
           }
         </tbody>
       </table>
     </div>
-  </div>
+  </section>
 </div>

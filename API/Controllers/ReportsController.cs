@@ -104,6 +104,61 @@ public class ReportsController(AppDbContext context) : BaseApiController
             .ThenBy(x => x.Username)
             .ToList();
     }
+    [HttpGet("phases/timeline")]
+    public async Task<ActionResult<PhaseTimelineDto>> GetPhaseTimeline(
+        [FromQuery] DateTime from, [FromQuery] DateTime to, [FromQuery] int employeeId)
+    {
+        if (to.Date < from.Date) return BadRequest("End date is before start date");
+        var (f, t) = Range(from, to);
+        var cfg = await context.GetWorkSettingsAsync();
+        var threshold = TimeSpan.FromSeconds(cfg.IdleThresholdSeconds);
+
+        var spans = (await LoadSpansAsync(f, t, employeeId)).Where(x => x.S.LoginAt >= f).ToList();
+        var tickets = await LoadTicketsAsync(f, t);
+        var breakRows = await context.EmployeeSessions.AsNoTracking()
+            .Where(b => b.BreakStartedAt != null && b.UserId == employeeId)
+            .ToListAsync();
+
+        var days = new Dictionary<DateTime, PhaseTimelineDayDto>();
+        foreach (var span in spans)
+        {
+            var s = span.S;
+            var breaks = breakRows
+                .Where(b => b.LoginAt == s.LoginAt)
+                .Select(b => (b.BreakStartedAt!.Value, b.BreakEndedAt ?? span.End));
+            var mine = tickets
+                .Where(x => x.CounterId == s.CounterId && x.StartedAt >= s.LoginAt && x.StartedAt <= span.End)
+                .Select(x => new TicketSlice(x.CreatedAt, x.StartedAt!.Value, x.FinishedAt,
+                    TicketCode.Format(x.Service.Code, x.Number)));
+
+            var day = LocalTime.ToLocal(s.LoginAt).Date;
+            var dayStart = LocalTime.LocalDayStartUtc(day);
+            if (!days.TryGetValue(day, out var dto))
+                days[day] = dto = new PhaseTimelineDayDto { Date = day };
+
+            dto.Sessions.Add(ToSegmentDto(dayStart, s.LoginAt, span.End, "Session", null));
+            foreach (var seg in PhaseCalculator.Segments(s.LoginAt, span.End, breaks, mine, threshold))
+                dto.Segments.Add(ToSegmentDto(dayStart, seg.Start, seg.End, seg.Phase, seg.Ticket));
+        }
+
+        return new PhaseTimelineDto
+        {
+            OpenMinute = cfg.OpenTime.TotalMinutes,
+            CloseMinute = cfg.CloseTime.TotalMinutes,
+            Days = days.Values.OrderBy(d => d.Date).ToList()
+        };
+    }
+
+    private static PhaseSegmentDto ToSegmentDto(DateTime dayStartUtc, DateTime start, DateTime end, string phase, string? ticket) => new()
+    {
+        Phase = phase,
+        Ticket = ticket,
+        From = LocalTime.ToLocal(start).ToString("HH:mm"),
+        To = LocalTime.ToLocal(end).ToString("HH:mm"),
+        StartMinute = Math.Round(Math.Max(0, (start - dayStartUtc).TotalMinutes), 1),
+        EndMinute = Math.Round(Math.Min(24 * 60, (end - dayStartUtc).TotalMinutes), 1)
+    };
+
     [HttpGet("employees")]
     public async Task<ActionResult<List<EmployeeReportRowDto>>> GetEmployees(
         [FromQuery] DateTime from, [FromQuery] DateTime to)

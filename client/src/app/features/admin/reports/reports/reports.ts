@@ -1,3 +1,4 @@
+import { PageHeader } from '../../../../shared/page-header/page-header';
 import { DatePicker } from '../../../../shared/date-picker/date-picker/date-picker';
 import { localIso, rangeError, todayIso } from '../../../../core/utils/date-range';
 import { downloadCsv, fmtDate, fmtDateTime } from '../../../../core/utils/csv';
@@ -19,7 +20,7 @@ const daysAgo = (n: number) => {
 
 
 @Component({
-  imports: [DatePipe, FormsModule, DecimalPipe, HoursMinutesPipe, AlertModal, DatePicker],
+  imports: [PageHeader, DatePipe, FormsModule, DecimalPipe, HoursMinutesPipe, AlertModal, DatePicker],
   selector: 'app-reports',
   styleUrl: './reports.css',
   templateUrl: './reports.html',

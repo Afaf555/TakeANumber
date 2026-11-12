@@ -80,7 +80,7 @@ export class AccountService {
 
   homeFor(role?: string) {
     switch (role) {
-      case 'Admin': return '/manage-services';
+      case 'Admin': return '/dashboard';
       case 'Employee': return '/counter-panel';
       default: return '/take-ticket';
     }

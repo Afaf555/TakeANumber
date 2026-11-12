@@ -1,4 +1,64 @@
 @import "tailwindcss";
-@plugin "daisyui"{
-      themes: corporate --default, emerald;
+@import "@fontsource-variable/inter";
+
+@plugin "daisyui" {
+  themes: false;
+}
+
+/* One app-wide theme: calm light grey ground, one blue accent, soft radii */
+@plugin "daisyui/theme" {
+  name: "takeanumber";
+  default: true;
+  prefersdark: false;
+  color-scheme: light;
+
+  --color-base-100: #ffffff;
+  --color-base-200: #f5f7fa;
+  --color-base-300: #e5e8ee;
+  --color-base-content: #0f172a;
+
+  --color-primary: #1d4ed8;
+  --color-primary-content: #ffffff;
+  --color-secondary: #64748b;
+  --color-secondary-content: #ffffff;
+  --color-accent: #0ea5e9;
+  --color-accent-content: #ffffff;
+  --color-neutral: #1e293b;
+  --color-neutral-content: #ffffff;
+
+  --color-info: #0ea5e9;
+  --color-info-content: #ffffff;
+  --color-success: #16a34a;
+  --color-success-content: #ffffff;
+  --color-warning: #f59e0b;
+  --color-warning-content: #3b2500;
+  --color-error: #dc2626;
+  --color-error-content: #ffffff;
+
+  --radius-selector: 2rem;
+  --radius-field: 0.75rem;
+  --radius-box: 1rem;
+  --size-selector: 0.25rem;
+  --size-field: 0.25rem;
+  --border: 1px;
+  --depth: 0;
+  --noise: 0;
+}
+
+@theme {
+  --font-sans: "Inter Variable", ui-sans-serif, system-ui, sans-serif;
+}
+
+body {
+  @apply bg-base-200 text-base-content antialiased;
+}
+
+/* Display screen: the "just called" block pops in when a new number is called */
+@keyframes call-pop {
+  0% { transform: scale(0.96); box-shadow: 0 0 0 0 rgb(29 78 216 / 0.45); }
+  40% { transform: scale(1.02); box-shadow: 0 0 0 24px rgb(29 78 216 / 0); }
+  100% { transform: scale(1); box-shadow: 0 0 0 0 rgb(29 78 216 / 0); }
+}
+.call-pop {
+  animation: call-pop 0.9s ease-out 2;
 }

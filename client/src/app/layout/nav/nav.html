@@ -1,42 +1,41 @@
-<div class="navbar bg-base-100 shadow-sm px-6">
-  <div class="flex-1">
-    <a [routerLink]="accountService.homeFor(accountService.currentUser()?.role)"
-      class="text-sm uppercase tracking-widest font-semibold">Queue</a>
+<header class="bg-base-100/90 backdrop-blur border-b border-base-300">
+  <div class="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center gap-4">
+    <a [routerLink]="accountService.homeFor(accountService.currentUser()?.role)" class="flex items-center gap-2.5">
+      <span class="w-8 h-8 rounded-xl bg-primary text-primary-content grid place-items-center font-bold">#</span>
+      <span class="font-bold tracking-tight hidden sm:inline">TakeANumber</span>
+    </a>
+
+    <nav aria-label="Main" class="flex items-center gap-1 text-sm">
+      @if (accountService.currentUser(); as user) {
+      @if (user.role === 'Employee') {
+      <a routerLink="/counter-panel" routerLinkActive="!bg-primary/10 !text-primary font-semibold"
+        class="px-3.5 py-2 rounded-full text-base-content/80 hover:bg-base-200">Counter</a>
+      <a routerLink="/my-leave" routerLinkActive="!bg-primary/10 !text-primary font-semibold"
+        class="px-3.5 py-2 rounded-full text-base-content/80 hover:bg-base-200">My leave</a>
+      }
+      @if (user.role === 'Client') {
+      <a routerLink="/take-ticket" routerLinkActive="!bg-primary/10 !text-primary font-semibold"
+        class="px-3.5 py-2 rounded-full text-base-content/80 hover:bg-base-200">Take ticket</a>
+      }
+      }
+      <a routerLink="/display" class="px-3.5 py-2 rounded-full text-base-content/80 hover:bg-base-200">Display</a>
+    </nav>
+
+    <div class="ml-auto flex items-center gap-2 text-sm">
+      @if (accountService.currentUser(); as user) {
+      <span class="hidden sm:flex items-center gap-2 text-base-content/70">
+        <span class="w-7 h-7 rounded-full bg-primary/15 text-primary grid place-items-center text-xs font-bold">{{
+          user.username.charAt(0).toUpperCase() }}</span>
+        {{ user.username }}
+      </span>
+      <button type="button" class="btn btn-sm btn-ghost rounded-full gap-2" (click)="logout()">
+        <app-icon name="logout" [size]="16" />Log out
+      </button>
+      } @else {
+      <a routerLink="/login" routerLinkActive="!bg-primary/10 !text-primary font-semibold"
+        class="px-3.5 py-2 rounded-full hover:bg-base-200">Log in</a>
+      <a routerLink="/register" class="btn btn-sm btn-primary rounded-full">Register</a>
+      }
+    </div>
   </div>
-
-  <ul class="menu menu-horizontal gap-1 items-center">
-    <li><a routerLink="/display" routerLinkActive="menu-active">Display</a></li>
-
-    @if (accountService.currentUser(); as user) {
-    @if (user.role === 'Client') {
-    <li><a routerLink="/take-ticket" routerLinkActive="menu-active">Take ticket</a></li>
-    }
-    @if (user.role === 'Employee') {
-    <li><a routerLink="/counter-panel" routerLinkActive="menu-active">Counter</a></li>
-    <li><a routerLink="/my-leave" routerLinkActive="menu-active">My leave</a></li>
-    }
-    @if (user.role === 'Admin') {
-    <li><a routerLink="/manage-services" routerLinkActive="menu-active">Services</a></li>
-    <li><a routerLink="/manage-counters" routerLinkActive="menu-active">Counters</a></li>
-    <li><a routerLink="/manage-employees" routerLinkActive="menu-active">Employees</a></li>
-    <li><a routerLink="/queue-overview" routerLinkActive="menu-active">Queue</a></li>
-      <li routerLinkActive="[&>details>summary]:bg-base-200">
-      <details #adminMenu>
-        <summary>More</summary>
-        <ul class="bg-base-100 rounded-box shadow-md z-10 w-44 p-2" (click)="closeAdminMenu()">
-          <li><a routerLink="/reports" routerLinkActive="menu-active">Reports</a></li>
-          <li><a routerLink="/workforce" routerLinkActive="menu-active">Workforce</a></li>
-          <li><a routerLink="/calendar" routerLinkActive="menu-active">Calendar</a></li>
-          <li><a routerLink="/settings" routerLinkActive="menu-active">Settings</a></li>
-        </ul>
-      </details>
-    </li>
-    }
-    <li class="text-sm px-3">{{ user.username }}</li>
-    <li><button class="btn btn-sm rounded-full" (click)="logout()">Logout</button></li>
-    } @else {
-    <li><a routerLink="/login" routerLinkActive="menu-active">Login</a></li>
-    <li><a routerLink="/register" routerLinkActive="menu-active">Register</a></li>
-    }
-  </ul>
-</div>
+</header>

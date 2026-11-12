@@ -1,41 +1,52 @@
-<div class="max-w-md mx-auto space-y-4">
-    <div class="card bg-base-100 shadow-md">
-        <form class="card-body gap-3" (ngSubmit)="add()">
-            <h2 class="card-title text-sm uppercase tracking-widest">
-                New service
-            </h2>
-            <input class="input w-full rounded-full" name="name" placeholder="Service name" [(ngModel)]="newName"
-                required />
-            <input class="input w-full rounded-full" name="code" placeholder="Code (e.g. P, LK)" maxlength="3"
-                [(ngModel)]="newCode" required />
-            <button class="btn btn-primary rounded-full" type="submit">
-                Add </button>
-        </form>
-    </div>
-    <app-alert-modal [message]="error()" type="error" (closed)="error.set('')" />
-    <div class="card-body gap-2">
-        <h2 class="card-title text-sm uppercase tracking-widest">
-            Services
-        </h2>
-        @for (s of services(); track s.id) {
-        <div class="flex items-center justify-between">
-            <span><span class="badge badge-outline mr-2">{{ s.code }}</span>{{ s.name }}</span> 
-           @if (confirmingId()==s.id) {
-            <div class="flex items-center gap-2">
-                <span class="text-xs text-error">Delete with all its tickets?</span>
-                <button class="btn btn-xs btn-error rounded-full" (click)="remove(s.id)">Yes</button>
-                <button class="btn btn-xs btn-ghost rounded-full" (click)="cancelRemove()">Cancel</button>
-            </div>
-           } @else {
-            <button class="btn btn-xs btn-outline btn-error rounded-full" 
-            [disabled]="s.hasActiveTickets"
-            [title]="s.hasActiveTickets?'Service has active tickets' : '' "
-            (click)="askRemove(s.id)">Delete</button>
-           }
+<div class="flex flex-col gap-6">
+  <app-page-header title="Services" subtitle="What clients can choose at the kiosk. The code is the letter on the ticket." />
 
-        </div>
+  <app-alert-modal [message]="error()" type="error" (closed)="error.set('')" />
+
+  <div class="grid gap-4 lg:grid-cols-3 items-start">
+    <form class="rounded-2xl border border-base-300 bg-base-100 p-5 flex flex-col gap-4" (ngSubmit)="add()">
+      <h2 class="font-semibold">New service</h2>
+      <label class="flex flex-col gap-1.5 text-sm font-medium">Name
+        <input class="input w-full rounded-full font-normal" name="name" placeholder="e.g. Passports" [(ngModel)]="newName"
+          required />
+      </label>
+      <label class="flex flex-col gap-1.5 text-sm font-medium">Code
+        <input class="input w-full rounded-full font-normal" name="code" placeholder="e.g. P" maxlength="3"
+          [(ngModel)]="newCode" required />
+      </label>
+      <button class="btn btn-primary rounded-full" type="submit">Add service</button>
+    </form>
+
+    <section class="lg:col-span-2 rounded-2xl border border-base-300 bg-base-100 p-5 flex flex-col gap-3">
+      <div class="flex items-baseline justify-between">
+        <h2 class="font-semibold">All services</h2>
+        <span class="text-sm text-base-content/60">{{ services().length }}</span>
+      </div>
+      <ul class="flex flex-col divide-y divide-base-300">
+        @for (s of services(); track s.id) {
+        <li class="flex flex-wrap items-center gap-3 py-3">
+          <span class="w-10 h-10 rounded-xl bg-primary/10 text-primary grid place-items-center font-bold">{{ s.code }}</span>
+          <span class="flex flex-col flex-1 min-w-0">
+            <span class="font-medium truncate">{{ s.name }}</span>
+            @if (s.hasActiveTickets) {
+            <span class="text-xs text-base-content/60">Has tickets in the queue today</span>
+            }
+          </span>
+          @if (confirmingId() == s.id) {
+          <span class="flex items-center gap-2">
+            <span class="text-xs text-error">Delete with all its tickets?</span>
+            <button class="btn btn-xs btn-error rounded-full" (click)="remove(s.id)">Yes, delete</button>
+            <button class="btn btn-xs btn-ghost rounded-full" (click)="cancelRemove()">Cancel</button>
+          </span>
+          } @else {
+          <button class="btn btn-sm btn-ghost rounded-full text-error" [disabled]="s.hasActiveTickets"
+            [title]="s.hasActiveTickets ? 'Service has active tickets' : ''" (click)="askRemove(s.id)">Delete</button>
+          }
+        </li>
         } @empty {
-        <p class="text-sm">No services yet</p>
+        <li class="rounded-2xl border border-dashed border-base-300 p-8 text-center text-sm text-base-content/60">No services yet</li>
         }
-    </div>
+      </ul>
+    </section>
+  </div>
 </div>

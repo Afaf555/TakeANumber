@@ -1,3 +1,4 @@
+import { PageHeader } from '../../../../shared/page-header/page-header';
 import { DatePicker } from '../../../../shared/date-picker/date-picker/date-picker';
 import { localIso, rangeError } from '../../../../core/utils/date-range';
 import { AlertModal } from '../../../../shared/alert-modal/alert-modal/alert-modal';
@@ -17,7 +18,7 @@ const tomorrow = () => {
 };
 
 @Component({
-  imports: [DatePipe, FormsModule, AlertModal, DatePicker],
+  imports: [PageHeader, DatePipe, FormsModule, AlertModal, DatePicker],
   selector: 'app-my-leave',
   templateUrl: './my-leave.html',
 })

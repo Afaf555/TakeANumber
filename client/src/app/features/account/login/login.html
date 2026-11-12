@@ -1,17 +1,29 @@
-<div class="card bg-base-100 shadow-md max-w-sm mx-auto">
-  <form class="card-body gap-4" (ngSubmit)="login()">
-    <h2 class="card-title text-sm uppercase tracking-widest">Login</h2>
+<div class="max-w-sm mx-auto mt-6 sm:mt-14 flex flex-col gap-6">
+  <div class="flex flex-col items-center text-center gap-3">
+    <span class="w-12 h-12 rounded-2xl bg-primary text-primary-content grid place-items-center text-xl font-extrabold">#</span>
+    <div>
+      <h1 class="text-2xl font-bold tracking-tight">Welcome back</h1>
+      <p class="text-sm text-base-content/60">Log in to TakeANumber</p>
+    </div>
+  </div>
 
-    <input class="input w-full rounded-full" name="username" placeholder="Username"
-           [(ngModel)]="creds.username" required />
-    <input class="input w-full rounded-full" name="password" type="password" placeholder="Password"
-           [(ngModel)]="creds.password" required />
+  <form class="rounded-2xl border border-base-300 bg-base-100 p-6 flex flex-col gap-4" (ngSubmit)="login()">
+    <label class="flex flex-col gap-1.5 text-sm font-medium">Username
+      <input class="input w-full rounded-full font-normal" name="username" autocomplete="username"
+        [(ngModel)]="creds.username" required />
+    </label>
+    <label class="flex flex-col gap-1.5 text-sm font-medium">Password
+      <input class="input w-full rounded-full font-normal" name="password" type="password" autocomplete="current-password"
+        [(ngModel)]="creds.password" required />
+    </label>
 
     @if (error()) {
-      <p class="text-error text-sm">{{ error() }}</p>
+    <p role="alert" class="rounded-xl bg-error/5 border border-error/30 px-3 py-2 text-sm text-error">{{ error() }}</p>
     }
 
-    <button class="btn btn-primary rounded-full" type="submit">Login</button>
-    <a routerLink="/register" class="text-sm text-center link link-hover">No account? Register</a>
+    <button class="btn btn-primary rounded-full mt-1" type="submit">Log in</button>
   </form>
+
+  <p class="text-sm text-center text-base-content/60">No account?
+    <a routerLink="/register" class="font-semibold text-primary hover:underline">Register</a></p>
 </div>

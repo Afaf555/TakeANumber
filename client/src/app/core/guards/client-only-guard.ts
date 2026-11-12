@@ -5,6 +5,6 @@ export const clientOnlyGuard:CanActivateFn=()=>{
     const accountSerice=inject(AccountService);
     const router=inject(Router);
     return accountSerice.currentUser()?.role==='Admin'
-    ?router.createUrlTree(['/display'])
+    ?router.createUrlTree(['/dashboard'])
     :true;
 };

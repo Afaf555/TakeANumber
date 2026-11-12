@@ -1,3 +1,4 @@
+import { PageHeader } from '../../../shared/page-header/page-header';
 import { AlertModal } from '../../../shared/alert-modal/alert-modal/alert-modal';
 import { Component, inject, OnDestroy, OnInit, signal } from '@angular/core';
 import { Subscription } from 'rxjs';
@@ -8,7 +9,7 @@ import { Counter } from '../../../types/admin';
 import { Service } from '../../../types/tickets';
 
 @Component({
-  imports: [FormsModule, AlertModal],
+  imports: [PageHeader, FormsModule, AlertModal],
   selector: 'app-manage-counters',
   styleUrl: './manage-counters.css',
   templateUrl: './manage-counters.html',

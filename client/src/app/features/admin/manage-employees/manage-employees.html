@@ -1,56 +1,61 @@
-<div class="max-w-2xl mx-auto space-y-4">
-  <div class="card bg-base-100 shadow-md">
-    <form class="card-body gap-3" (ngSubmit)="create()">
-      <h2 class="card-title text-sm uppercase tracking-widest">New employee</h2>
-
-      <input class="input w-full rounded-full" name="username" placeholder="Username" [(ngModel)]="username" required />
-      <input class="input w-full rounded-full" name="password" type="password"
-        placeholder="Password (min 8, letter and digit)" [(ngModel)]="password" required />
-
-      <select class="select w-full rounded-full" name="counterId" [(ngModel)]="counterId">
-        <option [ngValue]="null">No counter</option>
-        @for (c of counters(); track c.id) {
-        <option [ngValue]="c.id">{{ c.name }}{{ leaveHolder(c.id) ? ' (' + leaveHolder(c.id) + ' on leave)' : '' }}
-        </option>
-        }
-      </select>
-
-      <button class="btn btn-primary rounded-full" type="submit">Create</button>
-    </form>
-  </div>
+<div class="flex flex-col gap-6">
+  <app-page-header title="Employees" subtitle="Accounts for counter staff. One counter can have one employee." />
 
   <app-alert-modal [message]="success()" type="success" (closed)="success.set('')" />
   <app-alert-modal [message]="error()" type="error" (closed)="error.set('')" />
 
-  <div class="card bg-base-100 shadow-md">
-    <div class="card-body gap-3">
-      <h2 class="card-title text-sm uppercase tracking-widest">Employees</h2>
-
-      @for (e of employees(); track e.id) {
-      <div class="flex items-center justify-between gap-4">
-        <div>
-          <p class="font-medium">
-            {{ e.username }}
-            @if (e.onLeaveToday) { <span class="badge badge-warning badge-sm ml-1">On leave</span> }
-          </p>
-          <p class="text-xs">{{ servicesOf(e) || 'No services' }}</p>
-        </div>
-        <select class="select select-sm rounded-full w-64" [ngModel]="e.counterId"
-          (ngModelChange)="changeCounter(e, $event)">
+  <div class="grid gap-4 lg:grid-cols-3 items-start">
+    <form class="rounded-2xl border border-base-300 bg-base-100 p-5 flex flex-col gap-4" (ngSubmit)="create()">
+      <h2 class="font-semibold">New employee</h2>
+      <label class="flex flex-col gap-1.5 text-sm font-medium">Username
+        <input class="input w-full rounded-full font-normal" name="username" autocomplete="off" [(ngModel)]="username" required />
+      </label>
+      <label class="flex flex-col gap-1.5 text-sm font-medium">Password
+        <input class="input w-full rounded-full font-normal" name="password" type="password" autocomplete="new-password"
+          [(ngModel)]="password" required />
+        <span class="text-xs font-normal text-base-content/60">At least 8 characters, with a letter and a digit</span>
+      </label>
+      <label class="flex flex-col gap-1.5 text-sm font-medium">Counter
+        <select class="select w-full rounded-full font-normal" name="counterId" [(ngModel)]="counterId">
           <option [ngValue]="null">No counter</option>
           @for (c of counters(); track c.id) {
-          <option [ngValue]="c.id">{{ c.name }}{{ leaveHolder(c.id) ? ' (' + leaveHolder(c.id) + ' on leave)' : '' }}
-          </option>
+          <option [ngValue]="c.id">{{ c.name }}{{ leaveHolder(c.id) ? ' (' + leaveHolder(c.id) + ' on leave)' : '' }}</option>
           }
         </select>
-        <button class="btn btn-xs btn-outline btn-error rounded-full" [disabled]="e.hasActiveTickets && !e.onLeaveToday"
-          [title]="e.hasActiveTickets && !e.onLeaveToday ? 'Counter has active tickets' : ''" (click)="remove(e.id)">
-          Delete
-        </button>
+      </label>
+      <button class="btn btn-primary rounded-full" type="submit">Create employee</button>
+    </form>
+
+    <section class="lg:col-span-2 rounded-2xl border border-base-300 bg-base-100 p-5 flex flex-col gap-3">
+      <div class="flex items-baseline justify-between">
+        <h2 class="font-semibold">All employees</h2>
+        <span class="text-sm text-base-content/60">{{ employees().length }}</span>
       </div>
-      } @empty {
-      <p class="text-sm">No employees yet</p>
-      }
-    </div>
+      <ul class="flex flex-col divide-y divide-base-300">
+        @for (e of employees(); track e.id) {
+        <li class="flex flex-wrap items-center gap-3 py-3">
+          <span class="w-10 h-10 rounded-full bg-primary/10 text-primary grid place-items-center font-bold">{{
+            e.username.charAt(0).toUpperCase() }}</span>
+          <span class="flex flex-col flex-1 min-w-40">
+            <span class="font-medium flex items-center gap-2">{{ e.username }}
+              @if (e.onLeaveToday) { <span class="badge badge-sm badge-soft badge-warning">On leave</span> }
+            </span>
+            <span class="text-xs text-base-content/60 truncate">{{ servicesOf(e) || 'No services' }}</span>
+          </span>
+          <select class="select select-sm rounded-full w-52" [ngModel]="e.counterId" (ngModelChange)="changeCounter(e, $event)"
+            [attr.aria-label]="'Counter for ' + e.username">
+            <option [ngValue]="null">No counter</option>
+            @for (c of counters(); track c.id) {
+            <option [ngValue]="c.id">{{ c.name }}{{ leaveHolder(c.id) ? ' (' + leaveHolder(c.id) + ' on leave)' : '' }}</option>
+            }
+          </select>
+          <button class="btn btn-sm btn-ghost rounded-full text-error" [disabled]="e.hasActiveTickets && !e.onLeaveToday"
+            [title]="e.hasActiveTickets && !e.onLeaveToday ? 'Counter has active tickets' : ''" (click)="remove(e.id)">Delete</button>
+        </li>
+        } @empty {
+        <li class="rounded-2xl border border-dashed border-base-300 p-8 text-center text-sm text-base-content/60">No employees yet</li>
+        }
+      </ul>
+    </section>
   </div>
 </div>

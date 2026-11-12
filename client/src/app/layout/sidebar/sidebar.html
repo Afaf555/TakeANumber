@@ -1,0 +1,46 @@
+<aside class="bg-base-100 border-b border-base-300 lg:border-b-0 lg:border-r lg:sticky lg:top-0 lg:h-screen flex flex-col">
+  <div class="flex items-center gap-3 px-5 py-4 lg:py-6">
+    <a routerLink="/dashboard" class="flex items-center gap-3" (click)="open.set(false)">
+      <span class="w-9 h-9 rounded-xl bg-primary text-primary-content grid place-items-center font-bold">#</span>
+      <span class="flex flex-col leading-tight">
+        <span class="font-bold tracking-tight">TakeANumber</span>
+        <span class="text-xs text-base-content/60">Admin</span>
+      </span>
+    </a>
+    <button type="button" class="btn btn-ghost btn-sm btn-square ml-auto lg:hidden"
+      [attr.aria-label]="open() ? 'Close menu' : 'Open menu'" [attr.aria-expanded]="open()" (click)="open.set(!open())">
+      <app-icon [name]="open() ? 'close' : 'menu'" [size]="20" />
+    </button>
+  </div>
+
+  <nav aria-label="Admin" class="flex-1 flex-col gap-6 px-3 pb-4 overflow-y-auto lg:flex" [class.hidden]="!open()"
+    [class.flex]="open()">
+    @for (g of groups; track g.title) {
+    <div class="flex flex-col gap-0.5">
+      <span class="px-3 pb-1.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-base-content/50">{{ g.title }}</span>
+      @for (l of g.links; track l.path) {
+      <a [routerLink]="l.path" routerLinkActive="!bg-primary/10 !text-primary font-semibold"
+        class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-base-content/80 hover:bg-base-200 transition-colors"
+        (click)="open.set(false)">
+        <app-icon [name]="l.icon" />
+        {{ l.label }}
+        @if (l.badge && waiting() > 0) {
+        <span class="ml-auto rounded-full bg-error/10 text-error text-[11px] font-bold px-2 py-0.5">{{ waiting() }}</span>
+        }
+      </a>
+      }
+    </div>
+    }
+
+    <div class="mt-auto flex items-center gap-3 rounded-2xl bg-base-200 p-3">
+      <span class="w-8 h-8 rounded-full bg-primary/15 text-primary grid place-items-center text-sm font-bold">{{ initial() }}</span>
+      <span class="flex flex-col flex-1 min-w-0 leading-tight">
+        <span class="text-sm font-semibold truncate">{{ accountService.currentUser()?.username }}</span>
+        <span class="text-xs text-base-content/60">Administrator</span>
+      </span>
+      <button type="button" class="btn btn-ghost btn-sm btn-square" aria-label="Log out" (click)="logout()">
+        <app-icon name="logout" />
+      </button>
+    </div>
+  </nav>
+</aside>

@@ -1,12 +1,9 @@
-<div class="space-y-4">
-  <div>
-    <h1 class="text-2xl font-semibold">Workforce</h1>
-    <p class="text-sm opacity-60">Attendance, punctuality, overtime and paid leave</p>
-  </div>
+<div class="flex flex-col gap-6">
+  <app-page-header title="Workforce" subtitle="Attendance, punctuality, overtime and paid leave" />
 
   <app-alert-modal [message]="error()" type="error" (closed)="error.set('')" />
 
-  <div class="card bg-base-100 shadow-md">
+  <div class="card bg-base-100 border border-base-300">
     <div role="tablist" class="tabs tabs-border px-4 pt-2">
       <a role="tab" class="tab" [class.tab-active]="tab() === 'attendance'"
         (click)="tab.set('attendance')">Attendance</a>
@@ -23,11 +20,11 @@
       @if (tab() === 'attendance') {
       <div class="flex flex-wrap items-end gap-2">
         <div class="flex flex-col gap-1">
-          <span class="text-xs uppercase opacity-60">From</span>
+          <span class="text-xs font-medium text-base-content/60">From</span>
           <app-date-picker [(value)]="from" [max]="to" />
         </div>
         <div class="flex flex-col gap-1">
-          <span class="text-xs uppercase opacity-60">To</span>
+          <span class="text-xs font-medium text-base-content/60">To</span>
           <app-date-picker [(value)]="to" [min]="from" />
         </div>
         <button class="btn btn-primary btn-sm rounded-full" [class.btn-outline]="!applyActive()"
@@ -46,30 +43,30 @@
       <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div class="card border border-base-300">
           <div class="card-body p-4 gap-0">
-            <p class="text-xs uppercase opacity-60">Absenteeism rate</p>
+            <p class="text-xs font-medium text-base-content/60">Absenteeism rate</p>
             <p class="text-2xl font-semibold">{{ r.absenteeismRate | number: '1.0-1' }}%</p>
-            <p class="text-xs opacity-60">Unplanned absent days ÷ available work days</p>
+            <p class="text-xs text-base-content/60">Unplanned absent days ÷ available work days</p>
           </div>
         </div>
         <div class="card border border-base-300">
           <div class="card-body p-4 gap-0">
-            <p class="text-xs uppercase opacity-60">Late arrivals</p>
+            <p class="text-xs font-medium text-base-content/60">Late arrivals</p>
             <p class="text-2xl font-semibold">{{ r.totalLateArrivals }}</p>
-            <p class="text-xs opacity-60">First login after {{ lateAfter() }}</p>
+            <p class="text-xs text-base-content/60">First login after {{ lateAfter() }}</p>
           </div>
         </div>
         <div class="card border border-base-300">
           <div class="card-body p-4 gap-0">
-            <p class="text-xs uppercase opacity-60">Early departures</p>
+            <p class="text-xs font-medium text-base-content/60">Early departures</p>
             <p class="text-2xl font-semibold">{{ r.totalEarlyDepartures }}</p>
-            <p class="text-xs opacity-60">Manual logout before {{ earlyBefore() }}</p>
+            <p class="text-xs text-base-content/60">Manual logout before {{ earlyBefore() }}</p>
           </div>
         </div>
         <div class="card border border-base-300">
           <div class="card-body p-4 gap-0">
-            <p class="text-xs uppercase opacity-60">Overtime</p>
+            <p class="text-xs font-medium text-base-content/60">Overtime</p>
             <p class="text-2xl font-semibold">{{ r.totalOvertimeHours | hm }}</p>
-            <p class="text-xs opacity-60">Above {{ rules().standardDayHours }}h per working day</p>
+            <p class="text-xs text-base-content/60">Above {{ rules().standardDayHours }}h per working day</p>
           </div>
         </div>
       </div>
@@ -81,7 +78,7 @@
 
       <div class="overflow-x-auto">
         <table class="table table-sm">
-          <thead class="bg-base-200/60 text-xs uppercase">
+          <thead class="text-xs uppercase text-base-content/60">
             <tr>
               <th>Employee</th>
               <th>Tenure (days)</th>
@@ -121,14 +118,14 @@
           </tbody>
         </table>
       </div>
-      <p class="text-xs opacity-60">
+      <p class="text-xs text-base-content/60">
         Every working day (no weekend/holiday) without a session counts as an absence, except approved vacation.
         Tenure is counted from the first login.
       </p>
 
       <div class="card border border-base-300">
         <div class="card-body p-4">
-          <h3 class="text-xs font-semibold uppercase tracking-widest">Overtime by counter</h3>
+          <h3 class="font-semibold">Overtime by counter</h3>
           @for (c of r.overtimeByCounter; track c.counterName) {
           <div class="flex items-center gap-3 text-sm">
             <span class="w-32 truncate">{{ c.counterName }}</span>
@@ -139,20 +136,21 @@
             <span class="w-24 text-right opacity-60">{{ c.employees }} employee(s)</span>
           </div>
           } @empty {
-          <p class="text-sm opacity-60">No counters</p>
+          <p class="text-sm text-base-content/60">No counters</p>
           }
         </div>
       </div>
       }
       }
       @if (tab() === 'phases') {
+      <!-- Filters -->
       <div class="flex flex-wrap items-end gap-2">
         <div class="flex flex-col gap-1">
-          <span class="text-xs uppercase opacity-60">From</span>
+          <span class="text-xs font-medium text-base-content/60">From</span>
           <app-date-picker [(value)]="from" [max]="to" />
         </div>
         <div class="flex flex-col gap-1">
-          <span class="text-xs uppercase opacity-60">To</span>
+          <span class="text-xs font-medium text-base-content/60">To</span>
           <app-date-picker [(value)]="to" [min]="from" />
         </div>
         <button class="btn btn-primary btn-sm rounded-full" [class.btn-outline]="!applyActive()"
@@ -161,15 +159,236 @@
           [attr.aria-pressed]="rangeActive(7)" (click)="setRange(7)">7 days</button>
         <button class="btn btn-sm rounded-full" [class.btn-primary]="rangeActive(30)" [class.btn-ghost]="!rangeActive(30)"
           [attr.aria-pressed]="rangeActive(30)" (click)="setRange(30)">30 days</button>
+        <div class="flex flex-col gap-1 ml-auto">
+          <span class="text-xs font-medium text-base-content/60">Employee</span>
+          <select class="select select-sm rounded-full w-48" [ngModel]="phaseEmployeeId()"
+            (ngModelChange)="setPhaseEmployee($event)">
+            <option [ngValue]="null">All employees</option>
+            @for (e of employees(); track e.id) {
+            <option [ngValue]="e.id">{{ e.username }}</option>
+            }
+          </select>
+        </div>
       </div>
 
-      <div class="flex flex-wrap gap-4 text-xs">
-        <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-success"></span> 1 Serving</span>
-        <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-info"></span> 2 Idle (up to {{ rules().idleThresholdSeconds }}s between tickets)</span>
-        <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-error"></span> 3 Neglect (waiting ticket not called)</span>
-        <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-warning"></span> 4 On break</span>
+      <!-- Overview: employees x days -->
+      <div class="rounded-2xl border border-base-300 bg-base-100 p-5 flex flex-col gap-4">
+        <div class="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h3 class="font-semibold">Overview</h3>
+            <p class="text-xs text-base-content/60">{{ phaseMetric().label }} time per employee and day</p>
+          </div>
+          <div class="flex rounded-full bg-base-200 p-1">
+            @for (m of phaseMetrics; track m.key) {
+            <button type="button" class="px-3 py-1 rounded-full text-xs flex items-center gap-1.5 transition-colors"
+              [class.bg-base-100]="phaseMetric().key === m.key" [class.shadow-sm]="phaseMetric().key === m.key"
+              [class.font-semibold]="phaseMetric().key === m.key" [class.opacity-60]="phaseMetric().key !== m.key"
+              (click)="phaseMetric.set(m)">
+              <span class="w-2 h-2 rounded-full" [class]="m.color"></span>{{ m.label }}
+            </button>
+            }
+          </div>
+        </div>
+
+        @if (phaseHeat(); as ph) {
+        <div class="grid gap-[3px] items-center" [style.grid-template-columns]="phaseHeatTemplate(ph.days.length)">
+          <div></div>
+          @for (d of ph.days; track d.key) {
+          <div class="text-center text-[10px] leading-tight select-none" [class.opacity-30]="d.weekend"
+            [class.opacity-60]="!d.weekend">
+            <div class="h-3 font-semibold">{{ d.month }}</div>{{ d.label }}
+          </div>
+          }
+          <div class="text-right text-[10px] opacity-50 self-end">Total</div>
+
+          @for (r of ph.rows; track r.id) {
+          <button type="button" class="text-left text-sm truncate pr-2 hover:text-primary transition-colors"
+            [class.text-primary]="phaseEmployeeId() === r.id" [class.font-semibold]="phaseEmployeeId() === r.id"
+            title="Show timeline" (click)="setPhaseEmployee(r.id)">{{ r.username }}</button>
+          @for (c of r.cells; track c.day) {
+          <button type="button"
+            class="h-7 rounded-md bg-base-200/70 overflow-hidden transition-transform hover:scale-110 hover:z-10"
+            [class.ring-2]="!!c.p && selectedPhase() === c.p" [class.ring-primary]="!!c.p && selectedPhase() === c.p"
+            [class.cursor-default]="!c.p" [attr.title]="cellTitle(r.username, c.day, c.p)"
+            (click)="c.p && selectedPhase.set(c.p)">
+            <div class="w-full h-full" [class]="phaseMetric().color" [style.opacity]="c.opacity"></div>
+          </button>
+          }
+          <div class="text-right text-sm font-medium tabular-nums">{{ r.total / 60 | hm }}</div>
+          }
+        </div>
+
+        <div class="flex flex-wrap items-center gap-x-6 gap-y-2 text-[11px] opacity-70">
+          <span class="flex items-center gap-2">
+            0
+            <span class="flex gap-[2px]">
+              @for (o of [0.2, 0.4, 0.6, 0.8, 1]; track o) {
+              <span class="w-3 h-3 rounded-sm" [class]="phaseMetric().color" [style.opacity]="o"></span>
+              }
+            </span>
+            {{ ph.max / 60 | hm }}
+          </span>
+          <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-sm bg-base-200"></span>no session</span>
+          <span>Idle = up to {{ rules().idleThresholdSeconds }}s to call the next ticket · Neglect = ticket waiting
+            longer</span>
+        </div>
+        } @else {
+        <p class="text-sm opacity-60 py-6 text-center">No sessions in this period</p>
+        }
       </div>
 
+      @if (selectedPhase(); as p) {
+      <div class="rounded-2xl border border-base-300 bg-base-100 p-5 flex flex-col gap-3">
+        <div class="flex items-center justify-between">
+          <h3 class="font-semibold">{{ p.username }} <span class="font-normal opacity-60">· {{ p.date | date:
+              'EEEE dd.MM.yyyy' }}</span></h3>
+          <button type="button" class="btn btn-xs btn-ghost btn-circle" (click)="selectedPhase.set(null)">✕</button>
+        </div>
+        <div class="flex h-2.5 w-full overflow-hidden rounded-full bg-base-200">
+          <div class="bg-success" [style.width.%]="phasePct(p.servingMinutes, p)"></div>
+          <div class="bg-info" [style.width.%]="phasePct(p.idleMinutes, p)"></div>
+          <div class="bg-error" [style.width.%]="phasePct(p.neglectMinutes, p)"></div>
+          <div class="bg-warning" [style.width.%]="phasePct(p.breakMinutes, p)"></div>
+        </div>
+        <div class="grid grid-cols-2 sm:grid-cols-5 gap-2">
+          @for (m of phaseMetrics; track m.key) {
+          <div class="rounded-xl bg-base-200/60 px-3 py-2">
+            <div class="flex items-center gap-1.5 text-[11px] opacity-60"><span class="w-2 h-2 rounded-full"
+                [class]="m.color"></span>{{ m.label }}</div>
+            <div class="font-semibold tabular-nums" [class.text-error]="m.key === 'neglectMinutes' && p[m.key] > 0">
+              {{ p[m.key] / 60 | hm }}</div>
+          </div>
+          }
+        </div>
+      </div>
+      }
+
+      <!-- Timeline heatmap for one employee: days x time slots -->
+      @if (phaseEmployeeId() == null) {
+      <div class="rounded-2xl border border-dashed border-base-300 p-6 text-center text-sm opacity-60">
+        Choose an employee or click a name above to see the day-by-day timeline
+      </div>
+      } @else {
+      <div class="rounded-2xl border border-base-300 bg-base-100 p-5 flex flex-col gap-4">
+        <div class="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h3 class="font-semibold">Timeline</h3>
+            <p class="text-xs text-base-content/60">Each cell is {{ slotMinutes() }} minutes, colored by the main phase</p>
+          </div>
+          <div class="flex rounded-full bg-base-200 p-1">
+            @for (o of slotOptions; track o) {
+            <button type="button" class="px-3 py-1 rounded-full text-xs transition-colors"
+              [class.bg-base-100]="slotMinutes() === o" [class.shadow-sm]="slotMinutes() === o"
+              [class.font-semibold]="slotMinutes() === o" [class.opacity-60]="slotMinutes() !== o"
+              (click)="slotMinutes.set(o)">{{ o === 60 ? '1 h' : o + ' min' }}</button>
+            }
+          </div>
+        </div>
+
+        @if (timelineGrid(); as g) {
+        <!-- hover info -->
+        <div class="h-9 rounded-xl bg-base-200/60 px-3 flex items-center gap-3 text-xs">
+          @if (hoverCell(); as h) {
+          <span class="font-semibold">{{ h.day | date: 'EEE dd.MM' }}</span>
+          <span class="tabular-nums opacity-70">{{ h.time }}</span>
+          @for (p of h.parts; track p.phase) {
+          <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full"
+              [class]="phaseColors[p.phase]"></span>{{ p.phase }} {{ mins(p.minutes) }}</span>
+          } @empty {
+          <span class="opacity-50">not logged in</span>
+          }
+          } @else {
+          <span class="opacity-50">Hover a cell to see the time and phases · click a day for every phase from - to</span>
+          }
+        </div>
+
+        <div class="overflow-x-auto">
+          <div class="grid gap-[2px] items-center min-w-[640px]" [style.grid-template-columns]="g.template"
+            (mouseleave)="hoverCell.set(null)">
+            <!-- hour labels -->
+            <div></div>
+            @for (h of g.header; track h.col) {
+            <div class="text-[10px] select-none pl-0.5 border-l" [style.grid-column]="h.col + ' / span ' + h.span"
+              [class.border-base-content/30]="h.work" [class.border-base-300]="!h.work" [class.opacity-80]="h.work"
+              [class.opacity-40]="!h.work">{{ h.label }}</div>
+            }
+
+            @for (r of g.rows; track r.day.date) {
+            <button type="button" class="text-left text-sm pr-2 hover:text-primary transition-colors"
+              [style.grid-column]="1" [class.text-primary]="selectedDay()?.date === r.day.date"
+              [class.font-semibold]="selectedDay()?.date === r.day.date" (click)="selectedDay.set(r.day)">
+              {{ r.day.date | date: 'EEE dd.MM' }}
+            </button>
+            @for (c of r.cells; track c.start) {
+            <div class="h-6 rounded-[4px] overflow-hidden cursor-pointer"
+              [class.bg-base-200]="c.work" [class.bg-base-200/50]="!c.work"
+              (mouseenter)="hoverCell.set({ day: r.day.date, time: c.time, parts: c.parts })"
+              (click)="selectedDay.set(r.day)">
+              @if (c.color) {
+              <div class="w-full h-full" [class]="c.color" [style.opacity]="c.opacity"></div>
+              }
+            </div>
+            }
+            <div class="text-right leading-tight">
+              <div class="text-sm font-medium tabular-nums">{{ mins(r.logged) }}</div>
+              <div class="text-[10px] opacity-50 tabular-nums">{{ r.from }}–{{ r.to }}</div>
+            </div>
+            }
+          </div>
+        </div>
+
+        <div class="flex flex-wrap items-center gap-x-5 gap-y-2 text-[11px] opacity-70">
+          @for (p of legendPhases; track p) {
+          <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-sm"
+              [class]="phaseColors[p]"></span>{{ p }}</span>
+          }
+          <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-sm bg-base-200"></span>not logged
+            in</span>
+          <span>Lighter cell = phase covers only part of the slot · darker hour lines = working hours</span>
+        </div>
+
+        @if (selectedDay(); as d) {
+        <div class="border-t border-base-300 pt-4 flex flex-col gap-3">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <h4 class="font-semibold">{{ d.date | date: 'EEEE dd.MM.yyyy' }}</h4>
+            <div class="flex flex-wrap items-center gap-2">
+              @for (t of dayTotals(d); track t.phase) {
+              <span class="badge badge-sm gap-1.5 border-base-300 bg-base-100"><span class="w-2 h-2 rounded-full"
+                  [class]="phaseColors[t.phase]"></span>{{ t.phase }} {{ mins(t.minutes) }}</span>
+              }
+              <button type="button" class="btn btn-xs btn-ghost btn-circle" (click)="selectedDay.set(null)">✕</button>
+            </div>
+          </div>
+
+          @for (s of d.sessions; track $index) {
+          <div class="text-xs text-base-content/60">Logged in {{ s.from }} – {{ s.to }} ({{ duration(s) }})</div>
+          }
+
+          <ol class="flex flex-col gap-1 max-h-96 overflow-y-auto pr-1">
+            @for (s of visibleSegments(d); track $index) {
+            <li class="flex items-center gap-3 rounded-lg px-2 py-1.5 hover:bg-base-200/60">
+              <span class="w-1 self-stretch rounded-full" [class]="phaseColors[s.phase]"></span>
+              <span class="w-28 tabular-nums text-sm">{{ s.from }} – {{ s.to }}</span>
+              <span class="w-20 text-sm font-medium">{{ s.phase }}</span>
+              <span class="w-16 text-sm tabular-nums opacity-70" [class.text-error]="s.phase === 'Neglect'"
+                [class.opacity-100]="s.phase === 'Neglect'">{{ duration(s) }}</span>
+              @if (s.ticket) {
+              <span class="badge badge-sm badge-ghost">{{ s.ticket }}</span>
+              }
+            </li>
+            }
+          </ol>
+        </div>
+        }
+        } @else {
+        <p class="text-sm opacity-60 py-6 text-center">No sessions in this period</p>
+        }
+      </div>
+      }
+
+      <details class="collapse collapse-arrow rounded-2xl border border-base-300 bg-base-100">
+        <summary class="collapse-title text-sm font-semibold">Table</summary>
+        <div class="collapse-content">
       <div class="overflow-x-auto">
         <table class="table table-sm">
           <thead>
@@ -185,7 +404,7 @@
             </tr>
           </thead>
           <tbody>
-            @for (p of phases(); track p.date + '-' + p.employeeId) {
+            @for (p of filteredPhases(); track p.date + '-' + p.employeeId) {
             <tr>
               <td>{{ p.date | date: 'dd.MM.yyyy' }}</td>
               <td>{{ p.username }}</td>
@@ -209,12 +428,14 @@
           </tbody>
         </table>
       </div>
+        </div>
+      </details>
       }
       @if (tab() === 'pto') {
       @if (pending().length) {
       <div class="card border border-warning">
         <div class="card-body p-4 gap-2">
-          <h3 class="text-xs font-semibold uppercase tracking-widest">Pending requests ({{ pending().length }})</h3>
+          <h3 class="font-semibold">Pending requests ({{ pending().length }})</h3>
           @for (l of pending(); track l.id) {
           <div class="flex flex-wrap items-center gap-3 text-sm">
             <span class="font-semibold w-32 truncate">{{ l.username }}</span>
@@ -234,7 +455,7 @@
       }
 
       <div class="flex flex-wrap items-end gap-2">
-        <label class="text-xs uppercase opacity-60">Year
+        <label class="text-xs font-medium text-base-content/60">Year
           <input type="number" class="input input-sm rounded-full block w-28" [(ngModel)]="year"
             (change)="loadPto(); loadLeaves()" />
         </label>
@@ -247,7 +468,7 @@
 
       <div class="overflow-x-auto">
         <table class="table table-sm">
-          <thead class="bg-base-200/60 text-xs uppercase">
+          <thead class="text-xs uppercase text-base-content/60">
             <tr>
               <th>Employee</th>
               <th>Vacation allowance</th>
@@ -279,12 +500,12 @@
           </tbody>
         </table>
       </div>
-      <p class="text-xs opacity-60">Only working days (no weekends or holidays) are counted. Allowances are in working
+      <p class="text-xs text-base-content/60">Only working days (no weekends or holidays) are counted. Allowances are in working
         days per year.</p>
 
       <div class="card border border-base-300">
         <form class="card-body p-4 gap-3" (ngSubmit)="addLeave()">
-          <h3 class="text-xs font-semibold uppercase tracking-widest">Add leave</h3>
+          <h3 class="font-semibold">Add leave</h3>
           <div class="flex flex-wrap items-end gap-2">
             <select class="select select-sm rounded-full" name="employee" [(ngModel)]="leaveEmployeeId" required>
               <option [ngValue]="null" disabled>Employee</option>
@@ -307,7 +528,7 @@
 
       <div class="overflow-x-auto">
         <table class="table table-sm">
-          <thead class="bg-base-200/60 text-xs uppercase">
+          <thead class="text-xs uppercase text-base-content/60">
             <tr>
               <th>Employee</th>
               <th>Reason</th>

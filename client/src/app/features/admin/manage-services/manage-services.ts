@@ -1,3 +1,4 @@
+import { PageHeader } from '../../../shared/page-header/page-header';
 import { Component, inject, OnInit, signal } from '@angular/core';
 import { AdminService } from '../../../core/services/admin-service';
 import { Service } from '../../../types/tickets';
@@ -7,7 +8,7 @@ import { Subscription } from 'rxjs';
 import { AlertModal } from '../../../shared/alert-modal/alert-modal/alert-modal';
 
 @Component({
-  imports: [FormsModule,AlertModal],
+  imports: [PageHeader, FormsModule,AlertModal],
   selector: 'app-manage-services',
   styleUrl: './manage-services.css',
   templateUrl: './manage-services.html',

@@ -66,3 +66,11 @@ export type EmployeePhases = {
     servingMinutes: number; idleMinutes: number; neglectMinutes: number;
     breakMinutes: number; afterHoursMinutes: number;
 };
+export type PhaseName = 'Session' | 'Serving' | 'Idle' | 'Neglect' | 'Break';
+export type PhaseSegment = {
+    phase: PhaseName; ticket: string | null;
+    from: string; to: string;
+    startMinute: number; endMinute: number;
+};
+export type PhaseTimelineDay = { date: string; sessions: PhaseSegment[]; segments: PhaseSegment[] };
+export type PhaseTimeline = { openMinute: number; closeMinute: number; days: PhaseTimelineDay[] };

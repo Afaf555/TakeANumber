@@ -1,32 +1,19 @@
-
-import { Router, RouterLink, RouterLinkActive } from '@angular/router';
+import { Component, inject } from '@angular/core';
+import { RouterLink, RouterLinkActive } from '@angular/router';
 import { AccountService } from '../../core/services/account-service';
-import { environment } from '../../../environments/environment';
-import { Component, ElementRef, HostListener, inject, viewChild } from '@angular/core';
+import { Icon } from '../../shared/icon/icon';
+
+// Top bar for employees, clients and guests (admins use the sidebar)
 @Component({
   selector: 'app-nav',
-  imports: [RouterLink, RouterLinkActive],
+  imports: [RouterLink, RouterLinkActive, Icon],
   templateUrl: './nav.html',
   styleUrl: './nav.css',
 })
 export class Nav {
   protected accountService = inject(AccountService);
-  private router = inject(Router);
-    private adminMenu = viewChild<ElementRef<HTMLDetailsElement>>('adminMenu');
 
-  protected closeAdminMenu() {
-    const el = this.adminMenu()?.nativeElement;
-    if (el) el.open = false;
-  }
-
-  // close the dropdown when clicking anywhere outside of it
-  @HostListener('document:click', ['$event'])
-  onDocumentClick(event: Event) {
-    const el = this.adminMenu()?.nativeElement;
-    if (el?.open && !el.contains(event.target as Node)) el.open = false;
-  }
   logout() {
     this.accountService.logout();
-   // this.router.navigateByUrl('/login');
   }
 }

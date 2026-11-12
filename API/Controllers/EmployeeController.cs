@@ -33,6 +33,50 @@ namespace API.Controllers
             return await employeeRepository.GetTicketDtoAsync(current.Id);
         }
 
+        [HttpGet("overview")]
+        public async Task<ActionResult<EmployeeOverviewDto>> GetOverview()
+        {
+            var userId = User.GetUserId();
+            var counterId = await employeeRepository.GetCounterIdAsync(userId);
+            var today = LocalTime.TodayStartUtc();
+            var dto = new EmployeeOverviewDto();
+            if (counterId == null) return dto;
+
+            dto.CounterName = await context.Counters
+                .Where(c => c.Id == counterId)
+                .Select(c => c.Name)
+                .FirstOrDefaultAsync();
+
+            // tickets in queue for the services of this counter, oldest first
+            var waiting = await context.Tickets
+                .Where(t => t.Status == TicketStatus.InQueue && t.CreatedAt >= today
+                    && context.CounterServices.Any(cs => cs.CounterId == counterId && cs.ServiceId == t.ServiceId))
+                .OrderBy(t => t.Id)
+                .Select(t => new { t.Number, ServiceCode = t.Service.Code, ServiceName = t.Service.Name, t.CreatedAt })
+                .ToListAsync();
+            dto.Waiting = waiting
+                .Select(t => new WaitingTicketDto
+                {
+                    Code = TicketCode.Format(t.ServiceCode, t.Number),
+                    ServiceName = t.ServiceName,
+                    CreatedAt = t.CreatedAt
+                })
+                .ToList();
+
+            // today's tickets handled at this counter
+            var handled = await context.Tickets
+                .Where(t => t.CounterId == counterId && t.StartedAt >= today
+                    && (t.Status == TicketStatus.Finished || t.Status == TicketStatus.NoShow))
+                .Select(t => new { t.Status, t.StartedAt, t.FinishedAt })
+                .ToListAsync();
+            var finished = handled.Where(t => t.Status == TicketStatus.Finished && t.FinishedAt != null).ToList();
+            dto.ServedToday = finished.Count;
+            dto.NoShowsToday = handled.Count(t => t.Status == TicketStatus.NoShow);
+            dto.AvgServiceMinutes = finished.Count == 0 ? 0
+                : Math.Round(finished.Average(t => (t.FinishedAt!.Value - t.StartedAt!.Value).TotalMinutes), 1);
+            return dto;
+        }
+
         [HttpGet("status")]
         public async Task<ActionResult> GetStatus()
         {

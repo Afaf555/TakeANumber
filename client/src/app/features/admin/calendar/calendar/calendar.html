@@ -1,10 +1,11 @@
-<div class="max-w-4xl mx-auto space-y-4">
+<div class="flex flex-col gap-6">
+  <app-page-header title="Calendar" subtitle="Holidays, weekends and who worked on non-working days" />
   <app-alert-modal [message]="error()" type="error" (closed)="error.set('')" />
   <app-alert-modal [message]="message()" type="success" (closed)="message.set('')" />
-  <div class="card bg-base-100 shadow-md">
+  <div class="card bg-base-100 border border-base-300">
     <div class="card-body">
-      <h2 class="card-title text-sm uppercase tracking-widest">Non-working days</h2>
-      <p class="text-xs">Saturdays and Sundays are non-working automatically. Click a day to select it, then add a
+      <h2 class="font-semibold text-base">Non-working days</h2>
+      <p class="text-sm text-base-content/60">Saturdays and Sundays are non-working automatically. Click a day to select it, then add a
         holiday name.</p>
 
       <div class="flex flex-wrap items-end gap-3">
@@ -23,9 +24,9 @@
       </div>
 
       <div class="flex items-center justify-between mt-2">
-        <button class="btn btn-sm btn-circle" (click)="prevMonth()">‹</button>
-        <span class="font-semibold uppercase tracking-widest text-sm">{{ monthStart() | date: 'LLLL yyyy' }}</span>
-        <button class="btn btn-sm btn-circle" (click)="nextMonth()">›</button>
+        <button class="btn btn-sm btn-circle btn-ghost border border-base-300" aria-label="Previous month" (click)="prevMonth()">‹</button>
+        <span class="font-semibold text-lg">{{ monthStart() | date: 'LLLL yyyy' }}</span>
+        <button class="btn btn-sm btn-circle btn-ghost border border-base-300" aria-label="Next month" (click)="nextMonth()">›</button>
       </div>
 
       <div class="grid grid-cols-7 gap-2 text-center text-xs uppercase font-semibold opacity-70">
@@ -50,7 +51,7 @@
           @if (c.holiday) {
           <span class="text-xs font-medium leading-tight">{{ c.holiday.name }}</span>
           } @else if (c.weekend) {
-          <span class="text-xs opacity-60">Weekend</span>
+          <span class="text-xs text-base-content/60">Weekend</span>
           }
           @if (c.workers.length > 0) {
           <div class="mt-auto flex flex-col gap-1">
@@ -72,9 +73,9 @@
     </div>
   </div>
 
-  <div class="card bg-base-100 shadow-md">
+  <div class="card bg-base-100 border border-base-300">
     <div class="card-body">
-      <h2 class="card-title text-sm uppercase tracking-widest">Work on non-working days</h2>
+      <h2 class="font-semibold text-base">Work on non-working days</h2>
 
       <div class="flex flex-wrap items-end gap-3">
         <label class="text-sm">From

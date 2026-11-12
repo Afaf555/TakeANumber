@@ -9,4 +9,6 @@ public class ActiveCounterDto
     public int? CurrentTicketNumber { get; set; }
     public string? CurrentTicketCode { get; set; }
     public bool IsOnBreak { get; set; }
+    public List<string> NextCodes { get; set; } = [];   
+    public int Waiting { get; set; }                     
 }

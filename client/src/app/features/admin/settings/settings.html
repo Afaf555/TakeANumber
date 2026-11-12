@@ -1,81 +1,86 @@
-<div class="max-w-2xl mx-auto space-y-4">
+<div class="flex flex-col gap-6">
+  <app-page-header title="Settings" subtitle="Rules used by the queue, the reports and the leave balances">
+    <button class="btn btn-primary rounded-full" (click)="save()">Save changes</button>
+  </app-page-header>
+
   <app-alert-modal [message]="error()" type="error" (closed)="error.set('')" />
   <app-alert-modal [message]="message()" type="success" (closed)="message.set('')" />
 
-  <div class="card bg-base-100 shadow-md">
-    
-    <div class="card-body">
-            <div class="grid sm:grid-cols-2 gap-4">
-        <label class="text-sm flex flex-col gap-1">Max pause between tickets (seconds)
-          <input type="number" min="0" max="3600" class="input input-sm rounded-full"
-            [ngModel]="form().idleThresholdSeconds" (ngModelChange)="set('idleThresholdSeconds', $event)" />
-        </label>
+  <div class="grid gap-4 lg:grid-cols-2 items-start">
+    <section class="rounded-2xl border border-base-300 bg-base-100 p-5 flex flex-col gap-4">
+      <div>
+        <h2 class="font-semibold">Working time</h2>
+        <p class="text-sm text-base-content/60">Used for late arrivals, early departures and overtime</p>
       </div>
-      <h2 class="card-title text-sm uppercase tracking-widest">Working time</h2>
-
       <div class="grid sm:grid-cols-2 gap-4">
-        <label class="text-sm flex flex-col gap-1">Opening time
-          <input type="time" class="input input-sm rounded-full" [ngModel]="form().openTime"
+        <label class="flex flex-col gap-1.5 text-sm font-medium">Opening time
+          <input type="time" class="input w-full rounded-full font-normal" [ngModel]="form().openTime"
             (ngModelChange)="set('openTime', $event)" />
         </label>
-        <label class="text-sm flex flex-col gap-1">Closing time
-          <input type="time" class="input input-sm rounded-full" [ngModel]="form().closeTime"
+        <label class="flex flex-col gap-1.5 text-sm font-medium">Closing time
+          <input type="time" class="input w-full rounded-full font-normal" [ngModel]="form().closeTime"
             (ngModelChange)="set('closeTime', $event)" />
         </label>
-        <label class="text-sm flex flex-col gap-1">Late arrival grace (minutes)
-          <input type="number" min="0" max="120" class="input input-sm rounded-full"
+        <label class="flex flex-col gap-1.5 text-sm font-medium">Late arrival grace (min)
+          <input type="number" min="0" max="120" class="input w-full rounded-full font-normal"
             [ngModel]="form().lateGraceMinutes" (ngModelChange)="set('lateGraceMinutes', $event)" />
         </label>
-        <label class="text-sm flex flex-col gap-1">Early departure grace (minutes)
-          <input type="number" min="0" max="120" class="input input-sm rounded-full"
+        <label class="flex flex-col gap-1.5 text-sm font-medium">Early departure grace (min)
+          <input type="number" min="0" max="120" class="input w-full rounded-full font-normal"
             [ngModel]="form().earlyGraceMinutes" (ngModelChange)="set('earlyGraceMinutes', $event)" />
         </label>
-        <label class="text-sm flex flex-col gap-1">Standard working day (hours)
-          <input type="number" min="1" max="24" step="0.5" class="input input-sm rounded-full"
+        <label class="flex flex-col gap-1.5 text-sm font-medium">Standard working day (hours)
+          <input type="number" min="1" max="24" step="0.5" class="input w-full rounded-full font-normal"
             [ngModel]="form().standardDayHours" (ngModelChange)="set('standardDayHours', $event)" />
         </label>
       </div>
+    </section>
 
+    <div class="flex flex-col gap-4">
+      <section class="rounded-2xl border border-base-300 bg-base-100 p-5 flex flex-col gap-4">
+        <div>
+          <h2 class="font-semibold">Queue alerts</h2>
+          <p class="text-sm text-base-content/60">A warning shows on the Dashboard and the Queue page. 0 turns it off.</p>
+        </div>
+        <div class="grid sm:grid-cols-2 gap-4">
+          <label class="flex flex-col gap-1.5 text-sm font-medium">People waiting
+            <input type="number" min="0" max="500" class="input w-full rounded-full font-normal"
+              [ngModel]="form().queueAlertWaiting" (ngModelChange)="set('queueAlertWaiting', $event)" />
+          </label>
+          <label class="flex flex-col gap-1.5 text-sm font-medium">Longest wait (min)
+            <input type="number" min="0" max="240" class="input w-full rounded-full font-normal"
+              [ngModel]="form().queueAlertMinutes" (ngModelChange)="set('queueAlertMinutes', $event)" />
+          </label>
+        </div>
+      </section>
 
+      <section class="rounded-2xl border border-base-300 bg-base-100 p-5 flex flex-col gap-4">
+        <div>
+          <h2 class="font-semibold">Phases</h2>
+          <p class="text-sm text-base-content/60">Time to call a waiting ticket that still counts as Idle; longer is Neglect</p>
+        </div>
+        <label class="flex flex-col gap-1.5 text-sm font-medium sm:w-1/2">Reaction time (seconds)
+          <input type="number" min="0" max="3600" class="input w-full rounded-full font-normal"
+            [ngModel]="form().idleThresholdSeconds" (ngModelChange)="set('idleThresholdSeconds', $event)" />
+        </label>
+      </section>
+
+      <section class="rounded-2xl border border-base-300 bg-base-100 p-5 flex flex-col gap-4">
+        <div>
+          <h2 class="font-semibold">Leave allowance</h2>
+          <p class="text-sm text-base-content/60">Working days per year for every employee</p>
+        </div>
+        <div class="grid sm:grid-cols-2 gap-4">
+          <label class="flex flex-col gap-1.5 text-sm font-medium">Vacation days
+            <input type="number" min="0" max="60" class="input w-full rounded-full font-normal"
+              [ngModel]="form().annualLeaveDays" (ngModelChange)="set('annualLeaveDays', $event)" />
+          </label>
+          <label class="flex flex-col gap-1.5 text-sm font-medium">Sick days
+            <input type="number" min="0" max="60" class="input w-full rounded-full font-normal"
+              [ngModel]="form().annualSickDays" (ngModelChange)="set('annualSickDays', $event)" />
+          </label>
+        </div>
+      </section>
     </div>
-  </div>
-
-  <div class="card bg-base-100 shadow-md">
-    <div class="card-body">
-      <h2 class="card-title text-sm uppercase tracking-widest">Queue alerts</h2>
-
-      <div class="grid sm:grid-cols-2 gap-4">
-        <label class="text-sm flex flex-col gap-1">Waiting people (more than)
-          <input type="number" min="0" max="500" class="input input-sm rounded-full"
-            [ngModel]="form().queueAlertWaiting" (ngModelChange)="set('queueAlertWaiting', $event)" />
-        </label>
-        <label class="text-sm flex flex-col gap-1">Longest wait in minutes (more than)
-          <input type="number" min="0" max="240" class="input input-sm rounded-full"
-            [ngModel]="form().queueAlertMinutes" (ngModelChange)="set('queueAlertMinutes', $event)" />
-        </label>
-      </div>
-    </div>
-  </div>
-
-  <div class="card bg-base-100 shadow-md">
-    <div class="card-body">
-      <h2 class="card-title text-sm uppercase tracking-widest">Leave allowance</h2>
-      <p class="text-xs">Days per year for every employee.</p>
-
-      <div class="grid sm:grid-cols-2 gap-4">
-        <label class="text-sm flex flex-col gap-1">Vacation days
-          <input type="number" min="0" max="60" class="input input-sm rounded-full"
-            [ngModel]="form().annualLeaveDays" (ngModelChange)="set('annualLeaveDays', $event)" />
-        </label>
-        <label class="text-sm flex flex-col gap-1">Sick days
-          <input type="number" min="0" max="60" class="input input-sm rounded-full"
-            [ngModel]="form().annualSickDays" (ngModelChange)="set('annualSickDays', $event)" />
-        </label>
-      </div>
-    </div>
-  </div>
-
-  <div class="flex justify-end">
-    <button class="btn btn-sm btn-primary rounded-full" (click)="save()">Save</button>
   </div>
 </div>

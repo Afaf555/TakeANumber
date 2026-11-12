@@ -1,6 +1,9 @@
 namespace API.Services;
 
-public record TicketSlice(DateTime CreatedAt, DateTime StartedAt, DateTime? FinishedAt);
+public record TicketSlice(DateTime CreatedAt, DateTime StartedAt, DateTime? FinishedAt, string? Code = null);
+
+// One continuous piece of a session: Serving / Idle / Neglect / Break
+public record PhaseSegment(DateTime Start, DateTime End, string Phase, string? Ticket);
 
 public record PhaseResult(double Serving, double Idle, double Neglect, double Break, double AfterHours)
 {
@@ -70,6 +73,58 @@ public static class PhaseCalculator
         return new PhaseResult(
             Math.Round(servingMin, 2), Math.Round(idle, 2), Math.Round(neglect, 2),
             Math.Round(breakMin, 2), Math.Round(Math.Max(0, afterMin), 2));
+    }
+
+    // Same rules as Compute, but returns every piece with its start and end time
+    public static List<PhaseSegment> Segments(
+        DateTime login, DateTime end,
+        IEnumerable<(DateTime Start, DateTime End)> breaks,
+        IEnumerable<TicketSlice> tickets,
+        TimeSpan threshold)
+    {
+        var result = new List<PhaseSegment>();
+        if (end <= login) return result;
+
+        void Add(DateTime start, DateTime stop, string phase, string? ticket = null)
+        {
+            if (stop > start) result.Add(new PhaseSegment(start, stop, phase, ticket));
+        }
+
+        var ticketList = tickets.OrderBy(t => t.StartedAt).ToList();
+        var serving = ticketList
+            .Select(t => (Start: Max(t.StartedAt, login), End: Min(t.FinishedAt ?? end, end), t.Code))
+            .Where(i => i.End > i.Start)
+            .ToList();
+        var brk = Merge(breaks
+            .Select(b => (Start: Max(b.Start, login), End: Min(b.End, end)))
+            .Where(i => i.End > i.Start));
+
+        foreach (var s in serving) Add(s.Start, s.End, "Serving", s.Code);
+        foreach (var b in brk) Add(b.Start, b.End, "Break");
+
+        var busy = Merge(serving.Select(s => (s.Start, s.End)).Concat(brk));
+        var cursor = login;
+        foreach (var b in busy.Append((Start: end, End: end)))
+        {
+            if (b.Start > cursor)
+            {
+                var a = cursor;
+                var stop = b.Start;
+                var next = ticketList.FirstOrDefault(t => t.StartedAt == stop);
+                if (next != null)
+                {
+                    var available = Min(Max(next.CreatedAt, a), stop);
+                    var reaction = stop - available;
+                    var ok = reaction < threshold ? reaction : threshold;
+                    Add(a, available + ok, "Idle");
+                    Add(available + ok, stop, "Neglect", next.Code);
+                }
+                else Add(a, stop, "Idle");
+            }
+            cursor = Max(cursor, b.End);
+        }
+
+        return result.OrderBy(x => x.Start).ToList();
     }
 
     private static IEnumerable<(DateTime Start, DateTime End)> Intersect(

@@ -36,9 +36,12 @@ public class AdminController(AppDbContext context, ActivityLogger logger) : Base
     public async Task<ActionResult<ServiceDto>> CreateService(CreateServiceDto dto)
     {
         var code = dto.Code.Trim().ToUpper();
+        var name = dto.Name.Trim();
+        if (string.IsNullOrEmpty(name)) return BadRequest("Name is required");
+        if (code.Length is < 1 or > 5) return BadRequest("Code must be 1-5 characters");
         if (await context.Services.AnyAsync(x => x.Code == code))
             return BadRequest("Code is already used");
-        var service = new Service { Name = dto.Name, Code = dto.Code };
+        var service = new Service { Name = name, Code = code };
         context.Services.Add(service);
         await context.SaveChangesAsync();
         await logger.LogAsync(LogActions.ServiceCreated, "Service", service.Id, $"{code} - {service.Name}");

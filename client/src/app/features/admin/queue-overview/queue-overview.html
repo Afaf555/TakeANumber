@@ -1,32 +1,28 @@
-<div class="max-w-3xl mx-auto space-y-4">
-  <div class="flex items-center justify-between">
-    <h2 class="text-sm uppercase tracking-widest font-semibold">
-      Queue · {{ waiting() }} waiting
-    </h2>
-    <div class="flex items-center gap-3">
-      <label class="flex items-center gap-2 text-sm">
-        Show finished
-        <input type="checkbox" class="toggle toggle-sm toggle-primary"
-               [checked]="showFinished()" #f (change)="showFinished.set(f.checked); page.set(0)" />
-      </label>
-      <button class="btn btn-sm rounded-full" (click)="load()">Refresh</button>
-    </div>
-  </div>
+<div class="flex flex-col gap-6">
+  <app-page-header title="Queue" [subtitle]="waiting() + ' waiting · tickets taken today'">
+    <label class="flex items-center gap-2 text-sm rounded-full border border-base-300 bg-base-100 px-3.5 py-2">
+      Show finished
+      <input type="checkbox" class="toggle toggle-sm toggle-primary" [checked]="showFinished()" #f
+        (change)="showFinished.set(f.checked); page.set(0)" />
+    </label>
+    <button class="btn btn-sm btn-ghost rounded-full border border-base-300 bg-base-100" (click)="load()">Refresh</button>
+  </app-page-header>
 
   @if (error()) {
-    <p class="text-error text-sm">{{ error() }}</p>
+  <p role="alert" class="rounded-2xl border border-error/30 bg-error/5 px-4 py-3 text-sm text-error">{{ error() }}</p>
   }
   @for (a of alerts(); track a) {
-    <div role="alert" class="alert alert-warning text-sm">
-      <span>⚠ {{ a }}</span>
-    </div>
+  <div role="alert" class="flex items-center gap-3 rounded-2xl border border-warning/50 bg-warning/10 px-4 py-3.5 text-sm font-medium text-amber-900">
+    <app-icon name="alert" [size]="20" />{{ a }}
+  </div>
   }
-  <div class="card bg-base-100 shadow-md">
-    <div class="card-body overflow-x-auto">
+
+  <section class="rounded-2xl border border-base-300 bg-base-100 p-5 flex flex-col gap-4">
+    <div class="overflow-x-auto">
       <table class="table">
-        <thead>
+        <thead class="text-xs uppercase text-base-content/60">
           <tr>
-            <th>#</th>
+            <th>Ticket</th>
             <th>Service</th>
             <th>Status</th>
             <th>Counter</th>
@@ -35,35 +31,33 @@
         </thead>
         <tbody>
           @for (t of paged(); track t.id) {
-            <tr>
-              <td class="font-semibold">{{ t.code }}</td>
-              <td>{{ t.serviceName }}</td>
-              <td>
-                <span class="badge "
-                   [class.badge-primary]="t.status === 'InProgress'"
-                   [class.badge-success]="t.status === 'Finished'"
-                   [class.badge-error]="t.status === 'NoShow'">{{ t.status }}</span>
-              </td>
-              <td>{{ t.counterName || '-' }}</td>
-              
-              <td>{{ t.createdAt | date: 'HH:mm' }}</td>
-            </tr>
+          <tr>
+            <td class="font-bold">{{ t.code }}</td>
+            <td>{{ t.serviceName }}</td>
+            <td>
+              <span class="badge badge-sm badge-soft" [class.badge-info]="t.status === 'InQueue'"
+                [class.badge-primary]="t.status === 'InProgress'" [class.badge-success]="t.status === 'Finished'"
+                [class.badge-error]="t.status === 'NoShow'">{{ statusLabel(t.status) }}</span>
+            </td>
+            <td>{{ t.counterName || '—' }}</td>
+            <td class="tabular-nums">{{ t.createdAt | date: 'HH:mm' }}</td>
+          </tr>
           } @empty {
-            <tr><td colspan="5" class="text-sm">No tickets at the moment</td></tr>
+          <tr><td colspan="5" class="py-10 text-center text-sm text-base-content/60">No tickets at the moment</td></tr>
           }
         </tbody>
       </table>
+    </div>
 
-      <div class="flex items-center justify-between text-sm">
-        <span class="opacity-60">{{ visible().length }} tickets</span>
-        <div class="join">
-          <button class="join-item btn btn-sm" [disabled]="current() === 0"
-            (click)="page.set(current() - 1)">«</button>
-          <button class="join-item btn btn-sm no-animation">{{ current() + 1 }} / {{ pages() }}</button>
-          <button class="join-item btn btn-sm" [disabled]="current() + 1 >= pages()"
-            (click)="page.set(current() + 1)">»</button>
-        </div>
+    <div class="flex items-center justify-between text-sm">
+      <span class="text-base-content/60">{{ visible().length }} tickets</span>
+      <div class="join">
+        <button class="join-item btn btn-sm" [disabled]="current() === 0" aria-label="Previous page"
+          (click)="page.set(current() - 1)">«</button>
+        <span class="join-item btn btn-sm pointer-events-none">{{ current() + 1 }} / {{ pages() }}</span>
+        <button class="join-item btn btn-sm" [disabled]="current() + 1 >= pages()" aria-label="Next page"
+          (click)="page.set(current() + 1)">»</button>
       </div>
     </div>
-  </div>
+  </section>
 </div>

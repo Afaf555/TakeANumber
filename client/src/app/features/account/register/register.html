@@ -1,17 +1,30 @@
-<div class="card bg-base-100 shadow-md max-w-sm mx-auto">
-  <form class="card-body gap-4" (ngSubmit)="register()">
-    <h2 class="card-title text-sm uppercase tracking-widest">Register</h2>
+<div class="max-w-sm mx-auto mt-6 sm:mt-14 flex flex-col gap-6">
+  <div class="flex flex-col items-center text-center gap-3">
+    <span class="w-12 h-12 rounded-2xl bg-primary text-primary-content grid place-items-center text-xl font-extrabold">#</span>
+    <div>
+      <h1 class="text-2xl font-bold tracking-tight">Create an account</h1>
+      <p class="text-sm text-base-content/60">Take a number without waiting at the kiosk</p>
+    </div>
+  </div>
 
-    <input class="input w-full rounded-full" name="username" placeholder="Username"
-           [(ngModel)]="creds.username" required />
-    <input class="input w-full rounded-full" name="password" type="password" placeholder="Password (min 4)"
-           [(ngModel)]="creds.password" required minlength="4" />
+  <form class="rounded-2xl border border-base-300 bg-base-100 p-6 flex flex-col gap-4" (ngSubmit)="register()">
+    <label class="flex flex-col gap-1.5 text-sm font-medium">Username
+      <input class="input w-full rounded-full font-normal" name="username" autocomplete="username"
+        [(ngModel)]="creds.username" required />
+    </label>
+    <label class="flex flex-col gap-1.5 text-sm font-medium">Password
+      <input class="input w-full rounded-full font-normal" name="password" type="password" autocomplete="new-password"
+        [(ngModel)]="creds.password" required minlength="8" />
+      <span class="text-xs font-normal text-base-content/60">At least 8 characters, with a letter and a digit</span>
+    </label>
 
     @if (error()) {
-      <p class="text-error text-sm">{{ error() }}</p>
+    <p role="alert" class="rounded-xl bg-error/5 border border-error/30 px-3 py-2 text-sm text-error">{{ error() }}</p>
     }
 
-    <button class="btn btn-primary rounded-full" type="submit">Register</button>
-    <a routerLink="/login" class="text-sm text-center link link-hover">Already have an account? Login</a>
+    <button class="btn btn-primary rounded-full mt-1" type="submit">Create account</button>
   </form>
+
+  <p class="text-sm text-center text-base-content/60">Already have an account?
+    <a routerLink="/login" class="font-semibold text-primary hover:underline">Log in</a></p>
 </div>

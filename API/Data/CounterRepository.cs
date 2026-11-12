@@ -26,9 +26,20 @@ public class CounterRepository(AppDbContext context) : ICounterRepository
             .Where(u => u.IsOnBreak && u.CounterId != null)
             .Select(u => u.CounterId!.Value)
             .ToListAsync();
+        // services of every counter, and today's waiting tickets (oldest first)
+        var counterServices = await context.CounterServices
+            .Select(cs => new { cs.CounterId, cs.ServiceId })
+            .ToListAsync();
+        var waiting = await context.Tickets
+            .Where(t => t.Status == TicketStatus.InQueue && t.CreatedAt >= today)
+            .OrderBy(t => t.Id)
+            .Select(t => new { t.ServiceId, t.Number, ServiceCode = t.Service.Code })
+            .ToListAsync();
         return counters.Select(c =>
         {
             var t = inProgress.FirstOrDefault(x => x.CounterId == c.Id);
+            var serviceIds = counterServices.Where(cs => cs.CounterId == c.Id).Select(cs => cs.ServiceId).ToHashSet();
+            var mine = waiting.Where(w => serviceIds.Contains(w.ServiceId)).ToList();
             return new ActiveCounterDto
             {
                 CounterId = c.Id,
@@ -36,6 +47,8 @@ public class CounterRepository(AppDbContext context) : ICounterRepository
                 CurrentTicketNumber = t?.Number,
                 CurrentTicketCode = t == null ? null : TicketCode.Format(t.ServiceCode, t.Number),
                 IsOnBreak = onBreakCounterIds.Contains(c.Id),
+                NextCodes = mine.Take(10).Select(w => TicketCode.Format(w.ServiceCode, w.Number)).ToList(),
+                Waiting = mine.Count,
             };
         }).ToList();
     }
@@ -53,6 +66,7 @@ public class CounterRepository(AppDbContext context) : ICounterRepository
                 t.ServiceId,
                 t.Number,
                 t.Status,
+                t.CreatedAt,
                 CounterName = t.Counter != null ? t.Counter.Name : ""
             })
             .ToListAsync();
@@ -72,7 +86,12 @@ public class CounterRepository(AppDbContext context) : ICounterRepository
                 .OrderBy(t => t.Id)
                 .Take(10)
                 .Select(t => TicketCode.Format(s.Code, t.Number))
-                .ToList()
+                .ToList(),
+            Waiting = tickets.Count(t => t.ServiceId == s.Id && t.Status == TicketStatus.InQueue),
+            OldestWaitingSince = tickets
+                .Where(t => t.ServiceId == s.Id && t.Status == TicketStatus.InQueue)
+                .Select(t => (DateTime?)t.CreatedAt)
+                .Min()
         }).ToList();
     }
 }

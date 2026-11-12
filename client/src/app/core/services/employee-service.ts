@@ -1,7 +1,7 @@
 import { HttpClient } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
 import { environment } from '../../../environments/environment';
-import { EmployeeTicket } from '../../types/employee';
+import { EmployeeOverview, EmployeeTicket } from '../../types/employee';
 
 @Injectable({
   providedIn: 'root',
@@ -23,6 +23,9 @@ export class EmployeeService {
   }
   noShow(){
     return this.http.post<EmployeeTicket>(this.baseUrl+'no-show',{});
+  }
+  getOverview() {
+    return this.http.get<EmployeeOverview>(this.baseUrl + 'overview');
   }
   getStatus(){
     return this.http.get<{isOnBreak:boolean}>(this.baseUrl+'status');

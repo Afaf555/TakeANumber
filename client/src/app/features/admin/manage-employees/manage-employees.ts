@@ -1,3 +1,4 @@
+import { PageHeader } from '../../../shared/page-header/page-header';
 import { AlertModal } from '../../../shared/alert-modal/alert-modal/alert-modal';
 import { Component, inject, OnDestroy, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
@@ -9,7 +10,7 @@ import { DisplayService } from '../../../core/services/display-service';
 
 @Component({
   selector: 'app-manage-employees',
-  imports: [FormsModule, AlertModal],
+  imports: [PageHeader, FormsModule, AlertModal],
   templateUrl: './manage-employees.html',
   styleUrl: './manage-employees.css',
 })

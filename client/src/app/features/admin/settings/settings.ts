@@ -1,3 +1,4 @@
+import { PageHeader } from '../../../shared/page-header/page-header';
 import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { AlertModal } from '../../../shared/alert-modal/alert-modal/alert-modal';
@@ -6,7 +7,7 @@ import { DEFAULT_SETTINGS, shiftTime, WorkSettings } from '../../../types/settin
 
 @Component({
   selector: 'app-settings',
-  imports: [FormsModule, AlertModal],
+  imports: [PageHeader, FormsModule, AlertModal],
   templateUrl: './settings.html',
 })
 export class Settings implements OnInit {

@@ -6,8 +6,10 @@ import { DisplayService } from '../../../core/services/display-service';
 import { AdminTicket } from '../../../types/admin';
 import { SettingsService } from '../../../core/services/settings-service';
 import { DEFAULT_SETTINGS, WorkSettings } from '../../../types/settings';
+import { PageHeader } from '../../../shared/page-header/page-header';
+import { Icon } from '../../../shared/icon/icon';
 @Component({
-  imports: [DatePipe],
+  imports: [DatePipe, PageHeader, Icon],
   selector: 'app-queue-overview',
   styleUrl: './queue-overview.css',
   templateUrl: './queue-overview.html',
@@ -51,14 +53,13 @@ export class QueueOverview implements OnInit, OnDestroy {
   protected alerts = computed(() => {
     const r = this.rules();
     const result: string[] = [];
-    if (r.queueAlertWaiting > 0 && this.waiting() > r.queueAlertWaiting)
+    if (r.queueAlertWaiting > 0 && this.waiting() >= r.queueAlertWaiting)
       result.push(`${this.waiting()} people are waiting (limit ${r.queueAlertWaiting})`);
-    if (r.queueAlertMinutes > 0 && this.longestWait() > r.queueAlertMinutes)
+    if (r.queueAlertMinutes > 0 && this.longestWait() >= r.queueAlertMinutes)
       result.push(`Longest wait is ${this.longestWait()} min (limit ${r.queueAlertMinutes} min)`);
     return result;
   });
   ngOnInit() {
-    this.settingsService.get().subscribe({ next: (s) => this.rules.set(s) });
     this.clock = setInterval(() => this.now.set(Date.now()), 30000);
     this.load();
     this.updateSub = this.displayService.dataChanged$.subscribe(() => this.load());
@@ -69,7 +70,13 @@ export class QueueOverview implements OnInit, OnDestroy {
     this.updateSub?.unsubscribe();
   }
 
+  protected statusLabel(status: string) {
+    return { InQueue: 'Waiting', InProgress: 'Serving', Finished: 'Finished', NoShow: 'No-show' }[status] ?? status;
+  }
+
   load() {
+    this.now.set(Date.now());
+    this.settingsService.get().subscribe({ next: (s) => this.rules.set(s) });
     this.adminService.getTickets().subscribe({
       next: (tickets) => {
         this.tickets.set(tickets);

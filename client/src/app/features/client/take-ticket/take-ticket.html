@@ -1,56 +1,72 @@
-<div class="max-w-md mx-auto space-y-4">
-    @if (error()) {
-    <p class="text-error text-sm">{{error()}}</p>
-    }
-    @if (ticket(); as t) {
-    <div class="card bg-base-100 shadow-md">
-        <div class="card-body items-center text-center gap-2">
-            <h2 class="text-sm uppercase tracking-widest">
-                Your ticket
-            </h2>
-            <p class="text-6xl font-semibold text-primary">
-                {{t.code}}
-            </p>
-            <p>{{t.serviceName}}</p>
-            <div class="badge badge-outline">
-                {{t.status}}
-            </div>
-            @if(t.status==="InQueue"){
-            <p class="text-sm">You are number {{ t.peopleAhead + 1 }} in the queue</p>
-            }
-            @if (t.counterName) {
-            <p class="text-sm">Counter: {{t.counterName}}</p>
-            }
-            @if (t.status==='NoShow') {
-                <p class="text-sm text-error">You were not present when called. Please take a new ticket.</p>
-            }
-            <div class="card-actions mt-2">
-          
-               
-                <div class="card-actions mt-2">
-                    <button class="btn btn-primary rounded-full" (click)="newTicket()">
-                        Next user
-                    </button>
-                </div>
-            </div>
-        </div>
+<div class="min-h-screen bg-base-200 px-6 py-6 sm:px-12 sm:py-10 flex flex-col gap-8 sm:gap-10">
+  <header class="flex items-center justify-between gap-4">
+    <div class="flex items-center gap-3">
+      <span class="w-12 h-12 rounded-2xl bg-primary text-primary-content grid place-items-center text-2xl font-extrabold">#</span>
+      <span class="text-2xl font-bold tracking-tight">TakeANumber</span>
     </div>
-    } @else{
-    <div class="card bg-base-100 shadow-md">
-        <div class="card-body gap-3">
-            <h2 class="card-title text-sm uppercase tracking-widest">
-                Choose a service
-            </h2>
-            @for (s of services(); track s.id) {
-            <button class="btn btn-primary btn-outline rounded-full" (click)="takeTicket(s.id)">
-                {{s.name}}
-            </button>
-            } @empty{
-            <p class="text-sm">No services available</p>
-            }
-        </div>
+    <div class="flex items-center gap-4">
+      @if (accountService.currentUser(); as user) {
+      <span class="hidden sm:inline text-sm text-base-content/60">{{ user.username }}</span>
+      <button type="button" class="btn btn-sm btn-ghost rounded-full" (click)="logout()">Log out</button>
+      } @else {
+      <a routerLink="/login" class="text-sm text-base-content/60 hover:text-primary">Staff login</a>
+      }
+      <span class="text-3xl font-bold tabular-nums">{{ now() | date: 'HH:mm' }}</span>
     </div>
+  </header>
+
+  <div class="flex flex-col gap-2">
+    <h1 class="text-4xl sm:text-5xl font-extrabold tracking-tight">What do you need today?</h1>
+    <p class="text-xl text-base-content/60">Tap a service to get your number</p>
+  </div>
+
+  @if (error()) {
+  <div role="alert" class="rounded-2xl border border-error/30 bg-error/5 px-5 py-4 text-error">{{ error() }}</div>
+  }
+
+  <div class="grid gap-5 sm:grid-cols-2">
+    @for (s of tiles(); track s.id) {
+    <button type="button"
+      class="text-left min-h-52 rounded-[28px] border border-base-300 bg-base-100 p-7 flex flex-col justify-between gap-6 transition hover:border-primary hover:shadow-lg active:scale-[0.98] cursor-pointer"
+      (click)="takeTicket(s.id)">
+      <span class="w-16 h-16 rounded-2xl grid place-items-center text-3xl font-extrabold" [class]="s.color">{{ s.code }}</span>
+      <span class="flex flex-col gap-1">
+        <span class="text-3xl font-bold">{{ s.name }}</span>
+        <span class="text-lg font-medium" [class.text-success]="!s.waiting" [class.text-base-content/60]="s.waiting">
+          @if (s.waiting) { {{ s.waiting }} waiting } @else { No waiting }
+        </span>
+      </span>
+    </button>
+    } @empty {
+    <p class="text-lg text-base-content/60">No services available</p>
     }
-
-
+  </div>
 </div>
+
+<!-- the ticket, shown over the tiles -->
+@if (ticket(); as t) {
+<div class="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm grid place-items-center p-6" (click)="newTicket()">
+  <section aria-label="Your ticket" aria-live="polite"
+    class="w-full max-w-lg rounded-[28px] bg-base-100 shadow-2xl overflow-hidden" (click)="$event.stopPropagation()">
+    <div class="bg-primary text-primary-content px-7 py-4 flex justify-between text-lg font-semibold">
+      <span>Your ticket</span><span>{{ t.serviceName }}</span>
+    </div>
+    <div class="px-7 py-8 flex flex-col items-center gap-3 border-b-2 border-dashed border-base-300 text-center">
+      <span class="text-8xl sm:text-9xl font-extrabold tracking-tighter leading-none text-primary">{{ t.code }}</span>
+      @if (t.status === 'InQueue') {
+      <span class="text-xl text-base-content/80">You are number <b>{{ t.peopleAhead + 1 }}</b> in line</span>
+      } @else if (t.status === 'InProgress') {
+      <span class="text-xl font-semibold text-success">Please go to {{ t.counterName }}</span>
+      } @else if (t.status === 'NoShow') {
+      <span class="text-lg text-error">You were not present when called. Please take a new ticket.</span>
+      }
+    </div>
+    <div class="px-7 py-5 flex items-center justify-between gap-4">
+      <span class="text-base text-base-content/60">Watch the screen for your number</span>
+      <button type="button" class="btn btn-primary rounded-full gap-2" (click)="newTicket()">
+        <app-icon name="check" [size]="16" />Done · {{ countdown() }}s
+      </button>
+    </div>
+  </section>
+</div>
+}

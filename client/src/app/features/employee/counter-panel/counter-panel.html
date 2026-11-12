@@ -1,28 +1,117 @@
-<div class="max-w-md mx-auto space-y-4">
-  <div class="card bg-base-100 shadow-md">
-    <div class="card-body items-center text-center gap-3">
-      <h2 class="text-sm uppercase tracking-widest">Current ticket</h2>
-
-      @if (onBreak()) {
-      <p class="text-4xl font-semibold text-error">On break</p>
-      <button class="btn btn-error rounded-full w-full mt-2" (click)="endBreak()">End break</button>
-      } @else if (ticket(); as t) {
-      <p class="text-6xl font-semibold text-primary">{{ t.code }}</p>
-      <p>{{ t.serviceName }}</p>
-      <div class="badge badge-outline">{{ t.status }}</div>
-      <div class="flex gap-2 w-full mt-2">
-        <button class="btn btn-primary rounded-full flex-1" (click)="finish()">Finish</button>
-        <button class="btn btn-outline btn-error rounded-full flex-1" (click)="noShow()">No-show</button>
-      </div>
-      } @else {
-      <p class="text-sm">No ticket in progress</p>
-      <button class="btn btn-primary rounded-full w-full mt-2" (click)="callNext()">Call next</button>
-      <button class="btn btn-outline btn-error rounded-full w-full" (click)="startBreak()">Take a break</button>
-      }
-    </div>
-  </div>
-
+<div class="max-w-5xl mx-auto flex flex-col gap-4">
   @if (error()) {
-  <p class="text-error text-sm text-center">{{ error() }}</p>
+  <div role="alert" class="flex items-center gap-3 rounded-2xl border border-error/30 bg-error/5 px-4 py-3 text-sm text-error">
+    <app-icon name="alert" />
+    <span class="flex-1">{{ error() }}</span>
+    <button type="button" class="btn btn-ghost btn-xs btn-square" aria-label="Dismiss" (click)="error.set('')">
+      <app-icon name="x" [size]="14" />
+    </button>
+  </div>
   }
+
+  <div class="flex flex-col lg:flex-row gap-6 items-start">
+    <!-- current ticket -->
+    <section aria-label="Current ticket" class="w-full lg:flex-1 rounded-3xl border border-base-300 bg-base-100 p-6 sm:p-8 flex flex-col gap-7">
+      @if (onBreak()) {
+      <div class="flex flex-col items-center text-center gap-4 py-10">
+        <span class="w-16 h-16 rounded-2xl bg-warning/15 text-amber-700 grid place-items-center">
+          <app-icon name="coffee" [size]="30" />
+        </span>
+        <span class="text-4xl font-bold tracking-tight text-amber-700">On break</span>
+        <span class="text-sm text-base-content/60">The display shows your counter as on break</span>
+      </div>
+      <button type="button" class="btn btn-warning h-16 rounded-2xl text-lg" (click)="endBreak()">End break</button>
+      } @else if (ticket(); as t) {
+      <div class="flex flex-wrap justify-between items-center gap-2">
+        <span class="flex items-center gap-2 text-sm font-semibold text-success bg-success/10 px-3.5 py-1.5 rounded-full">
+          <span class="w-2 h-2 rounded-full bg-success"></span>Serving
+        </span>
+        <span class="text-sm text-base-content/60">started {{ t.startedAt | date: 'HH:mm' }} ·
+          <b class="text-base-content">{{ servingMinutes() }} min</b></span>
+      </div>
+      <div class="flex flex-col items-center text-center gap-2 py-2">
+        <span class="text-7xl sm:text-8xl lg:text-9xl font-extrabold tracking-tighter leading-none text-primary">{{ t.code }}</span>
+        <span class="text-xl text-base-content/80">{{ t.serviceName }}</span>
+        <span class="text-sm text-base-content/60">taken at {{ t.createdAt | date: 'HH:mm' }} · waited {{ waitedMinutes() }} min</span>
+      </div>
+      <div class="grid grid-cols-2 gap-3">
+        <button type="button" class="btn btn-success h-16 rounded-2xl text-lg" [disabled]="busy()" (click)="finish()">
+          Finish
+        </button>
+        <button type="button" class="btn h-16 rounded-2xl text-lg border-error/30 bg-error/5 text-error hover:bg-error/10"
+          [disabled]="busy()" (click)="noShow()">
+          No-show
+        </button>
+      </div>
+      <button type="button" class="btn h-[72px] rounded-2xl text-lg" disabled>Call next</button>
+      <p class="-mt-4 text-center text-sm text-base-content/60">Finish the current ticket to call the next one</p>
+      } @else {
+      <div class="flex flex-col items-center text-center gap-3 py-10">
+        <span class="text-7xl sm:text-8xl font-extrabold tracking-tighter leading-none text-base-content/15">—</span>
+        <span class="text-base text-base-content/60">
+          @if (waiting().length) { {{ waiting().length }} waiting for your counter } @else { Nobody is waiting right now }
+        </span>
+      </div>
+      <button type="button" class="btn btn-primary h-[72px] rounded-2xl text-lg"
+        [disabled]="busy() || !waiting().length" (click)="callNext()">
+        Call next
+      </button>
+      }
+    </section>
+
+    <aside class="w-full lg:w-80 flex flex-col gap-4">
+      <!-- waiting for this counter -->
+      <section aria-label="Waiting for your counter" class="rounded-3xl border border-base-300 bg-base-100 p-5 flex flex-col gap-3">
+        <div class="flex justify-between items-baseline">
+          <h2 class="font-semibold">Waiting for you</h2>
+          <span class="text-3xl font-extrabold tabular-nums">{{ waiting().length }}</span>
+        </div>
+        <ol class="flex flex-col gap-1.5">
+          @for (w of waiting().slice(0, 5); track w.code) {
+          <li class="flex justify-between items-center rounded-xl px-3 py-2.5"
+            [class.bg-error/5]="w.minutes >= limit()" [class.bg-warning/10]="w.minutes >= limit() / 2 && w.minutes < limit()"
+            [class.bg-base-200]="w.minutes < limit() / 2">
+            <span class="flex flex-col leading-tight">
+              <b>{{ w.code }}</b>
+              <span class="text-xs text-base-content/60">{{ w.serviceName }}</span>
+            </span>
+            <span class="text-sm font-semibold tabular-nums" [class.text-error]="w.minutes >= limit()"
+              [class.text-amber-700]="w.minutes >= limit() / 2 && w.minutes < limit()"
+              [class.text-base-content/60]="w.minutes < limit() / 2">{{ w.minutes }} min</span>
+          </li>
+          } @empty {
+          <li class="text-sm text-base-content/60 py-2">Nobody is waiting</li>
+          }
+        </ol>
+        @if (waiting().length > 5) {
+        <span class="text-sm text-base-content/60">+ {{ waiting().length - 5 }} more</span>
+        }
+      </section>
+
+      <!-- today -->
+      @if (overview(); as o) {
+      <section aria-label="Your day" class="rounded-3xl border border-base-300 bg-base-100 p-5 flex flex-col gap-3">
+        <div class="flex justify-between items-baseline">
+          <h2 class="font-semibold">Your day</h2>
+          <span class="text-xs text-base-content/60">{{ o.counterName }}</span>
+        </div>
+        <div class="grid grid-cols-3 gap-2">
+          <div class="flex flex-col"><span class="text-2xl font-bold tabular-nums">{{ o.servedToday }}</span><span
+              class="text-xs text-base-content/60">served</span></div>
+          <div class="flex flex-col"><span class="text-2xl font-bold tabular-nums">{{ o.avgServiceMinutes }}m</span><span
+              class="text-xs text-base-content/60">avg time</span></div>
+          <div class="flex flex-col"><span class="text-2xl font-bold tabular-nums">{{ o.noShowsToday }}</span><span
+              class="text-xs text-base-content/60">no-show</span></div>
+        </div>
+      </section>
+      }
+
+      @if (!onBreak()) {
+      <button type="button" class="btn h-13 rounded-2xl border-warning/50 bg-warning/10 text-amber-800 hover:bg-warning/20 gap-2"
+        [disabled]="!!ticket()" (click)="startBreak()">
+        <app-icon name="coffee" />Take a break
+      </button>
+      }
+    </aside>
+  </div>
 </div>

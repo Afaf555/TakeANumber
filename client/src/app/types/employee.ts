@@ -7,3 +7,10 @@ export type EmployeeTicket={
     startedAt: string | null;
     code:string;
 };
+export type EmployeeOverview = {
+    counterName: string | null;
+    waiting: { code: string; serviceName: string; createdAt: string }[];
+    servedToday: number;
+    noShowsToday: number;
+    avgServiceMinutes: number;
+};

@@ -1,4 +1,11 @@
-<app-nav />
-<main class="max-w-5xl mx-auto p-6">
-  <router-outlet />
-</main>
+<div [class]="shellClass()">
+  @if (!bare() && admin()) {
+  <app-sidebar />
+  }
+  @if (!bare() && !admin()) {
+  <app-nav />
+  }
+  <main [class]="mainClass()">
+    <router-outlet />
+  </main>
+</div>

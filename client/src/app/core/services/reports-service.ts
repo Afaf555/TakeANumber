@@ -1,7 +1,7 @@
 import { inject, Injectable } from "@angular/core";
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { environment } from "../../../environments/environment";
-import { EmployeeActivity, EmployeePhases, EmployeeReportRow, HeatmapCell, HoursReport, PtoRow, WorkforceReport } from "../../types/reports";
+import { EmployeeActivity, EmployeePhases, PhaseTimeline, EmployeeReportRow, HeatmapCell, HoursReport, PtoRow, WorkforceReport } from "../../types/reports";
 import { QueueReport } from "../../types/reports";
 @Injectable({providedIn:'root'})
 export class ReportsService{
@@ -35,5 +35,8 @@ export class ReportsService{
   }
   getPhases(from: string, to: string) {
     return this.http.get<EmployeePhases[]>(this.baseUrl + 'phases', { params: { from, to } });
+  }
+  getPhaseTimeline(from: string, to: string, employeeId: number) {
+    return this.http.get<PhaseTimeline>(this.baseUrl + 'phases/timeline', { params: { from, to, employeeId } });
   }
 }

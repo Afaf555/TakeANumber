@@ -1,52 +1,44 @@
-<div class="max-w-4xl mx-auto">
-  <h2 class="text-sm uppercase tracking-widest text-center mb-6">Now serving</h2>
+<div class="min-h-screen bg-base-200 px-6 py-6 sm:px-10 sm:py-8 flex flex-col gap-8">
+  <header class="flex items-center justify-between gap-4">
+    <a [routerLink]="exitLink()" class="flex items-center gap-3" title="Exit display">
+      <span class="w-10 h-10 rounded-xl bg-primary text-primary-content grid place-items-center text-lg font-extrabold">#</span>
+      <span class="text-xl font-bold tracking-tight">Now serving</span>
+    </a>
+    <span class="text-3xl font-bold tabular-nums">{{ now() | date: 'HH:mm' }}</span>
+  </header>
 
-  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+ 
+  <section aria-label="Counters" aria-live="polite" class="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
     @for (c of displayService.counters(); track c.counterId) {
-    <div class="card bg-base-100 shadow-md">
-      <div class="card-body items-center text-center gap-1">
-        <p class="text-sm uppercase tracking-widest">{{ c.counterName }}</p>
+    <div class="rounded-2xl flex flex-col" [class]="cardClass(c)">
+      <div class="px-6 pt-6 pb-5 flex flex-col items-center text-center gap-2">
+        <span class="text-base font-semibold uppercase tracking-wide" [class.text-primary]="isLatest(c)"
+          [class.text-amber-700]="c.isOnBreak" [class.text-base-content/60]="!c.isOnBreak && !isLatest(c)">{{ c.counterName }}</span>
         @if (c.isOnBreak) {
-        <p class="text-3xl font-semibold text-error">On break</p>
-        } @else if (c.currentTicketCode !== null) {
-        <p class="text-5xl font-semibold text-primary">{{ c.currentTicketCode }}</p>
+        <span class="text-4xl font-bold text-amber-700 leading-[4.5rem]">On break</span>
+        } @else if (c.currentTicketCode) {
+        <span class="text-6xl font-extrabold tracking-tight" [class.text-primary]="isLatest(c)">{{ c.currentTicketCode }}</span>
         } @else {
-        <p class="text-5xl font-semibold opacity-30">-</p>
+        <span class="text-6xl font-extrabold text-base-content/20">—</span>
         }
       </div>
-    </div>
-    } @empty {
-    <p class="text-sm text-center col-span-full">No active counters</p>
-    }
-  </div>
 
-  <h2 class="text-sm uppercase tracking-widest text-center mt-10 mb-6">Queues by service</h2>
-
-  <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-    @for (q of displayService.queues(); track q.serviceId) {
-    <div class="card bg-base-100 shadow-md">
-      <div class="card-body gap-2">
-        <h3 class="card-title text-sm uppercase tracking-widest">{{ q.serviceName }}</h3>
-
-        <p class="text-sm">Now serving:
-          @for (s of q.serving; track s.code) {
-          <span class="badge badge-primary badge-lg ml-1">{{ s.code }} · {{ s.counterName }}</span>
+      <div class="flex-1 border-t border-base-300 px-5 py-4 flex flex-col gap-2.5">
+        <div class="flex items-baseline justify-between text-sm">
+          <span class="font-semibold text-base-content/70">Next</span>
+          <span class="text-base-content/50">{{ c.waiting }} waiting</span>
+        </div>
+        <div class="flex flex-wrap gap-1.5">
+          @for (n of c.nextCodes; track n) {
+          <span class="text-base font-semibold px-2.5 py-1 rounded-lg bg-base-200">{{ n }}</span>
           } @empty {
-          <span class="opacity-50">-</span>
+          <span class="text-sm text-base-content/40">Nobody is waiting</span>
           }
-        </p>
-
-        <p class="text-sm">Next in queue:
-          @for (n of q.nextCodes; track n) {
-          <span class="badge badge-outline ml-1">{{ n }}</span>
-          } @empty {
-          <span class="opacity-50">nobody waiting</span>
-          }
-        </p>
+        </div>
       </div>
     </div>
     } @empty {
-    <p class="text-sm text-center col-span-full">No services</p>
+    <p class="col-span-full rounded-2xl border border-dashed border-base-300 p-8 text-center text-xl text-base-content/60">No active counters</p>
     }
-  </div>
+  </section>
 </div>

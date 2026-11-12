@@ -15,9 +15,10 @@ export const routes: Routes = [
   { path: 'take-ticket', component: TakeTicket, canActivate: [clientOnlyGuard] },
 
   {
-    path: 'take-ticket',
-    component: TakeTicket,
-    data: { roles: ['Client'] },
+    path: 'dashboard',
+    loadComponent: () => import('./features/admin/dashboard/dashboard').then((m) => m.Dashboard),
+    canActivate: [authGuard, roleGuard],
+    data: { roles: ['Admin'] },
   },
   {
     path: 'counter-panel',

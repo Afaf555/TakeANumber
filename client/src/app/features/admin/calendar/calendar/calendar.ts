@@ -1,3 +1,4 @@
+import { PageHeader } from '../../../../shared/page-header/page-header';
 import { DatePicker } from '../../../../shared/date-picker/date-picker/date-picker';
 import { rangeError, todayIso } from '../../../../core/utils/date-range';
 import { AlertModal } from '../../../../shared/alert-modal/alert-modal/alert-modal';
@@ -20,7 +21,7 @@ type DayCell = {
 
 @Component({
   selector: 'app-calendar',
-  imports: [FormsModule, DatePipe, DecimalPipe, AlertModal, DatePicker],
+  imports: [PageHeader, FormsModule, DatePipe, DecimalPipe, AlertModal, DatePicker],
   templateUrl: './calendar.html',
   styleUrl: './calendar.css',
 })

@@ -1,3 +1,4 @@
+import { PageHeader } from '../../../../shared/page-header/page-header';
 import { DatePicker } from '../../../../shared/date-picker/date-picker/date-picker';
 import { localIso, rangeError } from '../../../../core/utils/date-range';
 import { downloadCsv } from '../../../../core/utils/csv';
@@ -10,11 +11,14 @@ import { DisplayService } from '../../../../core/services/display-service';
 import { LeaveService } from '../../../../core/services/leave-service';
 import { ReportsService } from '../../../../core/services/reports-service';
 import { HoursMinutesPipe } from '../../../../core/pipes/hours-minutes-pipe';
-import { EmployeePhases, Leave, LeaveTypeValue, PtoRow, WorkforceReport } from '../../../../types/reports';
+import { EmployeePhases, Leave, LeaveTypeValue, PhaseName, PhaseSegment, PhaseTimeline, PhaseTimelineDay, PtoRow, WorkforceReport } from '../../../../types/reports';
 import { SettingsService } from '../../../../core/services/settings-service';
 import { DEFAULT_SETTINGS, shiftTime, WorkSettings } from '../../../../types/settings';
 
 const iso = localIso;
+
+type PhaseKey = 'servingMinutes' | 'idleMinutes' | 'neglectMinutes' | 'breakMinutes' | 'afterHoursMinutes';
+type PhaseMetric = { key: PhaseKey; label: string; color: string };
 const daysAgo = (n: number) => {
   const d = new Date();
   d.setDate(d.getDate() - n);
@@ -22,7 +26,7 @@ const daysAgo = (n: number) => {
 };
 
 @Component({
-  imports: [DatePipe, DecimalPipe, FormsModule, HoursMinutesPipe, AlertModal, DatePicker],
+  imports: [PageHeader, DatePipe, DecimalPipe, FormsModule, HoursMinutesPipe, AlertModal, DatePicker],
   selector: 'app-workforce',
   styleUrl: './workforce.css',
   templateUrl: './workforce.html',
@@ -66,6 +70,224 @@ export class Workforce implements OnInit, OnDestroy {
   private appliedTo = '';
   protected tab = signal<'attendance' | 'phases' | 'pto'>('attendance');
   protected phases = signal<EmployeePhases[]>([]);
+
+  // Phases heatmap: rows = employees, columns = days, color = selected phase
+  protected readonly phaseMetrics: PhaseMetric[] = [
+    { key: 'servingMinutes', label: 'Serving', color: 'bg-success' },
+    { key: 'idleMinutes', label: 'Idle', color: 'bg-info' },
+    { key: 'neglectMinutes', label: 'Neglect', color: 'bg-error' },
+    { key: 'breakMinutes', label: 'Break', color: 'bg-warning' },
+    { key: 'afterHoursMinutes', label: 'After hours', color: 'bg-neutral' },
+  ];
+  protected phaseMetric = signal<PhaseMetric>(this.phaseMetrics[2]);
+  protected selectedPhase = signal<EmployeePhases | null>(null);
+  protected phaseEmployeeId = signal<number | null>(null);
+
+  protected filteredPhases = computed(() => {
+    const id = this.phaseEmployeeId();
+    return id == null ? this.phases() : this.phases().filter((p) => p.employeeId === id);
+  });
+
+  protected setPhaseEmployee(id: number | null) {
+    this.phaseEmployeeId.set(id);
+    this.selectedPhase.set(null);
+    this.selectedDay.set(null);
+    this.loadTimeline();
+  }
+
+  // Timeline for one employee: rows = days, x axis = time of day, every phase with from - to
+  protected timeline = signal<PhaseTimeline | null>(null);
+  protected selectedDay = signal<PhaseTimelineDay | null>(null);
+  protected readonly phaseColors: Record<PhaseName, string> = {
+    Session: 'bg-base-300',
+    Serving: 'bg-success',
+    Idle: 'bg-info',
+    Neglect: 'bg-error',
+    Break: 'bg-warning',
+  };
+
+  protected timelineAxis = computed(() => {
+    const tl = this.timeline();
+    if (!tl || !tl.days.length) return null;
+    const all = tl.days.flatMap((d) => d.sessions);
+    const start = Math.floor(Math.min(tl.openMinute, ...all.map((s) => s.startMinute)) / 60) * 60;
+    const end = Math.ceil(Math.max(tl.closeMinute, ...all.map((s) => s.endMinute)) / 60) * 60;
+    const hours = Array.from({ length: (end - start) / 60 + 1 }, (_, i) => start / 60 + i);
+    return { start, end, hours };
+  });
+
+  // Timeline as a heatmap grid: one cell = one time slot, color = main phase in that slot
+  protected readonly slotOptions = [15, 30, 60];
+  protected readonly legendPhases: PhaseName[] = ['Serving', 'Idle', 'Neglect', 'Break'];
+  protected slotMinutes = signal(15);
+  protected hoverCell = signal<{ day: string; time: string; parts: { phase: PhaseName; minutes: number }[] } | null>(null);
+  private readonly phaseOrder: PhaseName[] = ['Serving', 'Neglect', 'Break', 'Idle'];
+
+  private hm(m: number) {
+    const total = Math.round(m);
+    return `${String(Math.floor(total / 60) % 24).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`;
+  }
+
+  private overlap(a: number, b: number, s: { startMinute: number; endMinute: number }) {
+    return Math.max(0, Math.min(b, s.endMinute) - Math.max(a, s.startMinute));
+  }
+
+  protected timelineGrid = computed(() => {
+    const tl = this.timeline();
+    const ax = this.timelineAxis();
+    if (!tl || !ax) return null;
+    const slot = this.slotMinutes();
+    const columns = Math.ceil((ax.end - ax.start) / slot);
+    const starts = Array.from({ length: columns }, (_, i) => ax.start + i * slot);
+
+    const header = starts
+      .filter((m) => m % 60 === 0)
+      .map((m) => ({
+        label: this.hm(m).slice(0, 2),
+        col: (m - ax.start) / slot + 2,
+        span: Math.max(1, 60 / slot),
+        work: m >= tl.openMinute && m < tl.closeMinute,
+      }));
+
+    const rows = tl.days.map((d) => {
+      const cells = starts.map((a) => {
+        const b = a + slot;
+        const parts = this.phaseOrder
+          .map((phase) => ({
+            phase,
+            minutes: d.segments.filter((s) => s.phase === phase).reduce((sum, s) => sum + this.overlap(a, b, s), 0),
+          }))
+          .filter((p) => p.minutes > 0.5);
+        const used = parts.reduce((sum, p) => sum + p.minutes, 0);
+        const main = parts.reduce<{ phase: PhaseName; minutes: number } | null>(
+          (best, p) => (!best || p.minutes > best.minutes ? p : best), null);
+        return {
+          start: a,
+          time: `${this.hm(a)} - ${this.hm(b)}`,
+          parts,
+          color: main ? this.phaseColors[main.phase] : '',
+          opacity: main ? 0.35 + 0.65 * Math.min(1, used / slot) : 1,
+          work: a >= tl.openMinute && a < tl.closeMinute,
+        };
+      });
+      const logged = d.sessions.reduce((sum, s) => sum + (s.endMinute - s.startMinute), 0);
+      return {
+        day: d,
+        cells,
+        logged,
+        from: d.sessions[0]?.from ?? '',
+        to: d.sessions[d.sessions.length - 1]?.to ?? '',
+      };
+    });
+
+    return { columns, header, rows, template: `7.5rem repeat(${columns}, minmax(8px, 1fr)) 4.5rem` };
+  });
+
+  protected dayTotals(d: PhaseTimelineDay) {
+    return this.phaseOrder
+      .map((phase) => ({
+        phase,
+        minutes: d.segments.filter((s) => s.phase === phase).reduce((sum, s) => sum + s.endMinute - s.startMinute, 0),
+      }))
+      .filter((p) => p.minutes > 0);
+  }
+
+  protected visibleSegments(d: PhaseTimelineDay) {
+    return d.segments.filter((s) => s.endMinute - s.startMinute >= 0.5);
+  }
+
+  protected mins(m: number) {
+    const r = Math.round(m);
+    return r >= 60 ? `${Math.floor(r / 60)}h ${r % 60}m` : `${r}m`;
+  }
+
+  protected phaseHeatTemplate(days: number) {
+    return `7.5rem repeat(${days}, minmax(14px, 1fr)) 4.5rem`;
+  }
+
+  protected pos(minute: number) {
+    const a = this.timelineAxis();
+    return a ? ((minute - a.start) / (a.end - a.start)) * 100 : 0;
+  }
+
+  protected segTitle(s: PhaseSegment) {
+    const name = s.phase === 'Session' ? 'Logged in' : s.phase;
+    return `${name}: ${s.from} - ${s.to} (${this.duration(s)})` + (s.ticket ? ` · ${s.ticket}` : '');
+  }
+
+  protected duration(s: PhaseSegment) {
+    const m = Math.round(s.endMinute - s.startMinute);
+    return m >= 60 ? `${Math.floor(m / 60)}h ${m % 60}m` : `${m}m`;
+  }
+
+  protected loadTimeline() {
+    const id = this.phaseEmployeeId();
+    if (id == null) {
+      this.timeline.set(null);
+      return;
+    }
+    this.reportsService.getPhaseTimeline(this.from, this.to, id).subscribe({
+      next: (tl) => {
+        this.timeline.set(tl);
+        const sel = this.selectedDay();
+        this.selectedDay.set(sel ? tl.days.find((d) => d.date === sel.date) ?? null : null);
+      },
+      error: () => this.error.set('Could not load timeline'),
+    });
+  }
+
+  protected phaseHeat = computed(() => {
+    const rows = this.filteredPhases();
+    if (!rows.length) return null;
+    const metric = this.phaseMetric();
+
+    const dayKeys = [...new Set(rows.map((p) => p.date.slice(0, 10)))].sort();
+    const days = this.daysBetween(dayKeys[0], dayKeys[dayKeys.length - 1]);
+
+    const byKey = new Map(rows.map((p) => [p.employeeId + '|' + p.date.slice(0, 10), p]));
+    const max = Math.max(1, ...rows.map((p) => p[metric.key]));
+
+    const employees = [...new Map(rows.map((p) => [p.employeeId, p.username])).entries()]
+      .sort((a, b) => a[1].localeCompare(b[1]));
+
+    return {
+      max,
+      days: days.map((d) => ({
+        key: d,
+        label: d.slice(8, 10),
+        month: d.slice(8, 10) === '01' || d === days[0] ? d.slice(5, 7) + '/' + d.slice(2, 4) : '',
+        weekend: [0, 6].includes(new Date(d + 'T00:00:00').getDay()),
+      })),
+      rows: employees.map(([id, username]) => {
+        const cells = days.map((d) => {
+          const p = byKey.get(id + '|' + d) ?? null;
+          const value = p ? p[metric.key] : 0;
+          return { day: d, p, value, opacity: value ? 0.15 + (value / max) * 0.85 : 0 };
+        });
+        return { id, username, cells, total: cells.reduce((s, c) => s + c.value, 0) };
+      }),
+    };
+  });
+
+  private daysBetween(from: string, to: string): string[] {
+    const result: string[] = [];
+    const d = new Date(from + 'T00:00:00');
+    const end = new Date(to + 'T00:00:00');
+    while (d <= end) {
+      result.push(iso(d));
+      d.setDate(d.getDate() + 1);
+    }
+    return result;
+  }
+
+  protected cellTitle(username: string, day: string, p: EmployeePhases | null) {
+    const date = day.split('-').reverse().join('.');
+    if (!p) return `${username} · ${date} · no session`;
+    const m = (x: number) => `${Math.floor(x / 60)}h ${Math.round(x % 60)}m`;
+    return `${username} · ${date}\nServing: ${m(p.servingMinutes)}\nIdle: ${m(p.idleMinutes)}\n`
+      + `Neglect: ${m(p.neglectMinutes)}\nBreak: ${m(p.breakMinutes)}\nAfter hours: ${m(p.afterHoursMinutes)}`;
+  }
+
   ngOnInit(): void {
     this.settingsService.get().subscribe({ next: (s) => this.rules.set(s) });
     this.loadAll();
@@ -128,9 +350,13 @@ export class Workforce implements OnInit, OnDestroy {
       error: () => this.error.set('Could not load workforce report'),
     });
         this.reportsService.getPhases(this.from, this.to).subscribe({
-      next: (rows) => this.phases.set(rows),
+      next: (rows) => {
+        this.phases.set(rows);
+        this.selectedPhase.set(null);
+      },
       error: () => this.error.set('Could not load phases'),
     });
+    this.loadTimeline();
   }
 
   loadPto() {
