@@ -1,7 +1,7 @@
 import { PageHeader } from '../../../../shared/page-header/page-header';
 import { DatePicker } from '../../../../shared/date-picker/date-picker/date-picker';
 import { localIso, rangeError } from '../../../../core/utils/date-range';
-import { downloadCsv } from '../../../../core/utils/csv';
+import { downloadCsv, fmtDate } from '../../../../core/utils/csv';
 import { AlertModal } from '../../../../shared/alert-modal/alert-modal/alert-modal';
 import { Component, computed, inject, OnDestroy, OnInit, signal } from '@angular/core';
 import { DatePipe, DecimalPipe } from '@angular/common';
@@ -438,6 +438,40 @@ export class Workforce implements OnInit, OnDestroy {
         p.username, p.vacationAllowance, p.vacationUsed, p.vacationScheduled, p.vacationRemaining,
         p.sickAllowance, p.sickUsed, p.sickRemaining,
       ]),
+    );
+  }
+
+  // Phases overview: one row per employee and day, minutes of every phase
+  exportPhases() {
+    const id = this.phaseEmployeeId();
+    const who = id == null ? '' : '_' + (this.employees().find((e) => e.id === id)?.username ?? id);
+    downloadCsv(
+      `phases_${this.from}_${this.to}${who}.csv`,
+      ['Date', 'Employee', 'Serving (min)', 'Idle (min)', 'Neglect (min)', 'Break (min)', 'After hours (min)'],
+      [...this.filteredPhases()]
+        .sort((a, b) => a.date.localeCompare(b.date) || a.username.localeCompare(b.username))
+        .map((p) => [
+          fmtDate(p.date), p.username, Math.round(p.servingMinutes), Math.round(p.idleMinutes),
+          Math.round(p.neglectMinutes), Math.round(p.breakMinutes), Math.round(p.afterHoursMinutes),
+        ]),
+    );
+  }
+
+  // Timeline of the selected employee: every phase with from - to
+  exportTimeline() {
+    const tl = this.timeline();
+    const id = this.phaseEmployeeId();
+    if (!tl || id == null) return;
+    const name = this.employees().find((e) => e.id === id)?.username ?? String(id);
+    const rows = tl.days.flatMap((d) => [
+      ...d.sessions.map((s) => ({ d, s, phase: 'Logged in' })),
+      ...this.visibleSegments(d).map((s) => ({ d, s, phase: s.phase as string })),
+    ].sort((a, b) => a.s.startMinute - b.s.startMinute || (a.phase === 'Logged in' ? -1 : 1))
+      .map((r) => [fmtDate(r.d.date), r.s.from, r.s.to, r.phase, Math.round(r.s.endMinute - r.s.startMinute), r.s.ticket ?? '']));
+    downloadCsv(
+      `timeline_${name}_${this.from}_${this.to}.csv`,
+      ['Date', 'From', 'To', 'Phase', 'Minutes', 'Ticket'],
+      rows,
     );
   }
 }
