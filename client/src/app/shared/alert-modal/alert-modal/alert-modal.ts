@@ -1,7 +1,5 @@
 import { Component, effect, input, OnDestroy, output } from '@angular/core';
 
-// Messages after an action, shown as a toast in the bottom right corner.
-// Success closes by itself after 4 seconds, an error stays until it is closed.
 @Component({
   selector: 'app-alert-modal',
   template: `
@@ -23,7 +21,7 @@ import { Component, effect, input, OnDestroy, output } from '@angular/core';
     </div>
     }
   `,
-  host: { class: 'contents' }, // takes no space in the page layout
+  host: { class: 'contents' }, 
 })
 export class AlertModal implements OnDestroy {
   message = input<string>('');

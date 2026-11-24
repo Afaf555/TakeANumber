@@ -11,8 +11,6 @@ public class EmployeeSession
     public string? CounterName { get; set; }
     public string? Services { get; set; }
     public DateTime? BreakStartedAt { get; set; }
-    // public double BreakMinutes { get; set; }
     public DateTime? BreakEndedAt { get; set; }
 
-    // public List<SessionBreak> Breaks { get; set; } = [];
 }

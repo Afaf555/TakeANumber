@@ -2,7 +2,7 @@ namespace API.Services;
 
 public record TicketSlice(DateTime CreatedAt, DateTime StartedAt, DateTime? FinishedAt, string? Code = null);
 
-// One continuous piece of a session: Serving / Idle / Neglect / Break
+
 public record PhaseSegment(DateTime Start, DateTime End, string Phase, string? Ticket);
 
 public record PhaseResult(double Serving, double Idle, double Neglect, double Break, double AfterHours)
@@ -75,7 +75,7 @@ public static class PhaseCalculator
             Math.Round(breakMin, 2), Math.Round(Math.Max(0, afterMin), 2));
     }
 
-    // Same rules as Compute, but returns every piece with its start and end time
+    
     public static List<PhaseSegment> Segments(
         DateTime login, DateTime end,
         IEnumerable<(DateTime Start, DateTime End)> breaks,

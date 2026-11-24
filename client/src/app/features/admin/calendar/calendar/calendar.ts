@@ -49,7 +49,7 @@ export class Calendar implements OnInit, OnDestroy {
     const y = this.year();
     const m = this.month();
     const pad = (n: number) => String(n).padStart(2, '0');
-    const offset = (new Date(y, m, 1).getDay() + 6) % 7; // Monday first
+    const offset = (new Date(y, m, 1).getDay() + 6) % 7;  
     const count = new Date(y, m + 1, 0).getDate();
     const holidays = new Map(this.days().map((d) => [d.date.slice(0, 10), d]));
     const worked = new Map(this.work().map((w) => [w.date.slice(0, 10), w.employees]));

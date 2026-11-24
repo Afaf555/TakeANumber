@@ -50,7 +50,6 @@ export class ActiveCounters implements OnDestroy {
       this.flash(t.counterId);
     });
   }
-  // highlight a counter card for a few seconds
   private flash(counterId: number) {
     clearTimeout(this.flashTimer);
     this.flashId.set(null);

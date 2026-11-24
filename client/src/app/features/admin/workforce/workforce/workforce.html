@@ -143,7 +143,7 @@
       }
       }
       @if (tab() === 'phases') {
-      <!-- Filters -->
+     
       <div class="flex flex-wrap items-end gap-2">
         <div class="flex flex-col gap-1">
           <span class="text-xs font-medium text-base-content/60">From</span>
@@ -171,7 +171,7 @@
         </div>
       </div>
 
-      <!-- Overview: employees x days -->
+     
       <div class="rounded-2xl border border-base-300 bg-base-100 p-5 flex flex-col gap-4">
         <div class="flex flex-wrap items-center justify-between gap-3">
           <div>
@@ -267,7 +267,6 @@
       </div>
       }
 
-      <!-- Timeline heatmap for one employee: days x time slots -->
       @if (phaseEmployeeId() == null) {
       <div class="rounded-2xl border border-dashed border-base-300 p-6 text-center text-sm opacity-60">
         Choose an employee or click a name above to see the day-by-day timeline
@@ -294,7 +293,7 @@
         </div>
 
         @if (timelineGrid(); as g) {
-        <!-- hover info -->
+       
         <div class="h-9 rounded-xl bg-base-200/60 px-3 flex items-center gap-3 text-xs">
           @if (hoverCell(); as h) {
           <span class="font-semibold">{{ h.day | date: 'EEE dd.MM' }}</span>
@@ -313,7 +312,7 @@
         <div class="overflow-x-auto">
           <div class="grid gap-[2px] items-center min-w-[640px]" [style.grid-template-columns]="g.template"
             (mouseleave)="hoverCell.set(null)">
-            <!-- hour labels -->
+           
             <div></div>
             @for (h of g.header; track h.col) {
             <div class="text-[10px] select-none pl-0.5 border-l" [style.grid-column]="h.col + ' / span ' + h.span"

@@ -26,7 +26,7 @@ public class CounterRepository(AppDbContext context) : ICounterRepository
             .Where(u => u.IsOnBreak && u.CounterId != null)
             .Select(u => u.CounterId!.Value)
             .ToListAsync();
-        // services of every counter, and today's waiting tickets (oldest first)
+        
         var counterServices = await context.CounterServices
             .Select(cs => new { cs.CounterId, cs.ServiceId })
             .ToListAsync();

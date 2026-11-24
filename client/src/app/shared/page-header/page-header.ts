@@ -1,6 +1,6 @@
 import { Component, input } from '@angular/core';
 
-// Same header on every page: title, short description, and buttons on the right (<ng-content>)
+
 @Component({
   selector: 'app-page-header',
   template: `

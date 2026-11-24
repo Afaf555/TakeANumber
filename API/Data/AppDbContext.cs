@@ -17,7 +17,6 @@ public class AppDbContext(DbContextOptions options) : DbContext(options)
     public DbSet<NonWorkingDay> NonWorkingDays { get; set; }
     public DbSet<Leave> Leaves { get; set; }
     public DbSet<Setting> Settings { get; set; }
-    // public DbSet<SessionBreak> SessionBreaks { get; set; }
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);

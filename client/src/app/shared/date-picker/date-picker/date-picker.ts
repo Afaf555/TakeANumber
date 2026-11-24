@@ -103,7 +103,7 @@ export class DatePicker {
   protected cells = computed<Cell[]>(() => {
     const y = this.viewYear();
     const m = this.viewMonth();
-    const offset = (new Date(y, m, 1).getDay() + 6) % 7; // week starts on Monday
+    const offset = (new Date(y, m, 1).getDay() + 6) % 7; 
     const today = todayIso();
     const selected = this.value();
     const cells: Cell[] = [];

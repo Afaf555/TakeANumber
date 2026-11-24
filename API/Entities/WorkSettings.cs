@@ -30,10 +30,7 @@ public class WorkSettings
     public int QueueAlertMinutes { get; set; } = 15;
     public int AnnualLeaveDays { get; set; } = 20;
     public int AnnualSickDays { get; set; } = 10;
-    public int IdleThresholdSeconds { get; set; } = 60;   // longer gap between tickets = phase 3 (neglect)
-
-
-
+    public int IdleThresholdSeconds { get; set; } = 60;   
     public static WorkSettings From(IReadOnlyDictionary<string, string> map)
     {
         var d = new WorkSettings();

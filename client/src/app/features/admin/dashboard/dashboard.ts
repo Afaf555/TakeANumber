@@ -41,7 +41,7 @@ export class Dashboard implements OnInit, OnDestroy {
     return Math.max(0, Math.floor((this.now() - new Date(iso).getTime()) / 60000));
   }
 
-  // ---- stat cards ----
+
   protected waitingTickets = computed(() => this.tickets().filter((t) => t.status === 'InQueue'));
   protected waiting = computed(() => this.waitingTickets().length);
   protected newLast15 = computed(() => this.tickets().filter((t) => this.minutesSince(t.createdAt) < 15).length);
@@ -54,7 +54,6 @@ export class Dashboard implements OnInit, OnDestroy {
   protected served = computed(() => this.tickets().filter((t) => t.status === 'Finished').length);
   protected noShows = computed(() => this.tickets().filter((t) => t.status === 'NoShow').length);
 
-  // ---- alerts (same rules as the Queue page) ----
   protected alerts = computed(() => {
     const r = this.rules();
     const result: string[] = [];
@@ -66,7 +65,7 @@ export class Dashboard implements OnInit, OnDestroy {
     return result;
   });
 
-  // ---- counters: admin data + live display data + who works there ----
+ 
   protected counterCards = computed(() => {
     const live = new Map(this.displayService.counters().map((c) => [c.counterId, c]));
     return this.counters().map((c) => {
@@ -84,7 +83,7 @@ export class Dashboard implements OnInit, OnDestroy {
   protected openCounters = computed(() => this.counterCards().filter((c) => c.state !== 'Closed').length);
   protected onBreak = computed(() => this.counterCards().filter((c) => c.state === 'On break').length);
 
-  // ---- queues by service ----
+  
   protected queues = computed(() => {
     const r = this.rules();
     const list = this.displayService.queues();
@@ -97,7 +96,7 @@ export class Dashboard implements OnInit, OnDestroy {
     });
   });
 
-  // ---- tickets per hour today, from opening to closing time ----
+ 
   protected hours = computed(() => {
     const r = this.rules();
     const open = parseInt(r.openTime, 10);

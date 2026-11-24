@@ -16,7 +16,7 @@ export class Sidebar {
   protected accountService = inject(AccountService);
   private displayService = inject(DisplayService);
 
-  protected open = signal(false); // mobile menu
+  protected open = signal(false); 
 
   protected readonly groups: { title: string; links: NavLink[] }[] = [
     {
@@ -46,7 +46,6 @@ export class Sidebar {
     },
   ];
 
-  // number shown next to "Queue": everybody waiting right now
   protected waiting = computed(() => this.displayService.queues().reduce((sum, q) => sum + (q.waiting ?? 0), 0));
 
   protected initial = computed(() => (this.accountService.currentUser()?.username ?? '?').charAt(0).toUpperCase());

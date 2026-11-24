@@ -8,7 +8,7 @@ import { DisplayService } from '../../../core/services/display-service';
 import { Service, Ticket } from '../../../types/tickets';
 import { Icon } from '../../../shared/icon/icon';
 
-// tile colors for the services, in order
+
 const TILE_COLORS = [
   'bg-blue-100 text-blue-700',
   'bg-emerald-100 text-emerald-700',
@@ -39,7 +39,7 @@ export class TakeTicket implements OnInit, OnDestroy {
   private clock?: ReturnType<typeof setInterval>;
   private resetTimer?: ReturnType<typeof setInterval>;
 
-  // services with their tile color and how many people wait for them
+ 
   protected tiles = computed(() => {
     const waiting = new Map(this.displayService.queues().map((q) => [q.serviceId, q.waiting ?? 0]));
     return this.services().map((s, i) => ({
@@ -82,7 +82,6 @@ export class TakeTicket implements OnInit, OnDestroy {
     });
   }
 
-  // the ticket card closes by itself so the kiosk is ready for the next person
   private startCountdown() {
     clearInterval(this.resetTimer);
     this.countdown.set(RESET_SECONDS);

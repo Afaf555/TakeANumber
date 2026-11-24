@@ -7,7 +7,7 @@ import { Sidebar } from './layout/sidebar/sidebar';
 import { DisplayService } from './core/services/display-service';
 import { AccountService } from './core/services/account-service';
 
-// Screens that run full screen without any menu (TV display, ticket kiosk)
+
 const BARE_PAGES = ['/display', '/take-ticket'];
 
 @Component({
@@ -31,7 +31,6 @@ export class App {
   protected bare = computed(() => BARE_PAGES.some((p) => this.url().startsWith(p)));
   protected admin = computed(() => this.accountService.currentUser()?.role === 'Admin');
 
-  // one router-outlet for every layout, only the classes around it change
   protected shellClass = computed(() =>
     !this.bare() && this.admin() ? 'min-h-screen lg:flex' : 'min-h-screen',
   );

@@ -1,6 +1,5 @@
 namespace API.DTOs;
 
-// Data for the employee counter panel: who is waiting for this counter and today's numbers
 public class EmployeeOverviewDto
 {
     public string? CounterName { get; set; }

@@ -48,7 +48,7 @@ export class ManageEmployees implements OnInit, OnDestroy {
     this.loadEmployees();
   }
   create() {
-    // if (this.counterId === null) return;
+   
 
     this.adminService
       .createEmployee({
