@@ -29,5 +29,6 @@ public static class LogActions
     public const string LeaveRejected="LeaveRejected";
     public const string LeaveCancelled="LeaveCancelled";
     public const string WorkSettingsUpdated="WorkSettingsUpdated";
-    
+    public const string TicketRecalled="TicketRecalled";
+public const string TicketTransferred="TicketTransferred";
     }

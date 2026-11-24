@@ -71,7 +71,6 @@ export class Workforce implements OnInit, OnDestroy {
   protected tab = signal<'attendance' | 'phases' | 'pto'>('attendance');
   protected phases = signal<EmployeePhases[]>([]);
 
-  // Phases heatmap: rows = employees, columns = days, color = selected phase
   protected readonly phaseMetrics: PhaseMetric[] = [
     { key: 'servingMinutes', label: 'Serving', color: 'bg-success' },
     { key: 'idleMinutes', label: 'Idle', color: 'bg-info' },
@@ -95,7 +94,6 @@ export class Workforce implements OnInit, OnDestroy {
     this.loadTimeline();
   }
 
-  // Timeline for one employee: rows = days, x axis = time of day, every phase with from - to
   protected timeline = signal<PhaseTimeline | null>(null);
   protected selectedDay = signal<PhaseTimelineDay | null>(null);
   protected readonly phaseColors: Record<PhaseName, string> = {
@@ -116,7 +114,6 @@ export class Workforce implements OnInit, OnDestroy {
     return { start, end, hours };
   });
 
-  // Timeline as a heatmap grid: one cell = one time slot, color = main phase in that slot
   protected readonly slotOptions = [15, 30, 60];
   protected readonly legendPhases: PhaseName[] = ['Serving', 'Idle', 'Neglect', 'Break'];
   protected slotMinutes = signal(15);
@@ -192,9 +189,9 @@ export class Workforce implements OnInit, OnDestroy {
       .filter((p) => p.minutes > 0);
   }
 
-  protected visibleSegments(d: PhaseTimelineDay) {
-    return d.segments.filter((s) => s.endMinute - s.startMinute >= 0.5);
-  }
+ protected visibleSegments(d: PhaseTimelineDay) {
+  return d.segments.filter((s) => s.phase === 'Serving' || s.endMinute - s.startMinute >= 0.5);
+}
 
   protected mins(m: number) {
     const r = Math.round(m);
@@ -217,6 +214,7 @@ export class Workforce implements OnInit, OnDestroy {
 
   protected duration(s: PhaseSegment) {
     const m = Math.round(s.endMinute - s.startMinute);
+    if(m===0) return '<1m';
     return m >= 60 ? `${Math.floor(m / 60)}h ${m % 60}m` : `${m}m`;
   }
 
@@ -441,7 +439,7 @@ export class Workforce implements OnInit, OnDestroy {
     );
   }
 
-  // Phases overview: one row per employee and day, minutes of every phase
+  
   exportPhases() {
     const id = this.phaseEmployeeId();
     const who = id == null ? '' : '_' + (this.employees().find((e) => e.id === id)?.username ?? id);
@@ -457,7 +455,7 @@ export class Workforce implements OnInit, OnDestroy {
     );
   }
 
-  // Timeline of the selected employee: every phase with from - to
+
   exportTimeline() {
     const tl = this.timeline();
     const id = this.phaseEmployeeId();

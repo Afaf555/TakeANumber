@@ -16,11 +16,3 @@ export type NonWorkingDayWork={
     isHoliday:boolean;
     employees:EmployeeWork[];
 };
-type DayCell = {
-  day: number;
-  key: string;
-  weekend: boolean;
-  holiday: NonWorkingDay | undefined;
-  workers: EmployeeWork[];
-  today: boolean;
-};

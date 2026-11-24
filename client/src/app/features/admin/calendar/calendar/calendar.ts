@@ -71,6 +71,13 @@ export class Calendar implements OnInit, OnDestroy {
     return result;
   });
 
+  protected tipFor(c: DayCell): string {
+    const lines: string[] = [];
+    if (c.holiday) lines.push(c.holiday.name);
+    for (const w of c.workers) lines.push(`${w.username}: ${Math.round(w.hours * 10) / 10}h`);
+    return lines.join('\n');
+  }
+
   protected workedDays = computed(() => this.work().filter((d) => d.employees.length > 0));
 
   protected summary = computed(() => {

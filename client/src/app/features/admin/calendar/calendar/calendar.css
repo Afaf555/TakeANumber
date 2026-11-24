@@ -1,0 +1,6 @@
+/* Tooltip lists the holiday and each worker on its own line */
+.day-tip.tooltip::before {
+  white-space: pre-line;
+  text-align: left;
+  z-index: 20;
+}

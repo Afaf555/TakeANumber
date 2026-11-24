@@ -1,6 +1,7 @@
 <div class="max-w-5xl mx-auto flex flex-col gap-4">
   @if (error()) {
-  <div role="alert" class="flex items-center gap-3 rounded-2xl border border-error/30 bg-error/5 px-4 py-3 text-sm text-error">
+  <div role="alert"
+    class="flex items-center gap-3 rounded-2xl border border-error/30 bg-error/5 px-4 py-3 text-sm text-error">
     <app-icon name="alert" />
     <span class="flex-1">{{ error() }}</span>
     <button type="button" class="btn btn-ghost btn-xs btn-square" aria-label="Dismiss" (click)="error.set('')">
@@ -11,7 +12,8 @@
 
   <div class="flex flex-col lg:flex-row gap-6 items-start">
     <!-- current ticket -->
-    <section aria-label="Current ticket" class="w-full lg:flex-1 rounded-3xl border border-base-300 bg-base-100 p-6 sm:p-8 flex flex-col gap-7">
+    <section aria-label="Current ticket"
+      class="w-full lg:flex-1 rounded-3xl border border-base-300 bg-base-100 p-6 sm:p-8 flex flex-col gap-7">
       @if (onBreak()) {
       <div class="flex flex-col items-center text-center gap-4 py-10">
         <span class="w-16 h-16 rounded-2xl bg-warning/15 text-amber-700 grid place-items-center">
@@ -23,33 +25,58 @@
       <button type="button" class="btn btn-warning h-16 rounded-2xl text-lg" (click)="endBreak()">End break</button>
       } @else if (ticket(); as t) {
       <div class="flex flex-wrap justify-between items-center gap-2">
-        <span class="flex items-center gap-2 text-sm font-semibold text-success bg-success/10 px-3.5 py-1.5 rounded-full">
+        <span
+          class="flex items-center gap-2 text-sm font-semibold text-success bg-success/10 px-3.5 py-1.5 rounded-full">
           <span class="w-2 h-2 rounded-full bg-success"></span>Serving
         </span>
         <span class="text-sm text-base-content/60">started {{ t.startedAt | date: 'HH:mm' }} ·
           <b class="text-base-content">{{ servingMinutes() }} min</b></span>
       </div>
       <div class="flex flex-col items-center text-center gap-2 py-2">
-        <span class="text-7xl sm:text-8xl lg:text-9xl font-extrabold tracking-tighter leading-none text-primary">{{ t.code }}</span>
+        <span class="text-5xl sm:text-6xl lg:text-7xl font-extrabold tracking-tighter leading-none text-primary">{{
+          t.code }}</span>
         <span class="text-xl text-base-content/80">{{ t.serviceName }}</span>
-        <span class="text-sm text-base-content/60">taken at {{ t.createdAt | date: 'HH:mm' }} · waited {{ waitedMinutes() }} min</span>
+        <span class="text-sm text-base-content/60">taken at {{ t.createdAt | date: 'HH:mm' }} · waited {{
+          waitedMinutes() }} min</span>
       </div>
       <div class="grid grid-cols-2 gap-3">
         <button type="button" class="btn btn-success h-16 rounded-2xl text-lg" [disabled]="busy()" (click)="finish()">
           Finish
         </button>
-        <button type="button" class="btn h-16 rounded-2xl text-lg border-error/30 bg-error/5 text-error hover:bg-error/10"
+        <button type="button"
+          class="btn h-16 rounded-2xl text-lg border-error/30 bg-error/5 text-error hover:bg-error/10"
           [disabled]="busy()" (click)="noShow()">
           No-show
+        </button>
+      </div>
+      <button type="button" class="btn h-12 rounded-2xl gap-2" [disabled]="busy()" (click)="recall()">
+        Call again
+      </button>
+      @if (message()) {
+      <p class="-mt-4 text-center text-sm text-success">{{ message() }}</p>
+      }
+      <div class="flex gap-2">
+        <select class="select flex-1 rounded-2xl" [value]="transferTo() ?? ''"
+          (change)="transferTo.set($any($event.target).value ? +$any($event.target).value : null)">
+          <option value="">Transfer to service…</option>
+          @for (s of services(); track s.id) {
+          @if (s.name !== t.serviceName) {
+          <option [value]="s.id">{{ s.code }} · {{ s.name }}</option>
+          }
+          }
+        </select>
+        <button type="button" class="btn rounded-2xl" [disabled]="busy() || transferTo() == null" (click)="transfer()">
+          Transfer
         </button>
       </div>
       <button type="button" class="btn h-[72px] rounded-2xl text-lg" disabled>Call next</button>
       <p class="-mt-4 text-center text-sm text-base-content/60">Finish the current ticket to call the next one</p>
       } @else {
       <div class="flex flex-col items-center text-center gap-3 py-10">
-        <span class="text-7xl sm:text-8xl font-extrabold tracking-tighter leading-none text-base-content/15">—</span>
+        <span class="text-5xl sm:text-6xl font-extrabold tracking-tighter leading-none text-base-content/15">—</span>
         <span class="text-base text-base-content/60">
-          @if (waiting().length) { {{ waiting().length }} waiting for your counter } @else { Nobody is waiting right now }
+          @if (waiting().length) { {{ waiting().length }} waiting for your counter } @else { Nobody is waiting right now
+          }
         </span>
       </div>
       <button type="button" class="btn btn-primary h-[72px] rounded-2xl text-lg"
@@ -61,15 +88,16 @@
 
     <aside class="w-full lg:w-80 flex flex-col gap-4">
       <!-- waiting for this counter -->
-      <section aria-label="Waiting for your counter" class="rounded-3xl border border-base-300 bg-base-100 p-5 flex flex-col gap-3">
+      <section aria-label="Waiting for your counter"
+        class="rounded-3xl border border-base-300 bg-base-100 p-5 flex flex-col gap-3">
         <div class="flex justify-between items-baseline">
           <h2 class="font-semibold">Waiting for you</h2>
-          <span class="text-3xl font-extrabold tabular-nums">{{ waiting().length }}</span>
+          <span class="text-2xl font-extrabold tabular-nums">{{ waiting().length }}</span>
         </div>
         <ol class="flex flex-col gap-1.5">
           @for (w of waiting().slice(0, 5); track w.code) {
-          <li class="flex justify-between items-center rounded-xl px-3 py-2.5"
-            [class.bg-error/5]="w.minutes >= limit()" [class.bg-warning/10]="w.minutes >= limit() / 2 && w.minutes < limit()"
+          <li class="flex justify-between items-center rounded-xl px-3 py-2.5" [class.bg-error/5]="w.minutes >= limit()"
+            [class.bg-warning/10]="w.minutes >= limit() / 2 && w.minutes < limit()"
             [class.bg-base-200]="w.minutes < limit() / 2">
             <span class="flex flex-col leading-tight">
               <b>{{ w.code }}</b>
@@ -96,18 +124,19 @@
           <span class="text-xs text-base-content/60">{{ o.counterName }}</span>
         </div>
         <div class="grid grid-cols-3 gap-2">
-          <div class="flex flex-col"><span class="text-2xl font-bold tabular-nums">{{ o.servedToday }}</span><span
+          <div class="flex flex-col"><span class="text-xl font-bold tabular-nums">{{ o.servedToday }}</span><span
               class="text-xs text-base-content/60">served</span></div>
-          <div class="flex flex-col"><span class="text-2xl font-bold tabular-nums">{{ o.avgServiceMinutes }}m</span><span
+          <div class="flex flex-col"><span class="text-xl font-bold tabular-nums">{{ o.avgServiceMinutes }}m</span><span
               class="text-xs text-base-content/60">avg time</span></div>
-          <div class="flex flex-col"><span class="text-2xl font-bold tabular-nums">{{ o.noShowsToday }}</span><span
+          <div class="flex flex-col"><span class="text-xl font-bold tabular-nums">{{ o.noShowsToday }}</span><span
               class="text-xs text-base-content/60">no-show</span></div>
         </div>
       </section>
       }
 
       @if (!onBreak()) {
-      <button type="button" class="btn h-13 rounded-2xl border-warning/50 bg-warning/10 text-amber-800 hover:bg-warning/20 gap-2"
+      <button type="button"
+        class="btn h-13 rounded-2xl border-warning/50 bg-warning/10 text-amber-800 hover:bg-warning/20 gap-2"
         [disabled]="!!ticket()" (click)="startBreak()">
         <app-icon name="coffee" />Take a break
       </button>

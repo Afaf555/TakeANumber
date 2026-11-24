@@ -15,3 +15,8 @@ export type ServiceQueue={
     waiting: number;
     oldestWaitingSince: string | null;
 }
+export type RecalledTicket = {
+  counterId: number;
+  code: string;
+  counterName: string | null;
+};

@@ -49,9 +49,62 @@ public class ReportsController(AppDbContext context) : BaseApiController
         .Select(g => new HeatmapCellDto { Weekday = g.Key.Weekday, Hour = g.Key.Hour, Tickets = g.Count() })
         .ToList();
     }
-        [HttpGet("phases")]
+    [HttpGet("queue")]
+    public async Task<ActionResult<QueueReportDto>> GetQueue([FromQuery] DateTime from, [FromQuery] DateTime to)
+    {
+        if (to.Date < from.Date) return BadRequest("End date is before start date");
+        var (f, t) = Range(from, to);
+        var tickets = await context.Tickets
+            .AsNoTracking()
+            .Where(x => x.CreatedAt >= f && x.CreatedAt < t)
+            .Select(x => new { x.CreatedAt, x.StartedAt })
+            .ToListAsync();
+
+        var rows = tickets
+            .Select(x => new
+            {
+                Local = LocalTime.ToLocal(x.CreatedAt),
+                Wait = x.StartedAt != null ? (double?)(x.StartedAt.Value - x.CreatedAt).TotalMinutes : null
+            })
+            .ToList();
+        var waits = rows.Where(r => r.Wait != null).Select(r => r.Wait!.Value).OrderBy(w => w).ToList();
+
+        double Avg(IEnumerable<double?> w)
+        {
+            var list = w.Where(x => x != null).Select(x => x!.Value).ToList();
+            return list.Count == 0 ? 0 : Math.Round(list.Average(), 1);
+        }
+
+        string[] days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+
+        return new QueueReportDto
+        {
+            Tickets = rows.Count,
+            Called = waits.Count,
+            AvgWaitMinutes = waits.Count == 0 ? 0 : Math.Round(waits.Average(), 1),
+            MedianWaitMinutes = waits.Count == 0 ? 0 : Math.Round(waits.Count % 2 == 1
+                ? waits[waits.Count / 2]
+                : (waits[waits.Count / 2 - 1] + waits[waits.Count / 2]) / 2, 1),
+            MaxWaitMinutes = waits.Count == 0 ? 0 : Math.Round(waits[^1], 1),
+            ByHour = Enumerable.Range(0, 24)
+                .Select(h =>
+                {
+                    var g = rows.Where(r => r.Local.Hour == h).ToList();
+                    return new HourBucketDto { Hour = h, Tickets = g.Count, AvgWaitMinutes = Avg(g.Select(r => r.Wait)) };
+                })
+                .ToList(),
+            ByWeekday = Enumerable.Range(0, 7)
+                .Select(d =>
+                {
+                    var g = rows.Where(r => ((int)r.Local.DayOfWeek + 6) % 7 == d).ToList();
+                    return new WeekdayBucketDto { Label = days[d], Tickets = g.Count, AvgWaitMinutes = Avg(g.Select(r => r.Wait)) };
+                })
+                .ToList()
+        };
+    }
+    [HttpGet("phases")]
     public async Task<ActionResult<List<EmployeePhasesDto>>> GetPhases(
-        [FromQuery] DateTime from, [FromQuery] DateTime to, [FromQuery] int? employeeId)
+    [FromQuery] DateTime from, [FromQuery] DateTime to, [FromQuery] int? employeeId)
     {
         if (to.Date < from.Date) return BadRequest("End date is before start date");
         var (f, t) = Range(from, to);

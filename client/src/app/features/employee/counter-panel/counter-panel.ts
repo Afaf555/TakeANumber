@@ -5,7 +5,8 @@ import { DisplayService } from '../../../core/services/display-service';
 import { EmployeeService } from '../../../core/services/employee-service';
 import { EmployeeOverview, EmployeeTicket } from '../../../types/employee';
 import { Icon } from '../../../shared/icon/icon';
-
+import { ClientService } from '../../../core/services/client-service';
+import { Service } from '../../../types/tickets';
 @Component({
   selector: 'app-counter-panel',
   imports: [DatePipe, Icon],
@@ -25,7 +26,11 @@ export class CounterPanel implements OnInit, OnDestroy {
   protected busy = signal(false);
   protected now = signal(Date.now());
 
-  // minutes the current ticket has been served / waited before it was called
+  private clientService = inject(ClientService);
+  protected services = signal<Service[]>([]);
+  protected transferTo = signal<number | null>(null);
+  protected message = signal('');
+
   protected servingMinutes = computed(() => {
     const t = this.ticket();
     return t?.startedAt ? Math.max(0, Math.floor((this.now() - new Date(t.startedAt).getTime()) / 60000)) : 0;
@@ -43,13 +48,14 @@ export class CounterPanel implements OnInit, OnDestroy {
       minutes: Math.max(0, Math.floor((this.now() - new Date(w.createdAt).getTime()) / 60000)),
     })),
   );
-  // colors in the waiting list: amber after half of this, red after it (minutes)
   protected readonly limit = signal(15);
 
   ngOnInit() {
     this.load();
+    this.clientService.getServices().subscribe({ next: (s) => this.services.set(s) });
     this.clock = setInterval(() => this.now.set(Date.now()), 15000);
     this.updateSub = this.displayService.dataChanged$.subscribe(() => this.load());
+
   }
 
   ngOnDestroy() {
@@ -57,7 +63,6 @@ export class CounterPanel implements OnInit, OnDestroy {
     this.updateSub?.unsubscribe();
   }
 
-  // keyboard: Space = call next, F = finish, N = no-show
   @HostListener('document:keydown', ['$event'])
   onKey(e: KeyboardEvent) {
     const target = e.target as HTMLElement;
@@ -71,9 +76,43 @@ export class CounterPanel implements OnInit, OnDestroy {
       this.finish();
     } else if (key === 'n' && this.ticket()) {
       this.noShow();
+    } else if (key === 'r' && this.ticket()) {
+      this.recall();
     }
   }
+  recall() {
+    this.busy.set(true);
+    this.employeeService.recall().subscribe({
+      next: () => {
+        this.error.set('');
+        this.message.set('Ticket called again');
+        setTimeout(() => this.message.set(''), 3000);
+        this.busy.set(false);
+      },
+      error: (err) => {
+        this.showError(err, 'Could not recall ticket');
+        this.busy.set(false);
+      },
+    });
+  }
 
+  transfer() {
+    const serviceId = this.transferTo();
+    if (serviceId == null) return;
+    this.busy.set(true);
+    this.employeeService.transfer(serviceId).subscribe({
+      next: () => {
+        this.ticket.set(null);
+        this.transferTo.set(null);
+        this.error.set('');
+        this.busy.set(false);
+      },
+      error: (err) => {
+        this.showError(err, 'Could not transfer ticket');
+        this.busy.set(false);
+      },
+    });
+  }
   private load() {
     this.now.set(Date.now());
     this.employeeService.getCurrent().subscribe({

@@ -4,7 +4,7 @@ import { RouterLink } from '@angular/router';
 import { AccountService } from '../../../core/services/account-service';
 import { DisplayService } from '../../../core/services/display-service';
 import { ActiveCounter } from '../../../types/display';
-
+import { Subscription } from 'rxjs';
 type Called = { code: string; counterName: string; serviceName: string | null };
 
 
@@ -22,7 +22,10 @@ export class ActiveCounters implements OnDestroy {
   private clock = setInterval(() => this.now.set(Date.now()), 10000);
 
   protected justCalled = signal<Called | null>(null);
-  protected callKey = signal(0); 
+  protected callKey = signal(0);
+  protected flashId = signal<number | null>(null);
+  private flashTimer?: ReturnType<typeof setTimeout>;
+  private recallSub: Subscription;
   private previous = new Map<number, string | null>();
   private firstRun = true;
 
@@ -38,12 +41,23 @@ export class ActiveCounters implements OnDestroy {
   });
 
   constructor() {
-    
+
     effect(() => {
       const counters = this.displayService.counters();
       untracked(() => this.detectCalls(counters));
     });
+    this.recallSub = this.displayService.recalled$.subscribe((t) => {
+      this.flash(t.counterId);
+    });
   }
+  // highlight a counter card for a few seconds
+  private flash(counterId: number) {
+    clearTimeout(this.flashTimer);
+    this.flashId.set(null);
+    setTimeout(() => this.flashId.set(counterId));
+    this.flashTimer = setTimeout(() => this.flashId.set(null), 6000);
+  }
+
 
   private detectCalls(counters: ActiveCounter[]) {
     let called: ActiveCounter | null = null;
@@ -53,7 +67,7 @@ export class ActiveCounters implements OnDestroy {
       this.previous.set(c.counterId, c.currentTicketCode);
     }
     if (this.firstRun && counters.length) {
-     
+
       called = [...counters]
         .filter((c) => c.currentTicketNumber != null)
         .sort((a, b) => (b.currentTicketNumber ?? 0) - (a.currentTicketNumber ?? 0))[0] ?? null;
@@ -64,9 +78,10 @@ export class ActiveCounters implements OnDestroy {
     if (called) {
       this.justCalled.set(this.toCalled(called));
       this.callKey.update((k) => k + 1);
+      this.flash(called.counterId);
 
     } else {
-     
+
     }
   }
 
@@ -80,14 +95,14 @@ export class ActiveCounters implements OnDestroy {
     return j ? (j.serviceName ?? this.serviceOf().get(j.code) ?? '') : '';
   });
 
- 
+
   protected isLatest(c: ActiveCounter) {
-    return false;
+    return this.flashId() === c.counterId;
   }
 
   protected cardClass(c: ActiveCounter) {
     if (c.isOnBreak) return 'border border-warning/50 bg-warning/5';
-    if (this.isLatest(c)) return 'border-2 border-primary bg-base-100';
+    if (this.isLatest(c)) return 'border-2 border-primary bg-primary/5 animate-pulse';
     return 'border border-base-300 bg-base-100';
   }
 
@@ -95,8 +110,10 @@ export class ActiveCounters implements OnDestroy {
     return Number(code.split('-').pop()) || 0;
   }
 
- 
+
   ngOnDestroy() {
     clearInterval(this.clock);
+    clearTimeout(this.flashTimer);
+    this.recallSub.unsubscribe();
   }
 }

@@ -21,19 +21,25 @@ export class EmployeeService {
   finish() {
     return this.http.post<EmployeeTicket>(this.baseUrl + 'finish', {});
   }
-  noShow(){
-    return this.http.post<EmployeeTicket>(this.baseUrl+'no-show',{});
+  noShow() {
+    return this.http.post<EmployeeTicket>(this.baseUrl + 'no-show', {});
   }
   getOverview() {
     return this.http.get<EmployeeOverview>(this.baseUrl + 'overview');
   }
-  getStatus(){
-    return this.http.get<{isOnBreak:boolean}>(this.baseUrl+'status');
+  getStatus() {
+    return this.http.get<{ isOnBreak: boolean }>(this.baseUrl + 'status');
   }
-  startBreak(){
-    return this.http.post(this.baseUrl+'break/start',{});
+  startBreak() {
+    return this.http.post(this.baseUrl + 'break/start', {});
   }
-  endBreak(){
-    return this.http.post(this.baseUrl+'break/end',{});
+  endBreak() {
+    return this.http.post(this.baseUrl + 'break/end', {});
+  }
+  recall() {
+    return this.http.post(this.baseUrl + 'recall', {});
+  }
+  transfer(serviceId: number) {
+    return this.http.post(this.baseUrl + 'transfer', { serviceId });
   }
 }

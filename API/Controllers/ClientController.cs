@@ -17,15 +17,18 @@ public class ClientController(ITicketRepository ticketRepository,
     ICounterRepository counterRepository,
     IHubContext<QueueHub> hubContext, ActivityLogger logger) : BaseApiController
 {
+    private static readonly SemaphoreSlim NumberLock = new(1, 1);
+
     [HttpGet("services")]
     public async Task<ActionResult<IReadOnlyList<ServiceDto>>> GetServices()
     {
         return Ok(await ticketRepository.GetServicesAsync());
     }
+
     [HttpPost("tickets")]
     public async Task<ActionResult<TicketDto>> CreateTicket(CreateTicketsDto dto)
     {
-         if (User.IsInRole("Admin")) return Forbid();
+        if (User.IsInRole("Admin")) return Forbid();
         if (!await ticketRepository.ServiceExistsAsync(dto.ServiceId))
         {
             return BadRequest("Service does not exist");
@@ -33,15 +36,23 @@ public class ClientController(ITicketRepository ticketRepository,
 
         var ticket = new Ticket
         {
-            Number = await ticketRepository.GetLastNumberTodayAsync() + 1,
             Status = TicketStatus.InQueue,
-            CreatedAt = DateTime.UtcNow,
             ServiceId = dto.ServiceId,
-
         };
-        ticketRepository.AddTicket(ticket);
-        if (!await ticketRepository.SaveAllAsync())
-            return BadRequest("Problem creating ticket");
+
+        await NumberLock.WaitAsync();
+        try
+        {
+            ticket.Number = await ticketRepository.GetLastNumberTodayAsync() + 1;
+            ticket.CreatedAt = DateTime.UtcNow;
+            ticketRepository.AddTicket(ticket);
+            if (!await ticketRepository.SaveAllAsync())
+                return BadRequest("Problem creating ticket");
+        }
+        finally
+        {
+            NumberLock.Release();
+        }
 
         var created = await ticketRepository.GetTicketAsync(ticket.Id);
         if (created == null) return BadRequest("Problem creating ticket");
@@ -60,6 +71,4 @@ public class ClientController(ITicketRepository ticketRepository,
         var ticket = await ticketRepository.GetTicketAsync(id);
         return ticket == null ? NotFound() : ticket;
     }
-
-
 }

@@ -5,7 +5,8 @@
   <div class="card bg-base-100 border border-base-300">
     <div class="card-body">
       <h2 class="font-semibold text-base">Non-working days</h2>
-      <p class="text-sm text-base-content/60">Saturdays and Sundays are non-working automatically. Click a day to select it, then add a
+      <p class="text-sm text-base-content/60">Saturdays and Sundays are non-working automatically. Click a day to select
+        it, then add a
         holiday name.</p>
 
       <div class="flex flex-wrap items-end gap-3">
@@ -23,52 +24,92 @@
         </div>
       </div>
 
-      <div class="flex items-center justify-between mt-2">
-        <button class="btn btn-sm btn-circle btn-ghost border border-base-300" aria-label="Previous month" (click)="prevMonth()">‹</button>
-        <span class="font-semibold text-lg">{{ monthStart() | date: 'LLLL yyyy' }}</span>
-        <button class="btn btn-sm btn-circle btn-ghost border border-base-300" aria-label="Next month" (click)="nextMonth()">›</button>
-      </div>
+      <div class="w-full max-w-4xl mx-auto mt-4 flex flex-col gap-3">
+        <div class="flex items-center justify-between">
+          <button class="btn btn-sm btn-circle btn-ghost border border-base-300" aria-label="Previous month"
+            (click)="prevMonth()">‹</button>
+          <span class="font-semibold text-lg">{{ monthStart() | date: 'LLLL yyyy' }}</span>
+          <button class="btn btn-sm btn-circle btn-ghost border border-base-300" aria-label="Next month"
+            (click)="nextMonth()">›</button>
+        </div>
 
-      <div class="grid grid-cols-7 gap-2 text-center text-xs uppercase font-semibold opacity-70">
-        @for (w of weekdays; track w) {
-        <div>{{ w }}</div>
-        }
-      </div>
-
-      <div class="grid grid-cols-7 gap-2">
-        @for (c of cells(); track $index) {
-        @if (c) {
-        <div class="min-h-36 rounded-xl p-2 flex flex-col gap-1 cursor-pointer border border-base-300 text-sm"
-          [class.bg-base-200]="c.weekend && !c.holiday" [class.bg-yellow-200]="!!c.holiday"
-          [class.ring-2]="c.key === newDate" [class.ring-primary]="c.key === newDate" (click)="newDate = c.key">
-          <div class="flex items-center justify-between">
-            <span class="font-semibold" [class.text-primary]="c.today">{{ c.day }}</span>
-            @if (c.holiday) {
-            <button class="btn btn-xs btn-circle btn-ghost"
-              (click)="$event.stopPropagation(); remove(c.holiday.id)">✕</button>
-            }
-          </div>
-          @if (c.holiday) {
-          <span class="text-xs font-medium leading-tight">{{ c.holiday.name }}</span>
-          } @else if (c.weekend) {
-          <span class="text-xs text-base-content/60">Weekend</span>
-          }
-          @if (c.workers.length > 0) {
-          <div class="mt-auto flex flex-col gap-1">
-            @for (w of c.workers; track w.employeeId) {
-            <div
-              class="flex items-center justify-between gap-1 rounded-md bg-success px-1.5 py-0.5 text-xs text-success-content">
-              <span class="truncate">{{ w.username }}</span>
-              <span class="shrink-0 font-semibold">{{ w.hours | number: '1.0-1' }}h</span>
-            </div>
-            }
-          </div>
+        <div class="grid grid-cols-7 gap-1.5 sm:gap-2 text-center text-xs uppercase font-semibold tracking-wide">
+          @for (w of weekdays; track w; let i = $index) {
+          <div class="py-1" [class]="i >= 5 ? 'text-base-content/50' : 'text-base-content/70'">{{ w }}</div>
           }
         </div>
-        } @else {
-        <div></div>
-        }
-        }
+
+        <div class="grid grid-cols-7 gap-1.5 sm:gap-2">
+          @for (c of cells(); track $index) {
+          @if (c) {
+          <div class="day-tip min-w-0" [class.tooltip]="!!tipFor(c)" [attr.data-tip]="tipFor(c) || null">
+          <div
+            class="group relative aspect-square min-w-0 rounded-xl border p-1 sm:p-2 flex flex-col gap-1 cursor-pointer overflow-hidden transition-colors hover:border-primary/60"
+            [class.border-base-300]="!c.holiday" [class.bg-base-100]="!c.weekend && !c.holiday"
+            [class.bg-base-200]="c.weekend && !c.holiday" [class.bg-yellow-100]="!!c.holiday"
+            [class.border-yellow-300]="!!c.holiday" [class.ring-2]="c.key === newDate"
+            [class.ring-primary]="c.key === newDate" (click)="newDate = c.key">
+
+            <div class="flex items-start justify-between gap-1 shrink-0">
+              <span class="inline-flex items-center justify-center size-6 rounded-full text-xs sm:text-sm font-semibold"
+                [class.bg-primary]="c.today" [class.text-primary-content]="c.today">{{ c.day }}</span>
+              @if (c.holiday) {
+              <button
+                class="hidden sm:inline-flex items-center justify-center size-5 rounded-full text-[10px] text-base-content/60 hover:bg-error hover:text-error-content opacity-0 group-hover:opacity-100 transition-opacity"
+                aria-label="Remove holiday" (click)="$event.stopPropagation(); remove(c.holiday.id)">✕</button>
+              }
+            </div>
+
+           
+            <div class="hidden sm:flex flex-col gap-1 min-h-0 flex-1">
+              @if (c.holiday) {
+              <span class="text-[11px] font-medium leading-tight line-clamp-2 break-words text-yellow-900">{{
+                c.holiday.name }}</span>
+              } @else if (c.weekend) {
+              <span class="text-[11px] leading-tight text-base-content/50">Weekend</span>
+              }
+
+              @if (c.workers.length > 0) {
+              <div class="mt-auto flex flex-col gap-0.5 min-w-0">
+                @for (w of c.workers.slice(0, 2); track w.employeeId) {
+                <div
+                  class="flex items-center justify-between gap-1 min-w-0 rounded-md bg-success px-1.5 text-[10px] leading-4 text-success-content">
+                  <span class="truncate min-w-0">{{ w.username }}</span>
+                  <span class="shrink-0 font-semibold">{{ w.hours | number: '1.0-1' }}h</span>
+                </div>
+                }
+                @if (c.workers.length > 2) {
+                <span class="text-[10px] leading-4 font-medium text-success">+{{ c.workers.length - 2 }} more</span>
+                }
+              </div>
+              }
+            </div>
+
+            
+            <div class="sm:hidden mt-auto flex justify-center gap-1">
+              @if (c.holiday) {
+              <span class="size-1.5 rounded-full bg-yellow-500"></span>
+              }
+              @if (c.workers.length > 0) {
+              <span class="size-1.5 rounded-full bg-success"></span>
+              }
+            </div>
+          </div>
+          </div>
+          } @else {
+          <div class="aspect-square"></div>
+          }
+          }
+        </div>
+
+        <div class="flex flex-wrap items-center gap-4 text-xs text-base-content/70">
+          <span class="flex items-center gap-1.5"><span
+              class="size-3 rounded border border-yellow-300 bg-yellow-100"></span>Holiday</span>
+          <span class="flex items-center gap-1.5"><span
+              class="size-3 rounded border border-base-300 bg-base-200"></span>Weekend</span>
+          <span class="flex items-center gap-1.5"><span class="size-3 rounded bg-success"></span>Worked</span>
+          <span class="flex items-center gap-1.5"><span class="size-3 rounded-full bg-primary"></span>Today</span>
+        </div>
       </div>
     </div>
   </div>

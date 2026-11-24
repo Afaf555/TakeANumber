@@ -3,8 +3,7 @@ import { inject, Injectable, signal } from '@angular/core';
 import { HubConnection, HubConnectionBuilder } from '@microsoft/signalr';
 import { debounceTime, Subject } from 'rxjs';
 import { environment } from '../../../environments/environment';
-import { ActiveCounter, ServiceQueue } from '../../types/display';
-
+import { ActiveCounter, RecalledTicket, ServiceQueue } from '../../types/display';
 @Injectable({
   providedIn: 'root',
 })
@@ -17,7 +16,7 @@ export class DisplayService {
   private rawChange$ = new Subject<string>();
   dataChanged$ = this.rawChange$.pipe(debounceTime(300));
   queues = signal<ServiceQueue[]>([]);
-
+  recalled$ = new Subject<RecalledTicket>();
   constructor() {
     this.dataChanged$.subscribe(() => this.loadCounters());
   }
@@ -37,6 +36,9 @@ export class DisplayService {
     this.hubConnection.on('QueuesUpdated', (queues: ServiceQueue[]) => {
       this.queues.set(queues);
       this.updated$.next();
+    });
+    this.hubConnection.on('TicketRecalled', (t: RecalledTicket) => {
+      this.recalled$.next(t);
     });
     this.hubConnection.on('DataChanged', (action: string) => {
       this.rawChange$.next(action);

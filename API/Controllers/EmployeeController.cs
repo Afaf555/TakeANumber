@@ -21,6 +21,7 @@ namespace API.Controllers
     ICounterRepository counterRepository,
     IHubContext<QueueHub> hubContext, ActivityLogger logger) : BaseApiController
     {
+        private static readonly SemaphoreSlim CallLock = new(1, 1);
         [HttpGet("current")]
         public async Task<ActionResult<EmployeeTicketsDto>> GetCurrentTicket()
         {
@@ -47,7 +48,6 @@ namespace API.Controllers
                 .Select(c => c.Name)
                 .FirstOrDefaultAsync();
 
-            // tickets in queue for the services of this counter, oldest first
             var waiting = await context.Tickets
                 .Where(t => t.Status == TicketStatus.InQueue && t.CreatedAt >= today
                     && context.CounterServices.Any(cs => cs.CounterId == counterId && cs.ServiceId == t.ServiceId))
@@ -63,7 +63,6 @@ namespace API.Controllers
                 })
                 .ToList();
 
-            // today's tickets handled at this counter
             var handled = await context.Tickets
                 .Where(t => t.CounterId == counterId && t.StartedAt >= today
                     && (t.Status == TicketStatus.Finished || t.Status == TicketStatus.NoShow))
@@ -104,33 +103,40 @@ namespace API.Controllers
             var active = await employeeRepository.IsCounterActiveAsync(counterId.Value);
             if (!active) return BadRequest("Counter is not active");
 
-            if (await employeeRepository.GetCurrentTicketAsync(counterId.Value) != null)
+            Ticket? next;
+            await CallLock.WaitAsync();
+            try
             {
-                return BadRequest("Finish the current ticket first");
+                if (await employeeRepository.GetCurrentTicketAsync(counterId.Value) != null)
+                {
+                    return BadRequest("Finish the current ticket first");
+                }
+
+                next = await employeeRepository.GetNextTicketAsync(counterId.Value);
+                if (next == null) return NotFound("No tickets in queue");
+
+                next.Status = TicketStatus.InProgress;
+                next.StartedAt = DateTime.UtcNow;
+                next.CounterId = counterId.Value;
+
+                if (!await employeeRepository.SaveAllAsync())
+                    return BadRequest("Problem calling next ticket");
+            }
+            finally
+            {
+                CallLock.Release();
             }
 
-            var next = await employeeRepository.GetNextTicketAsync(counterId.Value);
-            if (next == null) return NotFound("No tickets in queue");
+            var counters = await counterRepository.GetActiveCountersAsync();
+            await hubContext.Clients.All.SendAsync("CountersUpdated", counters);
+            await hubContext.Clients.All.SendAsync("QueuesUpdated", await counterRepository.GetServiceQueuesAsync());
 
-            next.Status = TicketStatus.InProgress;
-            next.StartedAt = DateTime.UtcNow;
-            next.CounterId = counterId.Value;
+            var ticket = await employeeRepository.GetTicketDtoAsync(next.Id);
+            if (ticket == null) return NotFound();
 
-            if (await employeeRepository.SaveAllAsync())
-            {
-                var counters = await counterRepository.GetActiveCountersAsync();
-                await hubContext.Clients.All.SendAsync("CountersUpdated", counters);
-                await hubContext.Clients.All.SendAsync("QueuesUpdated", await counterRepository.GetServiceQueuesAsync());
-
-                var ticket = await employeeRepository.GetTicketDtoAsync(next.Id);
-                if (ticket == null) return NotFound();
-
-                await logger.LogAsync(LogActions.TicketCalled, "Ticket", next.Id,
-                    $"{ticket.Code}, counter {counterId}");
-                return ticket;
-            }
-
-            return BadRequest("Problem calling next ticket");
+            await logger.LogAsync(LogActions.TicketCalled, "Ticket", next.Id,
+                $"{ticket.Code}, counter {counterId}");
+            return ticket;
         }
 
         [HttpPost("finish")]
@@ -186,7 +192,62 @@ namespace API.Controllers
             }
             return BadRequest("Problem marking ticket no-show");
         }
+        [HttpPost("recall")]
+        public async Task<ActionResult> Recall()
+        {
+            var counterId = await employeeRepository.GetCounterIdAsync(User.GetUserId());
+            if (counterId == null) return BadRequest("Employee is not assigned to a counter");
+            var current = await employeeRepository.GetCurrentTicketAsync(counterId.Value);
+            if (current == null) return BadRequest("No ticket in progress");
 
+            var ticket = await employeeRepository.GetTicketDtoAsync(current.Id);
+            if (ticket == null) return NotFound();
+            var counter = await context.Counters.FindAsync(counterId.Value);
+
+            await hubContext.Clients.All.SendAsync("TicketRecalled", new
+            {
+                CounterId = counterId.Value,
+                Code = ticket.Code,
+                CounterName = counter?.Name
+            });
+
+            await logger.LogAsync(LogActions.TicketRecalled, "Ticket", current.Id,
+                $"{ticket.Code}, counter {counterId}");
+            return NoContent();
+        }
+
+        [HttpPost("transfer")]
+        public async Task<ActionResult> Transfer(TransferTicketDto dto)
+        {
+            var counterId = await employeeRepository.GetCounterIdAsync(User.GetUserId());
+            if (counterId == null) return BadRequest("Employee is not assigned to a counter");
+            var current = await employeeRepository.GetCurrentTicketAsync(counterId.Value);
+            if (current == null) return BadRequest("No ticket in progress");
+
+            if (!await context.Services.AnyAsync(s => s.Id == dto.ServiceId))
+                return BadRequest("Service does not exist");
+            if (current.ServiceId == dto.ServiceId)
+                return BadRequest("Ticket is already for this service");
+
+            var from = await employeeRepository.GetTicketDtoAsync(current.Id);
+
+            current.ServiceId = dto.ServiceId;
+            current.Status = TicketStatus.InQueue;
+            current.StartedAt = null;
+            current.CounterId = null;
+
+            if (!await employeeRepository.SaveAllAsync())
+                return BadRequest("Problem transferring ticket");
+
+            var to = await employeeRepository.GetTicketDtoAsync(current.Id);
+
+            await hubContext.Clients.All.SendAsync("CountersUpdated", await counterRepository.GetActiveCountersAsync());
+            await hubContext.Clients.All.SendAsync("QueuesUpdated", await counterRepository.GetServiceQueuesAsync());
+
+            await logger.LogAsync(LogActions.TicketTransferred, "Ticket", current.Id,
+                $"{from?.Code} -> {to?.Code}, counter {counterId}");
+            return NoContent();
+        }
         [HttpPost("break/start")]
         public async Task<ActionResult> StartBreak()
         {
