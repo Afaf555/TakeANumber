@@ -49,10 +49,10 @@
       <div class="card bg-base-100 border border-base-300">
         <div role="tablist" class="tabs tabs-border px-4 pt-2">
           <a role="tab" class="tab" [class.tab-active]="tab() === 'employees'"
-            (click)="tab.set('employees')">Employees</a>
-          <a role="tab" class="tab" [class.tab-active]="tab() === 'activity'" (click)="tab.set('activity')">Activity</a>
+            (click)="setTab('employees')">Employees</a>
+          <a role="tab" class="tab" [class.tab-active]="tab() === 'activity'" (click)="setTab('activity')">Activity</a>
           <a role="tab" class="tab" [class.tab-active]="tab() === 'analytics'"
-            (click)="tab.set('analytics')">Analytics</a>
+            (click)="setTab('analytics')">Analytics</a>
         </div>
 
         <div class="card-body p-4 gap-4">
@@ -116,7 +116,7 @@
             <button type="button" class="btn btn-sm btn-ghost rounded-full border border-base-300 "
               (click)="exportActivity()">Export
               CSV</button>
-            <button class="btn btn-sm btn-ghost rounded-full" (click)="tab.set('employees')">← Employees</button>
+            <button class="btn btn-sm btn-ghost rounded-full" (click)="setTab('employees')">← Employees</button>
           </div>
 
           @if (activity(); as a) {
@@ -470,7 +470,7 @@
           @if (tab() === 'analytics') {
           <label class="text-xs flex flex-col gap-1.5">Group by
             <select class="select select-sm rounded-full flex w-full px-8 text-center [text-align-last:center]"
-              [ngModel]="groupBy" (ngModelChange)="groupBy = $event; loadHours()">
+              [ngModel]="groupBy" (ngModelChange)="setGroupBy($event)">
               <option class="text-center" value="day">Day</option>
               <option class="text-center" value="week">Week</option>
               <option class="text-center" value="month">Month</option>
@@ -480,7 +480,7 @@
           </label>
           <label class="text-xs flex flex-col gap-1.5">Employee
             <select class="select select-sm rounded-full flex w-full px-8 text-center [text-align-last:center]"
-              [ngModel]="analyticsEmployeeId" (ngModelChange)="analyticsEmployeeId = $event; loadHours()">
+              [ngModel]="analyticsEmployeeId" (ngModelChange)="setAnalyticsEmployee($event)">
               <option class="text-center" [ngValue]="null">All employees</option>
               @for (r of rows(); track r.id) {
               <option class="text-center" [ngValue]="r.id">{{ r.username }}</option>

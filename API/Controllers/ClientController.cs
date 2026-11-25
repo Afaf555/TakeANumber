@@ -9,6 +9,7 @@ using API.SignalR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
+using Microsoft.EntityFrameworkCore;
 
 namespace API.Controllers;
 
@@ -17,8 +18,6 @@ public class ClientController(ITicketRepository ticketRepository,
     ICounterRepository counterRepository,
     IHubContext<QueueHub> hubContext, ActivityLogger logger) : BaseApiController
 {
-    private static readonly SemaphoreSlim NumberLock = new(1, 1);
-
     [HttpGet("services")]
     public async Task<ActionResult<IReadOnlyList<ServiceDto>>> GetServices()
     {
@@ -40,18 +39,25 @@ public class ClientController(ITicketRepository ticketRepository,
             ServiceId = dto.ServiceId,
         };
 
-        await NumberLock.WaitAsync();
-        try
+    
+        await using (var transaction = await ticketRepository.BeginTransactionAsync())
         {
-            ticket.Number = await ticketRepository.GetLastNumberTodayAsync() + 1;
+            ticket.Number = await ticketRepository.TakeNextNumberAsync();
             ticket.CreatedAt = DateTime.UtcNow;
+            ticket.TicketDate = LocalTime.Today();
             ticketRepository.AddTicket(ticket);
-            if (!await ticketRepository.SaveAllAsync())
-                return BadRequest("Problem creating ticket");
-        }
-        finally
-        {
-            NumberLock.Release();
+            try
+            {
+                if (!await ticketRepository.SaveAllAsync())
+                    return BadRequest("Problem creating ticket");
+            }
+            catch (DbUpdateException)
+            {
+               
+                return Conflict("Ticket number already taken, please try again");
+            }
+
+            await transaction.CommitAsync();
         }
 
         var created = await ticketRepository.GetTicketAsync(ticket.Id);

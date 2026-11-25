@@ -9,6 +9,6 @@ public class Service
  public List<CounterService> CounterServices { get; set; }=[];
  public List<Ticket> Tickets { get; set; }=[];
  public string  Code { get; set; }="";
+ public bool IsActive { get; set; } = true;
 
 }
-

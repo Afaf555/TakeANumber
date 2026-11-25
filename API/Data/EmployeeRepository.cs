@@ -5,6 +5,7 @@ using API.Entities;
 using API.Entities.Enums;
 using API.Interfaces;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
 
 namespace API.Data;
 
@@ -25,17 +26,29 @@ public class EmployeeRepository (AppDbContext context): IEmployeeRepository
         x.CounterId == counterId && x.Status == TicketStatus.InProgress && x.CreatedAt >= today);
 }
 
-public async Task<Ticket?> GetNextTicketAsync(int counterId)
-{
-    var today = LocalTime.TodayStartUtc();
-    return await context.Tickets
-        .Where(x => x.Status == TicketStatus.InQueue
-            && x.CreatedAt >= today
-            && context.CounterServices.Any(
-                c => c.CounterId == counterId && c.ServiceId == x.ServiceId))
-        .OrderBy(x => x.Id)
-        .FirstOrDefaultAsync();
-}
+ 
+    public async Task LockCounterAsync(int counterId)
+    {
+        await context.Database.ExecuteSqlAsync(
+            $"SELECT Id FROM Counters WITH (UPDLOCK, ROWLOCK) WHERE Id = {counterId}");
+    }
+
+   
+    public async Task<Ticket?> TakeNextTicketAsync(int counterId)
+    {
+        var today = LocalTime.TodayStartUtc();
+        var tickets = await context.Tickets.FromSql($"""
+            SELECT TOP 1 t.*
+            FROM Tickets t WITH (UPDLOCK, ROWLOCK, READPAST)
+            WHERE t.Status = 'InQueue'
+              AND t.CreatedAt >= {today}
+              AND EXISTS (SELECT 1 FROM CounterServices cs
+                          WHERE cs.CounterId = {counterId} AND cs.ServiceId = t.ServiceId)
+            ORDER BY t.Id
+            """).ToListAsync();
+
+        return tickets.FirstOrDefault();
+    }
 
     public async Task<EmployeeTicketsDto?> GetTicketDtoAsync(int ticketId)
     {
@@ -62,4 +75,10 @@ public async Task<Ticket?> GetNextTicketAsync(int counterId)
     {
         return await context.SaveChangesAsync()>0;
     }
+
+    public async Task<IDbContextTransaction> BeginTransactionAsync()
+    {
+        return await context.Database.BeginTransactionAsync();
+    }
+
 }

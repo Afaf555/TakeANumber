@@ -216,6 +216,9 @@ namespace API.Migrations
                         .HasMaxLength(5)
                         .HasColumnType("nvarchar(5)");
 
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
@@ -275,7 +278,11 @@ namespace API.Migrations
 
                     b.Property<string>("Status")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<DateTime>("TicketDate")
+                        .HasColumnType("date");
 
                     b.HasKey("Id");
 
@@ -283,9 +290,30 @@ namespace API.Migrations
 
                     b.HasIndex("CounterId", "StartedAt");
 
+                    b.HasIndex("CounterId", "TicketDate")
+                        .IsUnique()
+                        .HasDatabaseName("IX_Tickets_OneInProgressPerCounter")
+                        .HasFilter("[Status] = 'InProgress'");
+
                     b.HasIndex("ServiceId", "CreatedAt");
 
+                    b.HasIndex("TicketDate", "Number")
+                        .IsUnique();
+
                     b.ToTable("Tickets");
+                });
+
+            modelBuilder.Entity("API.Entities.TicketCounter", b =>
+                {
+                    b.Property<DateTime>("Date")
+                        .HasColumnType("date");
+
+                    b.Property<int>("LastNumber")
+                        .HasColumnType("int");
+
+                    b.HasKey("Date");
+
+                    b.ToTable("TicketCounters");
                 });
 
             modelBuilder.Entity("API.Entities.User", b =>

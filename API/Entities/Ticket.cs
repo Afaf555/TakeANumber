@@ -9,6 +9,7 @@ public class Ticket
     public TicketStatus Status { get; set; } = TicketStatus.InQueue;
 
     public DateTime CreatedAt { get; set; }
+    public DateTime TicketDate { get; set; }  
     public DateTime? StartedAt { get; set; }
     public DateTime? FinishedAt { get; set; }
 

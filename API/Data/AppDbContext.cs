@@ -17,6 +17,7 @@ public class AppDbContext(DbContextOptions options) : DbContext(options)
     public DbSet<NonWorkingDay> NonWorkingDays { get; set; }
     public DbSet<Leave> Leaves { get; set; }
     public DbSet<Setting> Settings { get; set; }
+    public DbSet<TicketCounter> TicketCounters { get; set; }
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -27,6 +28,12 @@ public class AppDbContext(DbContextOptions options) : DbContext(options)
       e.Property(x => x.Key).HasMaxLength(100);
       e.Property(x => x.Value).HasMaxLength(1000);
   });
+        modelBuilder.Entity<TicketCounter>(e =>
+        {
+            e.HasKey(x => x.Date);
+            e.Property(x => x.Date).HasColumnType("date");
+        });
+
         modelBuilder.Entity<CounterService>()
             .HasKey(x => new { x.CounterId, x.ServiceId });
 
@@ -68,7 +75,8 @@ public class AppDbContext(DbContextOptions options) : DbContext(options)
 
         modelBuilder.Entity<Ticket>()
             .Property(x => x.Status)
-            .HasConversion<string>();
+            .HasConversion<string>()
+            .HasMaxLength(20);
 
         modelBuilder.Entity<User>()
             .HasIndex(x => x.Username)
@@ -106,6 +114,17 @@ public class AppDbContext(DbContextOptions options) : DbContext(options)
             e.HasIndex(x => new { x.CounterId, x.StartedAt });
             e.HasIndex(x => new { x.ServiceId, x.CreatedAt });
 
+            e.Property(x => x.TicketDate).HasColumnType("date");
+
+           
+            e.HasIndex(x => new { x.TicketDate, x.Number }).IsUnique();
+
+            
+            e.HasIndex(x => new { x.CounterId, x.TicketDate })
+                .IsUnique()
+                .HasFilter("[Status] = 'InProgress'")
+                .HasDatabaseName("IX_Tickets_OneInProgressPerCounter");
+
         });
         modelBuilder.Entity<NonWorkingDay>().Property(x => x.Date).HasColumnType("date");
         modelBuilder.Entity<NonWorkingDay>().HasIndex(x => x.Date).IsUnique();
@@ -135,12 +154,16 @@ public class AppDbContext(DbContextOptions options) : DbContext(options)
 
         foreach (var entityType in modelBuilder.Model.GetEntityTypes())
         {
-            if (entityType.ClrType == typeof(NonWorkingDay)) continue;
+          
+            if (entityType.ClrType == typeof(NonWorkingDay) || entityType.ClrType == typeof(TicketCounter)) continue;
 
             foreach (var property in entityType.GetProperties())
             {
                 if (entityType.ClrType == typeof(Leave)
                     && (property.Name is nameof(Leave.StartDate) or nameof(Leave.EndDate)))
+                    continue;
+
+                if (entityType.ClrType == typeof(Ticket) && property.Name == nameof(Ticket.TicketDate))
                     continue;
 
                 if (property.ClrType == typeof(DateTime))

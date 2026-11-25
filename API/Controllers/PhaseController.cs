@@ -11,13 +11,7 @@ public record PhaseResult(double Serving, double Idle, double Neglect, double Br
         new(Serving + o.Serving, Idle + o.Idle, Neglect + o.Neglect, Break + o.Break, AfterHours + o.AfterHours);
 }
 
-// Splits one login session into 4 phases (all values in minutes):
-//   1 Serving  - ticket started -> finished
-//   2 Idle     - free time with nobody waiting, plus the first `threshold` of reaction time
-//                after a ticket was available
-//   3 Neglect  - reaction time beyond `threshold` while a ticket was already waiting
-//   4 Break    - on break
-// AfterHours = time present (not on break) inside [afterStart, afterEnd)
+
 public static class PhaseCalculator
 {
     public static PhaseResult Compute(

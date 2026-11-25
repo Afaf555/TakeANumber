@@ -6,9 +6,9 @@
   <div class="card bg-base-100 border border-base-300">
     <div role="tablist" class="tabs tabs-border px-4 pt-2">
       <a role="tab" class="tab" [class.tab-active]="tab() === 'attendance'"
-        (click)="tab.set('attendance')">Attendance</a>
-      <a role="tab" class="tab" [class.tab-active]="tab() === 'phases'" (click)="tab.set('phases')">Phases</a>
-      <a role="tab" class="tab" [class.tab-active]="tab() === 'pto'" (click)="tab.set('pto')">Paid leave
+        (click)="setTab('attendance')">Attendance</a>
+      <a role="tab" class="tab" [class.tab-active]="tab() === 'phases'" (click)="setTab('phases')">Phases</a>
+      <a role="tab" class="tab" [class.tab-active]="tab() === 'pto'" (click)="setTab('pto')">Paid leave
         @if (pending().length) {
         <span class="badge badge-sm badge-warning ml-2">{{ pending().length }}</span>
         }
@@ -184,7 +184,7 @@
             <button type="button" class="px-3 py-1 rounded-full text-xs flex items-center gap-1.5 transition-colors"
               [class.bg-base-100]="phaseMetric().key === m.key" [class.shadow-sm]="phaseMetric().key === m.key"
               [class.font-semibold]="phaseMetric().key === m.key" [class.opacity-60]="phaseMetric().key !== m.key"
-              (click)="phaseMetric.set(m)">
+              (click)="setMetric(m)">
               <span class="w-2 h-2 rounded-full" [class]="m.color"></span>{{ m.label }}
             </button>
             }
@@ -214,7 +214,7 @@
             class="h-7 rounded-md bg-base-200/70 overflow-hidden transition-transform hover:scale-110 hover:z-10"
             [class.ring-2]="!!c.p && selectedPhase() === c.p" [class.ring-primary]="!!c.p && selectedPhase() === c.p"
             [class.cursor-default]="!c.p" [attr.title]="cellTitle(r.username, c.day, c.p)"
-            (click)="c.p && selectedPhase.set(c.p)">
+            (click)="c.p && selectPhase(c.p)">
             <div class="w-full h-full" [class]="phaseMetric().color" [style.opacity]="c.opacity"></div>
           </button>
           }
@@ -246,7 +246,7 @@
         <div class="flex items-center justify-between">
           <h3 class="font-semibold">{{ p.username }} <span class="font-normal opacity-60">· {{ p.date | date:
               'EEEE dd.MM.yyyy' }}</span></h3>
-          <button type="button" class="btn btn-xs btn-ghost btn-circle" (click)="selectedPhase.set(null)">✕</button>
+          <button type="button" class="btn btn-xs btn-ghost btn-circle" (click)="selectPhase(null)">✕</button>
         </div>
         <div class="flex h-2.5 w-full overflow-hidden rounded-full bg-base-200">
           <div class="bg-success" [style.width.%]="phasePct(p.servingMinutes, p)"></div>
@@ -284,7 +284,7 @@
             <button type="button" class="px-3 py-1 rounded-full text-xs transition-colors"
               [class.bg-base-100]="slotMinutes() === o" [class.shadow-sm]="slotMinutes() === o"
               [class.font-semibold]="slotMinutes() === o" [class.opacity-60]="slotMinutes() !== o"
-              (click)="slotMinutes.set(o)">{{ o === 60 ? '1 h' : o + ' min' }}</button>
+              (click)="setSlot(o)">{{ o === 60 ? '1 h' : o + ' min' }}</button>
             }
           </div>
           <button type="button" class="btn btn-sm btn-ghost rounded-full border border-base-300"
@@ -323,14 +323,14 @@
             @for (r of g.rows; track r.day.date) {
             <button type="button" class="text-left text-sm pr-2 hover:text-primary transition-colors"
               [style.grid-column]="1" [class.text-primary]="selectedDay()?.date === r.day.date"
-              [class.font-semibold]="selectedDay()?.date === r.day.date" (click)="selectedDay.set(r.day)">
+              [class.font-semibold]="selectedDay()?.date === r.day.date" (click)="selectDay(r.day)">
               {{ r.day.date | date: 'EEE dd.MM' }}
             </button>
             @for (c of r.cells; track c.start) {
             <div class="h-6 rounded-[4px] overflow-hidden cursor-pointer"
               [class.bg-base-200]="c.work" [class.bg-base-200/50]="!c.work"
               (mouseenter)="hoverCell.set({ day: r.day.date, time: c.time, parts: c.parts })"
-              (click)="selectedDay.set(r.day)">
+              (click)="selectDay(r.day)">
               @if (c.color) {
               <div class="w-full h-full" [class]="c.color" [style.opacity]="c.opacity"></div>
               }
@@ -363,7 +363,7 @@
               <span class="badge badge-sm gap-1.5 border-base-300 bg-base-100"><span class="w-2 h-2 rounded-full"
                   [class]="phaseColors[t.phase]"></span>{{ t.phase }} {{ mins(t.minutes) }}</span>
               }
-              <button type="button" class="btn btn-xs btn-ghost btn-circle" (click)="selectedDay.set(null)">✕</button>
+              <button type="button" class="btn btn-xs btn-ghost btn-circle" (click)="selectDay(null)">✕</button>
             </div>
           </div>
 
@@ -420,7 +420,7 @@
       <div class="flex flex-wrap items-end gap-2">
         <label class="text-xs font-medium text-base-content/60">Year
           <input type="number" class="input input-sm rounded-full block w-28" [(ngModel)]="year"
-            (change)="loadPto(); loadLeaves()" />
+            (change)="yearChanged()" />
         </label>
       </div>
 

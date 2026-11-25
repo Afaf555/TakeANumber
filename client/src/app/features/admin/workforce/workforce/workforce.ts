@@ -4,7 +4,8 @@ import { localIso, rangeError } from '../../../../core/utils/date-range';
 import { downloadCsv, fmtDate } from '../../../../core/utils/csv';
 import { AlertModal } from '../../../../shared/alert-modal/alert-modal/alert-modal';
 import { Component, computed, inject, OnDestroy, OnInit, signal } from '@angular/core';
-import { DatePipe, DecimalPipe } from '@angular/common';
+import { DatePipe, DecimalPipe, Location } from '@angular/common';
+import { ActivatedRoute, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { Subscription } from 'rxjs';
 import { DisplayService } from '../../../../core/services/display-service';
@@ -25,6 +26,8 @@ const daysAgo = (n: number) => {
   return iso(d);
 };
 
+type WorkforceTab = 'attendance' | 'phases' | 'pto';
+
 @Component({
   imports: [PageHeader, DatePipe, DecimalPipe, FormsModule, HoursMinutesPipe, AlertModal, DatePicker],
   selector: 'app-workforce',
@@ -36,6 +39,9 @@ export class Workforce implements OnInit, OnDestroy {
   private leaveService = inject(LeaveService);
   private displayService = inject(DisplayService);
   private settingsService = inject(SettingsService);
+  private route = inject(ActivatedRoute);
+  private router = inject(Router);
+  private location = inject(Location);
   private updateSub?: Subscription;
 
   protected rules = signal<WorkSettings>({ ...DEFAULT_SETTINGS });
@@ -68,7 +74,7 @@ export class Workforce implements OnInit, OnDestroy {
   private lastClick: 'range' | 'apply' = 'range';
   private appliedFrom = '';
   private appliedTo = '';
-  protected tab = signal<'attendance' | 'phases' | 'pto'>('attendance');
+  protected tab = signal<WorkforceTab>('attendance');
   protected phases = signal<EmployeePhases[]>([]);
 
   protected readonly phaseMetrics: PhaseMetric[] = [
@@ -91,6 +97,7 @@ export class Workforce implements OnInit, OnDestroy {
     this.phaseEmployeeId.set(id);
     this.selectedPhase.set(null);
     this.selectedDay.set(null);
+    this.writeUrl();
     this.loadTimeline();
   }
 
@@ -227,8 +234,9 @@ export class Workforce implements OnInit, OnDestroy {
     this.reportsService.getPhaseTimeline(this.from, this.to, id).subscribe({
       next: (tl) => {
         this.timeline.set(tl);
-        const sel = this.selectedDay();
-        this.selectedDay.set(sel ? tl.days.find((d) => d.date === sel.date) ?? null : null);
+        const day = this.pendingDay ?? this.selectedDay()?.date.slice(0, 10);
+        this.pendingDay = null;
+        this.selectedDay.set(day ? tl.days.find((d) => d.date.slice(0, 10) === day) ?? null : null);
       },
       error: () => this.error.set('Could not load timeline'),
     });
@@ -286,7 +294,98 @@ export class Workforce implements OnInit, OnDestroy {
       + `Neglect: ${m(p.neglectMinutes)}\nBreak: ${m(p.breakMinutes)}\nAfter hours: ${m(p.afterHoursMinutes)}`;
   }
 
+  private pendingCell: string | null = null;
+  private pendingDay: string | null = null;
+
+  private readUrl() {
+    const q = this.route.snapshot.queryParamMap;
+
+    const tab = q.get('tab');
+    if (tab === 'phases' || tab === 'pto') this.tab.set(tab);
+
+    const range = Number(q.get('range'));
+    const from = q.get('from');
+    const to = q.get('to');
+    if ([7, 30, 90].includes(range)) {
+      this.from = daysAgo(range);
+      this.to = iso(new Date());
+    } else if (from && to && !rangeError(from, to)) {
+      this.from = this.appliedFrom = from;
+      this.to = this.appliedTo = to;
+      this.lastClick = 'apply';
+    }
+
+    const emp = Number(q.get('emp'));
+    if (emp) this.phaseEmployeeId.set(emp);
+
+    const metric = this.phaseMetrics.find((m) => m.key === q.get('metric'));
+    if (metric) this.phaseMetric.set(metric);
+
+    const slot = Number(q.get('slot'));
+    if (this.slotOptions.includes(slot)) this.slotMinutes.set(slot);
+
+    const year = Number(q.get('year'));
+    if (year) this.year = year;
+
+    this.pendingCell = q.get('cell');
+    this.pendingDay = q.get('day');
+  }
+
+  private writeUrl() {
+    const custom = this.lastClick === 'apply';
+    const sel = this.selectedPhase();
+    const day = this.selectedDay();
+  const url = this.router.createUrlTree([], {
+  relativeTo: this.route,
+  queryParams: {
+        tab: this.tab() === 'attendance' ? null : this.tab(),
+        range: custom ? null : this.activeRange(),
+        from: custom ? this.from : null,
+        to: custom ? this.to : null,
+        emp: this.phaseEmployeeId(),
+        metric: this.phaseMetric() === this.phaseMetrics[2] ? null : this.phaseMetric().key,
+        slot: this.slotMinutes() === 15 ? null : this.slotMinutes(),
+        year: this.year === new Date().getFullYear() ? null : this.year,
+        cell: sel ? `${sel.employeeId}_${sel.date.slice(0, 10)}` : null,
+        day: day ? day.date.slice(0, 10) : null,
+      },
+    });
+    this.location.replaceState(url.toString());
+  }
+
+  protected setTab(t: WorkforceTab) {
+    this.tab.set(t);
+    this.writeUrl();
+  }
+
+  protected setMetric(m: PhaseMetric) {
+    this.phaseMetric.set(m);
+    this.writeUrl();
+  }
+
+  protected setSlot(minutes: number) {
+    this.slotMinutes.set(minutes);
+    this.writeUrl();
+  }
+
+  protected selectPhase(p: EmployeePhases | null) {
+    this.selectedPhase.set(p);
+    this.writeUrl();
+  }
+
+  protected selectDay(d: PhaseTimelineDay | null) {
+    this.selectedDay.set(d);
+    this.writeUrl();
+  }
+
+  protected yearChanged() {
+    this.loadPto();
+    this.loadLeaves();
+    this.writeUrl();
+  }
+
   ngOnInit(): void {
+    this.readUrl();
     this.settingsService.get().subscribe({ next: (s) => this.rules.set(s) });
     this.loadAll();
     this.updateSub = this.displayService.dataChanged$.subscribe(() => this.loadAll());
@@ -317,6 +416,7 @@ export class Workforce implements OnInit, OnDestroy {
     this.lastClick = 'apply';
     this.appliedFrom = this.from;
     this.appliedTo = this.to;
+    this.writeUrl();
     this.loadReport();
   }
 
@@ -324,6 +424,7 @@ export class Workforce implements OnInit, OnDestroy {
     this.lastClick = 'range';
     this.from = daysAgo(days);
     this.to = iso(new Date());
+    this.writeUrl();
     this.loadReport();
   }
     protected phaseTotal(p: EmployeePhases) {
@@ -350,7 +451,10 @@ export class Workforce implements OnInit, OnDestroy {
         this.reportsService.getPhases(this.from, this.to).subscribe({
       next: (rows) => {
         this.phases.set(rows);
-        this.selectedPhase.set(null);
+        const sel = this.selectedPhase();
+        const cell = this.pendingCell ?? (sel ? `${sel.employeeId}_${sel.date.slice(0, 10)}` : null);
+        this.pendingCell = null;
+        this.selectedPhase.set(cell ? rows.find((p) => `${p.employeeId}_${p.date.slice(0, 10)}` === cell) ?? null : null);
       },
       error: () => this.error.set('Could not load phases'),
     });

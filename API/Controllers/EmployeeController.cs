@@ -21,7 +21,6 @@ namespace API.Controllers
     ICounterRepository counterRepository,
     IHubContext<QueueHub> hubContext, ActivityLogger logger) : BaseApiController
     {
-        private static readonly SemaphoreSlim CallLock = new(1, 1);
         [HttpGet("current")]
         public async Task<ActionResult<EmployeeTicketsDto>> GetCurrentTicket()
         {
@@ -104,27 +103,35 @@ namespace API.Controllers
             if (!active) return BadRequest("Counter is not active");
 
             Ticket? next;
-            await CallLock.WaitAsync();
-            try
+         
+            await using (var transaction = await employeeRepository.BeginTransactionAsync())
             {
+                await employeeRepository.LockCounterAsync(counterId.Value);
+
                 if (await employeeRepository.GetCurrentTicketAsync(counterId.Value) != null)
                 {
                     return BadRequest("Finish the current ticket first");
                 }
 
-                next = await employeeRepository.GetNextTicketAsync(counterId.Value);
+                next = await employeeRepository.TakeNextTicketAsync(counterId.Value);
                 if (next == null) return NotFound("No tickets in queue");
 
                 next.Status = TicketStatus.InProgress;
                 next.StartedAt = DateTime.UtcNow;
                 next.CounterId = counterId.Value;
 
-                if (!await employeeRepository.SaveAllAsync())
-                    return BadRequest("Problem calling next ticket");
-            }
-            finally
-            {
-                CallLock.Release();
+                try
+                {
+                    if (!await employeeRepository.SaveAllAsync())
+                        return BadRequest("Problem calling next ticket");
+                }
+                catch (DbUpdateException)
+                {
+                   
+                    return BadRequest("Finish the current ticket first");
+                }
+
+                await transaction.CommitAsync();
             }
 
             var counters = await counterRepository.GetActiveCountersAsync();
@@ -224,7 +231,7 @@ namespace API.Controllers
             var current = await employeeRepository.GetCurrentTicketAsync(counterId.Value);
             if (current == null) return BadRequest("No ticket in progress");
 
-            if (!await context.Services.AnyAsync(s => s.Id == dto.ServiceId))
+            if (!await context.Services.AnyAsync(s => s.Id == dto.ServiceId && s.IsActive))
                 return BadRequest("Service does not exist");
             if (current.ServiceId == dto.ServiceId)
                 return BadRequest("Ticket is already for this service");

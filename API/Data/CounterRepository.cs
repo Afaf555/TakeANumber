@@ -1,4 +1,3 @@
-
 using API.DTOs;
 using API.Entities.Enums;
 using API.Extensions;
@@ -71,7 +70,7 @@ public class CounterRepository(AppDbContext context) : ICounterRepository
             })
             .ToListAsync();
 
-        var services = await context.Services.Select(s => new { s.Id, s.Name, s.Code }).ToListAsync();
+        var services = await context.Services.Where(s => s.IsActive).Select(s => new { s.Id, s.Name, s.Code }).ToListAsync();
 
         return services.Select(s => new ServiceQueueDto
         {

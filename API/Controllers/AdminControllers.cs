@@ -21,6 +21,7 @@ public class AdminController(AppDbContext context, ActivityLogger logger) : Base
     {
         var today = LocalTime.TodayStartUtc();
         return await context.Services
+            .Where(x => x.IsActive)
             .Select(x => new ServiceDto
             {
                 Id = x.Id,
@@ -39,10 +40,22 @@ public class AdminController(AppDbContext context, ActivityLogger logger) : Base
         var name = dto.Name.Trim();
         if (string.IsNullOrEmpty(name)) return BadRequest("Name is required");
         if (code.Length is < 1 or > 5) return BadRequest("Code must be 1-5 characters");
-        if (await context.Services.AnyAsync(x => x.Code == code))
+        var existing = await context.Services.FirstOrDefaultAsync(x => x.Code == code);
+        if (existing != null && existing.IsActive)
             return BadRequest("Code is already used");
-        var service = new Service { Name = name, Code = code };
-        context.Services.Add(service);
+
+        Service service;
+        if (existing != null)
+        {
+            service = existing;
+            service.IsActive = true;
+            service.Name = name;
+        }
+        else
+        {
+            service = new Service { Name = name, Code = code };
+            context.Services.Add(service);
+        }
         await context.SaveChangesAsync();
         await logger.LogAsync(LogActions.ServiceCreated, "Service", service.Id, $"{code} - {service.Name}");
         return new ServiceDto { Id = service.Id, Name = service.Name, Code = service.Code };
@@ -53,7 +66,7 @@ public class AdminController(AppDbContext context, ActivityLogger logger) : Base
     public async Task<ActionResult> DeleteService(int id)
     {
         var service = await context.Services.FindAsync(id);
-        if (service == null) return NotFound();
+        if (service == null || !service.IsActive) return NotFound();
         var today = LocalTime.TodayStartUtc();
         if (await context.Tickets.AnyAsync(x => x.ServiceId == id && x.CreatedAt >= today &&
         (x.Status == TicketStatus.InQueue || x.Status == TicketStatus.InProgress)))
@@ -61,15 +74,13 @@ public class AdminController(AppDbContext context, ActivityLogger logger) : Base
 
         var serviceLabel = $"{service.Code} - {service.Name}";
 
-        var tickets = await context.Tickets.Where(x => x.ServiceId == id).ToListAsync();
-        context.Tickets.RemoveRange(tickets);
         var links = context.CounterServices.Where(x => x.ServiceId == id);
         var affectedCounterIds = await context.CounterServices
      .Where(x => x.ServiceId == id)
      .Select(x => x.CounterId)
      .ToListAsync();
         context.CounterServices.RemoveRange(links);
-        context.Services.Remove(service);
+        service.IsActive = false;   
         await context.SaveChangesAsync();
         var affectedEmployeeIds = await context.Users
             .Where(x => x.CounterId != null && affectedCounterIds.Contains(x.CounterId.Value))
@@ -78,7 +89,7 @@ public class AdminController(AppDbContext context, ActivityLogger logger) : Base
         foreach (var userId in affectedEmployeeIds)
             await RefreshOpenSessionAsync(userId);
         await logger.LogAsync(LogActions.ServiceDeleted, "Service", id,
-                $"{serviceLabel}: {tickets.Count} tickets deleted");
+                serviceLabel);
         return NoContent();
     }
 
@@ -122,7 +133,7 @@ public class AdminController(AppDbContext context, ActivityLogger logger) : Base
         if (counter == null) return NotFound();
 
         var distinctIds = dto.ServiceIds.Distinct().ToList();
-        var existingCount = await context.Services.CountAsync(x => distinctIds.Contains(x.Id));
+        var existingCount = await context.Services.CountAsync(x => distinctIds.Contains(x.Id) && x.IsActive);
         if (existingCount != distinctIds.Count)
             return BadRequest("One or more services do not exist");
 

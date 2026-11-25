@@ -8,8 +8,9 @@ import { Subscription } from 'rxjs';
 import { DisplayService } from '../../../../core/services/display-service';
 import { ReportsService } from '../../../../core/services/reports-service';
 import { AbsentDay, EmployeeActivity, EmployeeReportRow, HeatmapCell, HoursReport, QueueReport, SessionReport } from '../../../../types/reports';
-import { DatePipe, DecimalPipe } from '@angular/common';
+import { DatePipe, DecimalPipe, Location } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { ActivatedRoute, Router } from '@angular/router';
 import { HoursMinutesPipe } from '../../../../core/pipes/hours-minutes-pipe';
 const iso = (d: Date) => d.toISOString().slice(0, 10);
 const daysAgo = (n: number) => {
@@ -28,6 +29,9 @@ const daysAgo = (n: number) => {
 export class Reports implements OnInit, OnDestroy {
   private reportsService = inject(ReportsService);
   private displayService = inject(DisplayService);
+  private route = inject(ActivatedRoute);
+  private router = inject(Router);
+  private location = inject(Location);
   private updateSub?: Subscription;
   protected tab = signal<'employees' | 'activity' | 'analytics'>('employees');
   protected from = daysAgo(30);
@@ -168,7 +172,84 @@ export class Reports implements OnInit, OnDestroy {
     ];
   });
 
+  private pendingEmployee: number | null = null;
+
+  private readUrl() {
+    const q = this.route.snapshot.queryParamMap;
+
+    const tab = q.get('tab');
+    if (tab === 'activity' || tab === 'analytics') this.tab.set(tab);
+
+    const sub = q.get('sub');
+    if (sub === 'tickets' || sub === 'log') this.sub.set(sub);
+
+    const range = q.get('range');
+    const from = q.get('from');
+    const to = q.get('to');
+    if (range === 'today') {
+      this.from = todayIso();
+      this.to = todayIso();
+    } else if (range === 'week') {
+      this.from = daysAgo((new Date().getDay() + 6) % 7);
+      this.to = todayIso();
+    } else if (range === '7' || range === '30' || range === '365') {
+      this.from = daysAgo(Number(range));
+      this.to = todayIso();
+    } else if (from && to && !rangeError(from, to)) {
+      this.from = this.appliedFrom = from;
+      this.to = this.appliedTo = to;
+      this.lastClick = 'apply';
+    }
+
+    const group = q.get('group');
+    if (group === 'day' || group === 'month' || group === 'year') this.groupBy = group;
+
+    const aemp = Number(q.get('aemp'));
+    if (aemp) this.analyticsEmployeeId = aemp;
+
+    const emp = Number(q.get('emp'));
+    if (emp) this.pendingEmployee = emp;
+  }
+
+  protected writeUrl() {
+  const custom = this.lastClick === 'apply';
+  const activity = this.tab() === 'activity';
+  const analytics = this.tab() === 'analytics';
+  const url = this.router.createUrlTree([], {
+  relativeTo: this.route,
+  queryParams: {
+      tab: this.tab() === 'employees' ? null : this.tab(),
+      range: custom ? null : this.activePreset(),
+      from: custom ? this.from : null,
+      to: custom ? this.to : null,
+      emp: activity ? this.selected()?.id ?? null : null,
+      sub: activity && this.sub() !== 'sessions' ? this.sub() : null,
+      group: analytics && this.groupBy !== 'week' ? this.groupBy : null,
+      aemp: analytics ? this.analyticsEmployeeId : null,
+    },
+  });
+  this.location.replaceState(url.toString());
+}
+
+  protected setTab(t: 'employees' | 'activity' | 'analytics') {
+    this.tab.set(t);
+    this.writeUrl();
+  }
+
+  protected setGroupBy(g: 'day' | 'week' | 'month' | 'year') {
+    this.groupBy = g;
+    this.writeUrl();
+    this.loadHours();
+  }
+
+  protected setAnalyticsEmployee(id: number | null) {
+    this.analyticsEmployeeId = id;
+    this.writeUrl();
+    this.loadHours();
+  }
+
   ngOnInit(): void {
+    this.readUrl();
     this.apply();
     this.updateSub = this.displayService.dataChanged$.subscribe(() => this.refresh());
   }
@@ -190,12 +271,14 @@ export class Reports implements OnInit, OnDestroy {
     this.lastClick = 'range';
     this.from = daysAgo(days);
     this.to = todayIso();
+    this.writeUrl();
     this.apply()
   }
   applyClick() {
     this.lastClick = 'apply';
     this.appliedFrom = this.from;
     this.appliedTo = this.to;
+    this.writeUrl();
     this.apply();
   }
   protected applyActive() {
@@ -219,6 +302,7 @@ export class Reports implements OnInit, OnDestroy {
     this.activity.set(null);
     this.page.set(0);
     this.tab.set('activity');
+    this.writeUrl();
     this.loadActivity();
   }
   loadEmployees() {
@@ -227,6 +311,14 @@ export class Reports implements OnInit, OnDestroy {
         this.rows.set(rows);
         const s = this.selected();
         if (s) this.selected.set(rows.find((r) => r.id === s.id) ?? s);
+        if (this.pendingEmployee != null) {
+          const row = rows.find((r) => r.id === this.pendingEmployee);
+          this.pendingEmployee = null;
+          if (row) {
+            this.selected.set(row);
+            this.loadActivity();
+          }
+        }
         this.error.set('');
       },
       error: () => this.error.set('Could not load employees report'),
@@ -373,6 +465,7 @@ export class Reports implements OnInit, OnDestroy {
   setSub(s: 'sessions' | 'tickets' | 'log') {
     this.sub.set(s);
     this.page.set(0);
+    this.writeUrl();
   }
 
   protected activePreset(): string | null {
@@ -394,6 +487,7 @@ export class Reports implements OnInit, OnDestroy {
     this.lastClick = 'range';
     this.from = todayIso();
     this.to = todayIso()
+    this.writeUrl();
     this.apply();
   }
   setWeek() {
@@ -401,6 +495,7 @@ export class Reports implements OnInit, OnDestroy {
     const back = (new Date().getDay() + 6) % 7;
     this.from = daysAgo(back);
     this.to = todayIso();
+    this.writeUrl();
     this.apply();
   }
 
