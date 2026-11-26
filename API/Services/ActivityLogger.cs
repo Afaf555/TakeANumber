@@ -23,7 +23,7 @@ public class ActivityLogger(AppDbContext context, IHttpContextAccessor accessor,
             Action = action,
             EntityType = entityType,
             EntityId = entityId,
-            Details = details,
+            Details = details ?? "",
             ActorId = actorId,
             ActorName = actorName
         });
