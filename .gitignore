@@ -15,3 +15,5 @@ appsettings.Development.json
 secrets.json
 
 .DS_Store
+# Docker secrets
+.env

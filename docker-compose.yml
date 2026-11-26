@@ -1,0 +1,27 @@
+services:
+  api:
+    build:
+      context: ./API
+    container_name: takeanumber-api
+    restart: unless-stopped
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_HTTP_PORTS: "8080"
+      TZ: Europe/Skopje
+      ConnectionStrings__DefaultConnection: "Server=host.docker.internal,1433;Database=QueueManagementDb;User Id=queueapp;Password=${DB_PASSWORD};TrustServerCertificate=True;Encrypt=True;"
+      TokenKey: ${TOKEN_KEY}
+      AdminPassword: ${ADMIN_PASSWORD}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    expose:
+      - "8080"
+
+  client:
+    build:
+      context: ./client
+    container_name: takeanumber-client
+    restart: unless-stopped
+    depends_on:
+      - api
+    ports:
+      - "8080:80"

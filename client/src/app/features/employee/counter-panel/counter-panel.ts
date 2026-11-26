@@ -88,10 +88,13 @@ export class CounterPanel implements OnInit, OnDestroy {
         this.message.set('Ticket called again');
         setTimeout(() => this.message.set(''), 3000);
         this.busy.set(false);
+        this.load();
+
       },
       error: (err) => {
         this.showError(err, 'Could not recall ticket');
         this.busy.set(false);
+        this.load();
       },
     });
   }
@@ -106,10 +109,12 @@ export class CounterPanel implements OnInit, OnDestroy {
         this.transferTo.set(null);
         this.error.set('');
         this.busy.set(false);
+        this.load();
       },
       error: (err) => {
         this.showError(err, 'Could not transfer ticket');
         this.busy.set(false);
+        this.load();
       },
     });
   }
@@ -156,12 +161,13 @@ export class CounterPanel implements OnInit, OnDestroy {
       next: (ticket) => {
         this.ticket.set(ticket);
         this.error.set('');
-        this.now.set(Date.now());
         this.busy.set(false);
+        this.load();
       },
       error: (err) => {
         this.showError(err, 'Could not call next ticket');
         this.busy.set(false);
+        this.load();   // e.g. "No tickets in queue": the list was stale, reload it
       },
     });
   }
@@ -173,14 +179,15 @@ export class CounterPanel implements OnInit, OnDestroy {
         this.ticket.set(null);
         this.error.set('');
         this.busy.set(false);
+        this.load();
       },
       error: (err) => {
         this.showError(err, 'Could not finish ticket');
         this.busy.set(false);
+        this.load();
       },
     });
   }
-
   noShow() {
     this.busy.set(true);
     this.employeeService.noShow().subscribe({
@@ -188,10 +195,14 @@ export class CounterPanel implements OnInit, OnDestroy {
         this.ticket.set(null);
         this.error.set('');
         this.busy.set(false);
+        this.load();
+
       },
       error: (err) => {
         this.showError(err, 'Could not mark ticket as no-show');
         this.busy.set(false);
+        this.load();
+
       },
     });
   }
