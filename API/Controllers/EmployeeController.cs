@@ -63,7 +63,7 @@ namespace API.Controllers
                 .ToList();
 
             var handled = await context.Tickets
-                .Where(t => t.CounterId == counterId && t.StartedAt >= today
+                .Where(t => t.EmployeeId == userId && t.StartedAt >= today
                     && (t.Status == TicketStatus.Finished || t.Status == TicketStatus.NoShow))
                 .Select(t => new { t.Status, t.StartedAt, t.FinishedAt })
                 .ToListAsync();
@@ -119,6 +119,7 @@ namespace API.Controllers
                 next.Status = TicketStatus.InProgress;
                 next.StartedAt = DateTime.UtcNow;
                 next.CounterId = counterId.Value;
+                next.EmployeeId = userId;
 
                 try
                 {
@@ -242,6 +243,7 @@ namespace API.Controllers
             current.Status = TicketStatus.InQueue;
             current.StartedAt = null;
             current.CounterId = null;
+            current.EmployeeId = null;
 
             if (!await employeeRepository.SaveAllAsync())
                 return BadRequest("Problem transferring ticket");

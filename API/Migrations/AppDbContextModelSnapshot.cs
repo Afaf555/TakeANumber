@@ -264,6 +264,9 @@ namespace API.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
+                    b.Property<int?>("EmployeeId")
+                        .HasColumnType("int");
+
                     b.Property<DateTime?>("FinishedAt")
                         .HasColumnType("datetime2");
 
@@ -294,6 +297,8 @@ namespace API.Migrations
                         .IsUnique()
                         .HasDatabaseName("IX_Tickets_OneInProgressPerCounter")
                         .HasFilter("[Status] = 'InProgress'");
+
+                    b.HasIndex("EmployeeId", "StartedAt");
 
                     b.HasIndex("ServiceId", "CreatedAt");
 

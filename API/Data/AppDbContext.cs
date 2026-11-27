@@ -115,6 +115,7 @@ public class AppDbContext(DbContextOptions options) : DbContext(options)
             e.HasIndex(x => new { x.ServiceId, x.CreatedAt });
 
             e.Property(x => x.TicketDate).HasColumnType("date");
+            e.HasIndex(x => new { x.EmployeeId, x.StartedAt });
 
            
             e.HasIndex(x => new { x.TicketDate, x.Number }).IsUnique();

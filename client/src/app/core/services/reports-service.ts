@@ -2,7 +2,7 @@ import { inject, Injectable } from "@angular/core";
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { environment } from "../../../environments/environment";
 import { EmployeeActivity, EmployeePhases, PhaseTimeline, EmployeeReportRow, HeatmapCell, HoursReport, PtoRow, WorkforceReport } from "../../types/reports";
-import { QueueReport } from "../../types/reports";
+import { PivotMeasure, PivotReport, PivotRowsBy, QueueReport } from "../../types/reports";
 @Injectable({providedIn:'root'})
 export class ReportsService{
     private http=inject(HttpClient);
@@ -20,6 +20,9 @@ export class ReportsService{
     let params=new HttpParams().set('from',from).set('to',to).set('groupBy',groupBy);
     if(employeeId!==null) params=params.set('employeeId',employeeId);
     return this.http.get<HoursReport>(this.baseUrl+'hours',{params});
+  }
+  getPivot(from: string, to: string, groupBy: string, rows: PivotRowsBy, measure: PivotMeasure) {
+    return this.http.get<PivotReport>(this.baseUrl + 'pivot', { params: { from, to, groupBy, rows, measure } });
   }
     getQueue(from: string, to: string) {
     return this.http.get<QueueReport>(this.baseUrl + 'queue', { params: { from, to } });

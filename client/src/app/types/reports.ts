@@ -74,3 +74,12 @@ export type PhaseSegment = {
 };
 export type PhaseTimelineDay = { date: string; sessions: PhaseSegment[]; segments: PhaseSegment[] };
 export type PhaseTimeline = { openMinute: number; closeMinute: number; days: PhaseTimelineDay[] };
+
+export type PivotRowsBy = 'employee' | 'service' | 'counter';
+export type PivotMeasure = 'served' | 'noshow' | 'avgService' | 'avgWait';
+export type PivotColumn = { periodStart: string; label: string };
+export type PivotRow = { label: string; values: (number | null)[]; total: number | null };
+export type PivotReport = {
+    columns: PivotColumn[]; rows: PivotRow[];
+    columnTotals: (number | null)[]; grandTotal: number | null;
+};

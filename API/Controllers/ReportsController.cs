@@ -130,7 +130,7 @@ public class ReportsController(AppDbContext context) : BaseApiController
                 .Where(b => b.UserId == s.UserId && b.LoginAt == s.LoginAt)
                 .Select(b => (b.BreakStartedAt!.Value, b.BreakEndedAt ?? span.End));
             var mine = tickets
-                .Where(x => x.CounterId == s.CounterId && x.StartedAt >= s.LoginAt && x.StartedAt <= span.End)
+                .Where(x => x.EmployeeId == s.UserId && x.StartedAt >= s.LoginAt && x.StartedAt <= span.End)
                 .Select(x => new TicketSlice(x.CreatedAt, x.StartedAt!.Value, x.FinishedAt));
 
             var day = LocalTime.ToLocal(s.LoginAt).Date;
@@ -180,7 +180,7 @@ public class ReportsController(AppDbContext context) : BaseApiController
                 .Where(b => b.LoginAt == s.LoginAt)
                 .Select(b => (b.BreakStartedAt!.Value, b.BreakEndedAt ?? span.End));
             var mine = tickets
-                .Where(x => x.CounterId == s.CounterId && x.StartedAt >= s.LoginAt && x.StartedAt <= span.End)
+                .Where(x => x.EmployeeId == s.UserId && x.StartedAt >= s.LoginAt && x.StartedAt <= span.End)
                 .Select(x => new TicketSlice(x.CreatedAt, x.StartedAt!.Value, x.FinishedAt,
                     TicketCode.Format(x.Service.Code, x.Number)));
 
@@ -367,6 +367,80 @@ public class ReportsController(AppDbContext context) : BaseApiController
             TotalTickets = tickets.Count(x => x.Status == TicketStatus.Finished),
             AvgServiceMinutes = AvgMinutes(tickets)
         };
+    }
+
+    [HttpGet("pivot")]
+    public async Task<ActionResult<PivotReportDto>> GetPivot(
+        [FromQuery] DateTime from, [FromQuery] DateTime to,
+        [FromQuery] string groupBy = "week", [FromQuery] string rows = "employee",
+        [FromQuery] string measure = "served")
+    {
+        if (to.Date < from.Date) return BadRequest("End date is before start date");
+        if (rows is not ("employee" or "service" or "counter")) return BadRequest("Unknown rows");
+        if (measure is not ("served" or "noshow" or "avgService" or "avgWait")) return BadRequest("Unknown measure");
+
+        var (f, t) = Range(from, to);
+        var tickets = await LoadTicketsAsync(f, t);
+
+        var columns = new List<PivotColumnDto>();
+        for (var p = PeriodStart(f, groupBy); p < t; p = NextPeriod(p, groupBy))
+            columns.Add(new PivotColumnDto { PeriodStart = p, Label = Label(p, groupBy) });
+
+        Dictionary<int, string> names = rows switch
+        {
+            "employee" => await context.Users.AsNoTracking().ToDictionaryAsync(u => u.Id, u => u.Username),
+            "counter" => await context.Counters.AsNoTracking().ToDictionaryAsync(c => c.Id, c => c.Name),
+            _ => tickets.Select(x => x.Service).DistinctBy(x => x.Id).ToDictionary(x => x.Id, x => x.Name)
+        };
+        int? KeyOf(Ticket x) => rows switch
+        {
+            "employee" => x.EmployeeId,
+            "counter" => x.CounterId,
+            _ => x.ServiceId
+        };
+
+        var groups = tickets
+            .Where(x => KeyOf(x) != null)
+            .GroupBy(x => KeyOf(x)!.Value)
+            .Select(g => new PivotRowDto
+            {
+                Label = names.TryGetValue(g.Key, out var name) ? name : $"#{g.Key} (deleted)",
+                Values = columns
+                    .Select(c => Measure(g.Where(x => PeriodStart(x.StartedAt!.Value, groupBy) == c.PeriodStart).ToList(), measure))
+                    .ToList(),
+                Total = Measure(g.ToList(), measure)
+            })
+            .OrderBy(r => r.Label)
+            .ToList();
+
+        var withKey = tickets.Where(x => KeyOf(x) != null).ToList();
+        return new PivotReportDto
+        {
+            Columns = columns,
+            Rows = groups,
+            ColumnTotals = columns
+                .Select(c => Measure(withKey.Where(x => PeriodStart(x.StartedAt!.Value, groupBy) == c.PeriodStart).ToList(), measure))
+                .ToList(),
+            GrandTotal = Measure(withKey, measure)
+        };
+    }
+
+    private static double? Measure(List<Ticket> tk, string measure)
+    {
+        switch (measure)
+        {
+            case "noshow":
+                return tk.Count(x => x.Status == TicketStatus.NoShow);
+            case "avgService":
+                return tk.Any(x => x.Status == TicketStatus.Finished && x.FinishedAt != null) ? AvgMinutes(tk) : null;
+            case "avgWait":
+                var waits = tk.Where(x => x.StartedAt != null)
+                    .Select(x => (x.StartedAt!.Value - x.CreatedAt).TotalMinutes)
+                    .ToList();
+                return waits.Count == 0 ? null : Math.Round(waits.Average(), 1);
+            default:
+                return tk.Count(x => x.Status == TicketStatus.Finished);
+        }
     }
 
     [HttpGet("non-working-days")]
@@ -655,11 +729,12 @@ public class ReportsController(AppDbContext context) : BaseApiController
             .ToListAsync();
 
 
-    private static List<Ticket> TicketsOf(List<SessionSpan> spans, List<Ticket> tickets, int? userId = null) =>
-        tickets.Where(t => spans.Any(x =>
-            (userId == null || x.S.UserId == userId) &&
-            x.S.CounterId == t.CounterId &&
-            t.StartedAt >= x.S.LoginAt && t.StartedAt <= x.End)).ToList();
+   
+    private static List<Ticket> TicketsOf(List<SessionSpan> spans, List<Ticket> tickets, int? userId = null)
+    {
+        HashSet<int> ids = userId != null ? [userId.Value] : spans.Select(x => x.S.UserId).ToHashSet();
+        return tickets.Where(t => t.EmployeeId != null && ids.Contains(t.EmployeeId.Value)).ToList();
+    }
 
     private static double AvgMinutes(IEnumerable<Ticket> tickets)
     {

@@ -381,6 +381,109 @@
             </div>
           </div>
           }
+          <div class="card border border-base-300">
+            <div class="card-body p-4 gap-3">
+              <div class="flex flex-wrap items-center justify-between gap-2">
+                <h3 class="font-semibold">Statistics</h3>
+                <div class="flex flex-wrap items-center gap-2">
+                  <select class="select select-sm rounded-full w-36" [ngModel]="pivotRows()"
+                    (ngModelChange)="setPivotRows($event)" aria-label="Rows">
+                    <option value="employee">By employee</option>
+                    <option value="service">By service</option>
+                    <option value="counter">By counter</option>
+                  </select>
+                  <select class="select select-sm rounded-full w-44" [ngModel]="pivotMeasure()"
+                    (ngModelChange)="setPivotMeasure($event)" aria-label="Measure">
+                    @for (m of pivotMeasures; track m.key) {
+                    <option [value]="m.key">{{ m.label }}</option>
+                    }
+                  </select>
+                  <div class="join">
+                    <button class="join-item btn btn-sm" [class.btn-primary]="pivotView() === 'table'"
+                      (click)="pivotView.set('table')">Table</button>
+                    <button class="join-item btn btn-sm" [class.btn-primary]="pivotView() === 'chart'"
+                      (click)="pivotView.set('chart')">Line chart</button>
+                  </div>
+                  <button type="button" class="btn btn-sm btn-ghost rounded-full border border-base-300"
+                    (click)="exportPivot()">Export CSV</button>
+                </div>
+              </div>
+
+              @if (pivot(); as p) {
+              @if (!p.rows.length) {
+              <p class="text-sm opacity-60">No data in this period</p>
+              } @else if (pivotView() === 'table') {
+              <div class="overflow-x-auto">
+                <table class="table table-sm">
+                  <thead class="text-xs uppercase text-base-content/60">
+                    <tr>
+                      <th class="sticky left-0 z-10 bg-base-100 border-r border-base-300 min-w-32 capitalize">{{ pivotRows() }}</th>
+                      @for (c of p.columns; track c.periodStart) {
+                      <th class="text-right whitespace-nowrap">{{ c.label }}</th>
+                      }
+                      <th class="text-right">Total</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (r of p.rows; track r.label) {
+                    <tr>
+                      <th class="sticky left-0 z-10 bg-base-100 border-r border-base-300 font-semibold whitespace-nowrap">{{ r.label }}</th>
+                      @for (v of r.values; track $index) {
+                      <td class="text-right" [style.background]="pivotShade(v)">{{ pivotValue(v) }}</td>
+                      }
+                      <td class="text-right font-semibold">{{ pivotValue(r.total) }}</td>
+                    </tr>
+                    }
+                  </tbody>
+                  <tfoot>
+                    <tr>
+                      <th class="sticky left-0 z-10 bg-base-100 border-r border-base-300">Total</th>
+                      @for (v of p.columnTotals; track $index) {
+                      <td class="text-right font-semibold">{{ pivotValue(v) }}</td>
+                      }
+                      <td class="text-right font-bold">{{ pivotValue(p.grandTotal) }}</td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+              } @else if (pivotChart(); as ch) {
+              <svg class="w-full h-auto" [attr.viewBox]="'0 0 ' + ch.W + ' ' + ch.H" role="img"
+                aria-label="Line chart">
+                @for (g of ch.grid; track $index) {
+                <line [attr.x1]="ch.left" [attr.x2]="ch.W - ch.right" [attr.y1]="g.y" [attr.y2]="g.y"
+                  stroke="currentColor" stroke-opacity="0.1" />
+                <text [attr.x]="ch.left - 6" [attr.y]="g.y + 4" text-anchor="end" font-size="11"
+                  fill="currentColor" fill-opacity="0.6">{{ g.label }}</text>
+                }
+                @for (xl of ch.xLabels; track $index) {
+                <text [attr.x]="xl.x" [attr.y]="ch.H - 12" text-anchor="middle" font-size="11" fill="currentColor"
+                  fill-opacity="0.6">{{ xl.label }}</text>
+                }
+                @for (l of ch.lines; track l.label) {
+                <path [attr.d]="l.d" fill="none" [attr.stroke]="l.color" stroke-width="2" stroke-linejoin="round"
+                  stroke-linecap="round" />
+                @for (pt of l.points; track $index) {
+                <circle [attr.cx]="pt.cx" [attr.cy]="pt.cy" r="3.5" [attr.fill]="l.color">
+                  <title>{{ pt.tip }}</title>
+                </circle>
+                }
+                }
+              </svg>
+              <div class="flex flex-wrap gap-x-4 gap-y-1 text-xs">
+                @for (l of ch.lines; track l.label) {
+                <span class="flex items-center gap-1.5">
+                  <span class="w-3 h-0.5 rounded" [style.background]="l.color"></span>{{ l.label }}
+                </span>
+                }
+                @if (ch.hidden > 0) {
+                <span class="opacity-60">+{{ ch.hidden }} more (see Table)</span>
+                }
+              </div>
+              }
+              }
+            </div>
+          </div>
+
           @if (hours(); as h) {
           <div class="flex justify-end">
             <button type="button" class="btn btn-sm btn-ghost rounded-full border border-base-300 "

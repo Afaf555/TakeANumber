@@ -1,6 +1,7 @@
 using API.Extensions;
 using API.Data;
 using API.Entities;
+using API.Entities.Enums;
 using API.Interfaces;
 using API.SignalR;
 using Microsoft.AspNetCore.SignalR;
@@ -16,6 +17,8 @@ public class SessionCleanupService(IServiceScopeFactory scopeFactory, ILogger<Se
         {
             try { await CloseStaleSessionsAsync(); }
             catch (Exception ex) { log.LogError(ex, "Session cleanup failed"); }
+            try { await CloseStaleTicketsAsync(); }
+            catch (Exception ex) { log.LogError(ex, "Ticket cleanup failed"); }
             await Task.Delay(TimeSpan.FromMinutes(1), stoppingToken);
         }
     }
@@ -60,6 +63,29 @@ public class SessionCleanupService(IServiceScopeFactory scopeFactory, ILogger<Se
             await hub.Clients.All.SendAsync("CountersUpdated",await counterRepository.GetActiveCountersAsync());
 
 
+    }
+    private async Task CloseStaleTicketsAsync()
+    {
+        using var scope = scopeFactory.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var logger = scope.ServiceProvider.GetRequiredService<ActivityLogger>();
+        var today = LocalTime.TodayStartUtc();
+
+        var expired = await context.Tickets
+            .Where(t => t.Status == TicketStatus.InQueue && t.CreatedAt < today)
+            .ExecuteUpdateAsync(s => s.SetProperty(t => t.Status, TicketStatus.Expired));
+
+        var minutes = SessionEnd.Grace.TotalMinutes;
+        var finished = await context.Tickets
+            .Where(t => t.Status == TicketStatus.InProgress && t.CreatedAt < today)
+            .ExecuteUpdateAsync(s => s
+                .SetProperty(t => t.Status, TicketStatus.Finished)
+                .SetProperty(t => t.FinishedAt, t => (t.StartedAt ?? t.CreatedAt).AddMinutes(minutes)));
+
+        if (expired == 0 && finished == 0) return;
+
+        await logger.LogAsync(LogActions.TicketsClosedAutomatically, "Ticket", null,
+            $"{expired} expired, {finished} finished", actorName: "system");
     }
 
 }

@@ -7,7 +7,7 @@ import { Component, computed, inject, OnDestroy, OnInit, signal } from '@angular
 import { Subscription } from 'rxjs';
 import { DisplayService } from '../../../../core/services/display-service';
 import { ReportsService } from '../../../../core/services/reports-service';
-import { AbsentDay, EmployeeActivity, EmployeeReportRow, HeatmapCell, HoursReport, QueueReport, SessionReport } from '../../../../types/reports';
+import { AbsentDay, EmployeeActivity, EmployeeReportRow, HeatmapCell, HoursReport, PivotMeasure, PivotReport, PivotRowsBy, QueueReport, SessionReport } from '../../../../types/reports';
 import { DatePipe, DecimalPipe, Location } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
@@ -40,6 +40,18 @@ export class Reports implements OnInit, OnDestroy {
   private appliedFrom = '';
   private appliedTo = '';
   protected groupBy: 'day' | 'week' | 'month' | 'year' = 'week';
+
+  protected pivot = signal<PivotReport | null>(null);
+  protected pivotRows = signal<PivotRowsBy>('employee');
+  protected pivotMeasure = signal<PivotMeasure>('served');
+  protected pivotView = signal<'table' | 'chart'>('table');
+  protected readonly pivotMeasures: { key: PivotMeasure; label: string }[] = [
+    { key: 'served', label: 'Tickets served' },
+    { key: 'noshow', label: 'No-shows' },
+    { key: 'avgService', label: 'Avg service (min)' },
+    { key: 'avgWait', label: 'Avg wait (min)' },
+  ];
+  private readonly lineColors = ['#2563eb', '#16a34a', '#f59e0b', '#dc2626', '#7c3aed', '#0891b2', '#db2777', '#65a30d'];
   protected analyticsEmployeeId: number | null = null;
 
   protected rows = signal<EmployeeReportRow[]>([]);
@@ -240,6 +252,94 @@ export class Reports implements OnInit, OnDestroy {
     this.groupBy = g;
     this.writeUrl();
     this.loadHours();
+    this.loadPivot();
+  }
+
+  protected setPivotRows(r: PivotRowsBy) {
+    this.pivotRows.set(r);
+    this.loadPivot();
+  }
+
+  protected setPivotMeasure(m: PivotMeasure) {
+    this.pivotMeasure.set(m);
+    this.loadPivot();
+  }
+
+  loadPivot() {
+    this.reportsService
+      .getPivot(this.from, this.to, this.groupBy, this.pivotRows(), this.pivotMeasure())
+      .subscribe({
+        next: (p) => this.pivot.set(p),
+        error: () => this.error.set('Could not load pivot'),
+      });
+  }
+
+  protected pivotValue(v: number | null) {
+    if (v === null) return '–';
+    return this.pivotMeasure() === 'served' || this.pivotMeasure() === 'noshow' ? String(v) : v.toFixed(1);
+  }
+
+  protected pivotShade(v: number | null) {
+    const max = this.pivotMax();
+    if (v === null || max === 0 || v === 0) return null;
+    const pct = Math.round(8 + (v / max) * 42);
+    return `color-mix(in oklab, var(--color-primary) ${pct}%, transparent)`;
+  }
+
+  private pivotMax = computed(() =>
+    Math.max(0, ...(this.pivot()?.rows.flatMap((r) => r.values.filter((v): v is number => v !== null)) ?? [])),
+  );
+
+  protected pivotChart = computed(() => {
+    const p = this.pivot();
+    if (!p || !p.columns.length || !p.rows.length) return null;
+    const W = 800, H = 280, left = 44, right = 16, top = 16, bottom = 36;
+    const max = this.pivotMax() || 1;
+    const step = Math.pow(10, Math.floor(Math.log10(max)));
+    const yMax = Math.ceil(max / step) * step;
+    const n = p.columns.length;
+    const x = (i: number) => (n === 1 ? (left + W - right) / 2 : left + (i * (W - left - right)) / (n - 1));
+    const y = (v: number) => top + (1 - v / yMax) * (H - top - bottom);
+
+    const rows = [...p.rows].sort((a, b) => (b.total ?? 0) - (a.total ?? 0)).slice(0, 8);
+    const lines = rows.map((r, idx) => {
+      let d = '';
+      let pen = false;
+      r.values.forEach((v, i) => {
+        if (v === null) { pen = false; return; }
+        d += `${pen ? 'L' : 'M'}${x(i).toFixed(1)},${y(v).toFixed(1)}`;
+        pen = true;
+      });
+      const points = r.values
+        .map((v, i) => (v === null ? null : { cx: x(i), cy: y(v), tip: `${r.label} · ${p.columns[i].label}: ${this.pivotValue(v)}` }))
+        .filter((pt) => pt !== null);
+      return { label: r.label, color: this.lineColors[idx % this.lineColors.length], d, points };
+    });
+
+    const labelEvery = Math.ceil(n / 10);
+    return {
+      W, H, left, right, top, bottom,
+      grid: [0, 0.25, 0.5, 0.75, 1].map((f) => ({ y: y(yMax * f), label: this.pivotValue(yMax * f).replace('.0', '') })),
+      xLabels: p.columns
+        .map((c, i) => ({ x: x(i), label: c.label.replace('Week of ', '') }))
+        .filter((_, i) => i % labelEvery === 0),
+      lines,
+      hidden: p.rows.length - rows.length,
+    };
+  });
+
+  exportPivot() {
+    const p = this.pivot();
+    if (!p) return;
+    const measure = this.pivotMeasures.find((m) => m.key === this.pivotMeasure())?.label ?? '';
+    downloadCsv(
+      `pivot_${this.pivotRows()}_${this.pivotMeasure()}_${this.from}_${this.to}.csv`,
+      [`${this.pivotRows()} / ${measure}`, ...p.columns.map((c) => c.label), 'Total'],
+      [
+        ...p.rows.map((r) => [r.label, ...r.values, r.total]),
+        ['Total', ...p.columnTotals, p.grandTotal],
+      ],
+    );
   }
 
   protected setAnalyticsEmployee(id: number | null) {
@@ -264,6 +364,7 @@ export class Reports implements OnInit, OnDestroy {
     this.loadHours(false);
     this.loadQueue();
     this.loadHeatmap()
+    this.loadPivot();
     if (this.selected()) this.loadActivity(false);
   }
 
@@ -294,6 +395,7 @@ export class Reports implements OnInit, OnDestroy {
     this.loadHours();
     this.loadQueue();
     this.loadHeatmap()
+    this.loadPivot();
 
     if (this.selected()) this.loadActivity()
   }

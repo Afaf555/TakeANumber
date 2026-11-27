@@ -106,3 +106,23 @@ public class HeatmapCellDto
     public int Hour { get; set; }
     public int Tickets { get; set; }
 }
+public class PivotColumnDto
+{
+    public DateTime PeriodStart { get; set; }
+    public string Label { get; set; } = "";
+}
+
+public class PivotRowDto
+{
+    public string Label { get; set; } = "";
+    public List<double?> Values { get; set; } = [];  
+    public double? Total { get; set; }
+}
+
+public class PivotReportDto
+{
+    public List<PivotColumnDto> Columns { get; set; } = [];
+    public List<PivotRowDto> Rows { get; set; } = [];
+    public List<double?> ColumnTotals { get; set; } = [];
+    public double? GrandTotal { get; set; }
+}

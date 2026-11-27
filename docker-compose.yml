@@ -15,6 +15,13 @@ services:
       - "host.docker.internal:host-gateway"
     expose:
       - "8080"
+    develop:
+      watch:
+        - action: rebuild
+          path: ./API
+          ignore:
+            - bin/
+            - obj/
 
   client:
     build:
@@ -25,3 +32,9 @@ services:
       - api
     ports:
       - "8080:80"
+    develop:
+      watch:
+        - action: rebuild
+          path: ./client/src
+        - action: rebuild
+          path: ./client/nginx.conf

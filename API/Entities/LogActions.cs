@@ -18,6 +18,7 @@ public static class LogActions
     public const string TicketCalled = "TicketCalled";
     public const string TicketFinished = "TicketFinished";
     public const string TicketNoShow="TicketNoShow";
+    public const string TicketsClosedAutomatically="TicketClosedAutomatically";
     public const string NonWorkingDayAdded="NonWorkingDayAdded";
     public const string NonWorkingDayRemoved="NonWorkingDayRemoved";
     public const string BreakStarted="BreakStarted";

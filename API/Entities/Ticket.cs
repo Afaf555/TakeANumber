@@ -10,6 +10,7 @@ public class Ticket
 
     public DateTime CreatedAt { get; set; }
     public DateTime TicketDate { get; set; }  
+    public int? EmployeeId {get; set;}
     public DateTime? StartedAt { get; set; }
     public DateTime? FinishedAt { get; set; }
 

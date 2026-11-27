@@ -71,7 +71,7 @@ export class QueueOverview implements OnInit, OnDestroy {
   }
 
   protected statusLabel(status: string) {
-    return { InQueue: 'Waiting', InProgress: 'Serving', Finished: 'Finished', NoShow: 'No-show' }[status] ?? status;
+    return { InQueue: 'Waiting', InProgress: 'Serving', Finished: 'Finished', NoShow: 'No-show', Expired: 'Expired' }[status] ?? status;
   }
 
   load() {
